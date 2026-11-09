@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Test output
+coverage/
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+.playwright-mcp/
+
+# Local environment
+.env*
+
+# Logs and OS files
+*.log
+.DS_Store
+Thumbs.db
+
+# Note: .kiro/ is intentionally NOT ignored.
