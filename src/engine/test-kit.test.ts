@@ -1,7 +1,7 @@
 import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { BREAK_MS, MS_PER_MINUTE, PAUSE_LIMIT_MS } from "./constants";
-import { assertInvariants, arbEntry, arbScript, arbT0, runScript } from "./test-kit";
+import { PROP_PARAMS, assertInvariants, arbEntry, arbScript, arbT0, runScript } from "./test-kit";
 import type { ScriptStep } from "./test-kit";
 import { step } from "./step";
 import { INITIAL_STATE } from "./types";
@@ -73,7 +73,7 @@ describe("runScript", () => {
       fc.property(arbT0, arbScript, (t0, script) => {
         for (const entry of runScript(script, t0)) assertInvariants(entry.after);
       }),
-      { numRuns: 100 },
+      PROP_PARAMS,
     );
   });
 
@@ -84,7 +84,7 @@ describe("runScript", () => {
         expect(e.lengthMin).toBeGreaterThanOrEqual(5);
         expect(e.lengthMin).toBeLessThanOrEqual(90);
       }),
-      { numRuns: 100 },
+      PROP_PARAMS,
     );
   });
 });

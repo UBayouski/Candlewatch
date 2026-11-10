@@ -91,79 +91,79 @@ Build order note: `history` comes before `settle` (task 3 before 4) because `set
   - Requirements: P1 to P11 file layout. Properties: none yet.
   - Done when `npm run verify` passes.
 
-- [ ] 12. Required: P1, time left never increases while lit
+- [x] 12. Required: P1, time left never increases while lit
   - Add the P1 test to `src/engine/step.prop.test.ts` per design 8.2: for consecutive trace entries that are both `lit` or `paused` in the same session, `timeLeftMs` does not increase.
   - Files: `src/engine/step.prop.test.ts`.
   - Requirements: R4.4, R3.3. Properties: P1.
   - Done when `npm run verify` passes.
 
-- [ ] 13. Required: P2, pausing never changes total burn time
+- [x] 13. Required: P2, pausing never changes total burn time
   - Add the P2 test: up to 10 pause/resume pairs with total pause within the limit; at `t0 + L + P - 1` the state is `lit` with 1 ms left, at `t0 + L + P` it is `burned-out` with `endedAt = t0 + L + P` and `pausedTotalMs = P`; a pause-free run ends at `t0 + L`.
   - Files: `src/engine/step.prop.test.ts`.
   - Requirements: R3.3, R4.1. Properties: P2.
   - Done when `npm run verify` passes.
 
-- [ ] 14. Required: P3, tick rate does not matter
+- [x] 14. Required: P3, tick rate does not matter
   - Add the P3 test with both variants (random inserted ticks interpolated between neighbours; a fixed-period tick every `period` ms capped at 500): state after every original event is `toStrictEqual` to the base run.
   - Files: `src/engine/step.prop.test.ts`.
   - Requirements: R4.3, R5.3, R5.4. Properties: P3.
   - Done when `npm run verify` passes.
 
-- [ ] 15. Required: P4, no illegal states or transitions
+- [x] 15. Required: P4, no illegal states or transitions
   - Add the P4 test: scripts with invalid steps, small negative gaps and junk `reload` events; `step` never throws; `assertInvariants` after every step; only the allowed moves; new sessions start with `litSince = startedAt = now`; `paused -> lit` keeps `startedAt`; nothing moves to `idle`.
   - Files: `src/engine/step.prop.test.ts`.
   - Requirements: R1.1 to R1.5, R12.1 to R12.3. Properties: P4.
   - Done when `npm run verify` passes.
 
-- [ ] 16. Required: P5, wax fraction bounds and anchor clamp
+- [x] 16. Required: P5, wax fraction bounds and anchor clamp
   - Add the P5 test to `src/engine/selectors.prop.test.ts`: signed gaps, probe times around the anchor; `waxFraction` in `[0, 1]`; equals the anchor value for probes at or before the anchor; never exceeds it past the anchor.
   - Files: `src/engine/selectors.prop.test.ts`.
   - Requirements: R4.4, R4.5, R4.6. Properties: P5 (as reworded).
   - Done when `npm run verify` passes.
 
-- [ ] 17. Required: P6, history JSON round trip
+- [x] 17. Required: P6, history JSON round trip
   - Add the P6 test to `src/engine/serialize.prop.test.ts`: `parseHistory(serializeHistory(h))` is `toStrictEqual` to `h` for generated histories with arbitrary intents (quotes, backslashes, emoji, CJK, lone surrogates); the JSON carries `"v": 1`; `parseHistory` of arbitrary strings never throws and returns an array; injected invalid entries are dropped and the valid ones come back in order.
   - Files: `src/engine/serialize.prop.test.ts`.
   - Requirements: R10.3, R10.4, R10.5. Properties: P6.
   - Done when `npm run verify` passes.
 
-- [ ] 18. Required: P7, the pause limit
+- [x] 18. Required: P7, the pause limit
   - Add the P7 test to `src/engine/step.prop.test.ts`: pause durations around the allowance (`allowance - 1`, `allowance`, `allowance + 1`, plus random up to 20 minutes), noticed late by `tick`, `resume`, `snuff`, `pause`, `light` or `reload`; within the allowance `resume` gives `lit` with the pause total increased; beyond it the result is `snuffed` with `endedAt = pausedAt + allowance`; `pausedTotalMs` never exceeds 600 000 in any trace state; include multi-pause sequences.
   - Files: `src/engine/step.prop.test.ts`.
   - Requirements: R3.4, R3.5, R3.6. Properties: P7.
   - Done when `npm run verify` passes.
 
-- [ ] 19. Required: P8, reload equals tick
+- [x] 19. Required: P8, reload equals tick
   - Add the P8 test to `src/engine/serialize.prop.test.ts`: for every `lit`, `paused` and `burned-out` state in generated traces, `restoreState(serializeSession(s), serializeHistory(s.history))` is `toStrictEqual` to `s`, and `step(s, reload(restored), T)` is `toStrictEqual` to `step(s, tick, T)` for random `T` up to 6 hours later.
   - Files: `src/engine/serialize.prop.test.ts`.
   - Requirements: R9.1, R9.2, R9.3. Properties: P8.
   - Done when `npm run verify` passes.
 
-- [ ] 20. Required: P9, hide and show never change state
+- [x] 20. Required: P9, hide and show never change state
   - Add the P9 test to `src/engine/step.prop.test.ts`: for every state in generated traces and any `now`, `step(s, hide, now) === s` and `step(s, show, now) === s` (same reference).
   - Files: `src/engine/step.prop.test.ts`.
   - Requirements: R8.2, R5.4. Properties: P9.
   - Done when `npm run verify` passes.
 
-- [ ] 21. Required: P10, one history entry per ended session
+- [x] 21. Required: P10, one history entry per ended session
   - Add the P10 test to `src/engine/step.prop.test.ts`: history never shrinks; old entries are the same objects in the same positions; length grows by exactly 1 when a step ends a session (including via settle inside `light` or `reload`) and by 0 otherwise; total entries equal the number of sessions ended; reloading the same running state twice at a late `T` adds exactly one entry.
   - Files: `src/engine/step.prop.test.ts`.
   - Requirements: R10.1, R10.2, R9.5. Properties: P10.
   - Done when `npm run verify` passes.
 
-- [ ] 22. Required: P11, the break selector
+- [x] 22. Required: P11, the break selector
   - Add the P11 test to `src/engine/selectors.prop.test.ts`: for every state and probe time around `endedAt` and `breakEndsAt`, `isBreak` equals `phase === 'burned-out' && probe < breakEndsAt`; `breakEndsAt` exists only on `burned-out` states; `breakEndsAt` equals the end time computed independently from the script (`t0 + L + P`) plus 300 000.
   - Files: `src/engine/selectors.prop.test.ts`.
   - Requirements: R7.1, R7.2, R7.4. Properties: P11.
   - Done when `npm run verify` passes.
 
-- [ ] 23. Required: purity test
+- [x] 23. Required: purity test
   - Create `src/engine/purity.test.ts`: read the non-test `.ts` files in `src/engine/` with `node:fs` (excluding `*.test.ts`, `*.prop.test.ts` and `test-kit.ts`) and fail if any mentions `window`, `document`, `localStorage`, `Date.now`, `performance` or `Math.random`; also fail if any imports from `../storage`, `../ui`, `../scene` or `../audio`.
   - Files: `src/engine/purity.test.ts`.
   - Requirements: R11.1, R4.2. Properties: none.
   - Done when `npm run verify` passes.
 
-- [ ] 24. Wrap-up
+- [x] 24. Wrap-up
   - Run `npm run verify` and confirm every property test ran with its full number of runs (no skipped or `todo` tests).
   - Update `.kiro/steering/structure.md` if the final layout differs from it (for example the `test-kit` files).
   - Add a `KIRO_USAGE.md` entry for the implementation, with the real surface used, what Kiro produced, and anything changed by hand.

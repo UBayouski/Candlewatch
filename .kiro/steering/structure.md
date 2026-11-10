@@ -1,6 +1,6 @@
 # Candlewatch - Structure
 
-The project is scaffolded (placeholder code only). Source folders other than `src/` root files are empty (`.gitkeep`) until their specs run. Vitest and fast-check tests are colocated next to the source as `*.test.ts` and `*.prop.test.ts`; Playwright tests stay in `e2e/`. Root config files: `package.json`, `tsconfig.json`, `vite.config.ts`, `vitest.config.ts`, `playwright.config.ts`, `eslint.config.js` (flat), `index.html`. Playwright runs against `vite preview` on port 4173. TypeScript is pinned to 6.0.x because typescript-eslint does not yet support 7.
+The project is scaffolded. `src/engine/` and `src/storage/` are implemented (the `session-engine` spec); the other source folders are empty (`.gitkeep`) until their specs run. Vitest and fast-check tests are colocated next to the source as `*.test.ts` and `*.prop.test.ts`; Playwright tests stay in `e2e/`. Root config files: `package.json`, `tsconfig.json`, `vite.config.ts`, `vitest.config.ts`, `playwright.config.ts`, `eslint.config.js` (flat), `index.html`. Playwright runs against `vite preview` on port 4173. TypeScript is pinned to 6.0.x because typescript-eslint does not yet support 7.
 
 ```
 candlewatch/
@@ -13,8 +13,10 @@ candlewatch/
     BRIEF.md           product brief (input, do not edit unasked)
     screenshots/       current screenshots of every state
   src/
-    engine/            pure session engine: types, transitions, time math (no DOM)
-    storage/           history and current-session persistence (localStorage, JSON)
+    engine/            pure session engine: types, step/settle, selectors, serialization (no DOM);
+                       test-kit.ts holds shared test arbitraries (test-only, never imported by source);
+                       index.ts is the public surface
+    storage/           localStorage adapter (the only code that touches it); imports the engine's index
     distraction/       visibility event handling feeding the engine
     scene/             inline SVG room: candle, wax, flame, light, ghosts, graveyard, shelf, dawn
     ui/                controls, dialogs, settings, keyboard handling, views
