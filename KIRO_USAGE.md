@@ -70,3 +70,12 @@ A running log of how Kiro was used to build Candlewatch, for the hackathon write
 - **Mutation check:** Five deliberate breaks of the engine were each caught by at least one property and example test, then reverted: ends dated to `now` (P3, P11), resume without the clamp (P4), burn without the `litSince` clamp (P5 after strengthening), pause limit off by one (P7), `hide` settling (P9). The engine files were restored byte for byte and the full suite was green afterwards.
 - **What was changed by hand:** Nothing.
 - **Notable:** No engine code was changed in these tasks. Both genuine property failures were wrong wording in the test plan, not engine bugs, and the third finding was a weak generator. `src/engine/.gitkeep` and `src/storage/.gitkeep` were removed now that the folders have files.
+
+## 2026-11-10 - First README (Web surface)
+
+- **Surface:** Kiro Web (a browser session with the repo cloned into a sandbox; changes go out as a pull request).
+- **What was asked:** Read `docs/BRIEF.md`, the steering files, `package.json` and the `session-engine` spec, then write the first `README.md` (what it is, status, quick start, how it is built, built with Kiro, disclosure, license) and open it as a pull request. Add this entry. Change no other files.
+- **What Kiro produced:** `README.md` with the element-to-state table from brief section 4, a plain statement that only the engine, serialization and storage adapter are built and that the scene and UI are not, one line per npm script, and a Kiro section that points here. It also produced this entry and a pull request.
+- **What was changed by hand:** Nothing.
+- **Notable:** The README says "planned" for everything not built and gives no live URL. It avoids the trademarked word the brief forbids and says "focus session". Kiro did not run the scripts in this session, so the README describes them from `package.json` only.
+- **How Web differed from the CLI:** The work ended in a branch and a pull request instead of local files, so review happens on GitHub and not in a terminal. The sandbox has no IDE, so there was no editor view of the files. Git and GitHub went through the pre-configured `git` and `gh` tools. The pull request is the review step the brief's plan names for Kiro Web.
