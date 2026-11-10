@@ -1,6 +1,6 @@
 ---
 inclusion: fileMatch
-fileMatchPattern: "{src/scene/**,**/*.css}"
+fileMatchPattern: ["src/scene/**", "**/*.css"]
 ---
 
 # Candlewatch - Scene and visual rules

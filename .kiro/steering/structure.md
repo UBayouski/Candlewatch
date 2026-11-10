@@ -1,6 +1,6 @@
 # Candlewatch - Structure
 
-No source exists yet. This is the planned layout; keep to it when scaffolding and adjust this file if the layout changes.
+The project is scaffolded (placeholder code only). Source folders other than `src/` root files are empty (`.gitkeep`) until their specs run. Vitest and fast-check tests are colocated next to the source as `*.test.ts` and `*.prop.test.ts`; Playwright tests stay in `e2e/`. Root config files: `package.json`, `tsconfig.json`, `vite.config.ts`, `vitest.config.ts`, `playwright.config.ts`, `eslint.config.js` (flat), `index.html`. Playwright runs against `vite preview` on port 4173. TypeScript is pinned to 6.0.x because typescript-eslint does not yet support 7.
 
 ```
 candlewatch/
@@ -21,7 +21,6 @@ candlewatch/
     audio/             Web Audio cues
     strings.ts         all flavour text and UI copy in one file
     main.ts            wiring
-  tests/               Vitest and fast-check tests (or colocated *.test.ts)
   e2e/                 Playwright tests
   KIRO_USAGE.md        running log of Kiro usage
 ```
@@ -29,7 +28,7 @@ candlewatch/
 ## Naming
 
 - Files and folders: kebab-case. Types and classes: PascalCase. Functions and variables: camelCase. Constants: UPPER_SNAKE_CASE.
-- Tests: `*.test.ts` for Vitest, `*.prop.test.ts` for property-based, `*.spec.ts` in `e2e/` for Playwright.
+- Tests are colocated with the source: `*.test.ts` for Vitest, `*.prop.test.ts` for property-based (fast-check). Playwright tests are `*.spec.ts` in `e2e/`.
 - Spec names (kebab-case, in order): `session-engine`, `distraction-tracking`, `candle-scene`, `ghosts-and-graveyard`, `controls-and-access`, `sound-and-title`, `hosting`.
 
 ## Boundaries

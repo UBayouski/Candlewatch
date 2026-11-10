@@ -1,0 +1,31 @@
+{
+  "name": "candlewatch",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A focus timer where a candle is the clock.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "test": "vitest run",
+    "e2e": "playwright test",
+    "check": "tsc --noEmit && eslint .",
+    "verify": "npm run check && npm run test && npm run build && npm run e2e"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@playwright/test": "1.65.0",
+    "@types/node": "26.6.6",
+    "eslint": "10.14.0",
+    "fast-check": "4.10.2",
+    "globals": "17.14.0",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.72.2",
+    "vite": "8.3.7",
+    "vitest": "5.1.0"
+  }
+}
