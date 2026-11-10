@@ -387,7 +387,7 @@ export function createStorage(kv: KeyValueStore | null): {
 - Order of writes: history first, then session. If the second write fails, the next load sees an older session and the full history; the idempotent append in `restoreState` and `settle` keeps entries unique.
 - `main.ts` (not part of this spec's code) will call `store.save(prev, next)` after each `step` where `next !== prev`, and own `Date.now()` (R11.3).
 
-### 6.1 Never destroy unreadable stored text
+### 6.1 Never destroy unreadable stored text (R11.4)
 
 Problem: when the stored text cannot be read, `load()` returns an empty history (or idle). The next time a session ends, `save` writes the in-memory history, which would replace the stored text and erase every entry that was in it (for example after a version bump or a half-written value).
 
@@ -510,7 +510,7 @@ Each property runs `numRuns: 300` (raise in CI if time allows) and prints the se
 | R8 | 3 (`distractions`, `timeAwayMs`), 4.3 `hide`/`show`, P9 |
 | R9 | 5.3, 5.4 `reload`, P8, P10 |
 | R10 | 4.5 `appendEntry`, 5 formats, P6, P10 |
-| R11 | 6 adapter, `purity.test.ts` |
+| R11 | 6 adapter, 6.1 unreadable-text backup (R11.4), `purity.test.ts` |
 | R12 | 3 closed `Event` union, 4.3 default branch and non-finite guard, P4 |
 
 ## 10. Decisions

@@ -122,6 +122,7 @@ The session engine is the pure core of Candlewatch. It holds the life of one foc
 1. The engine and serialization functions SHALL be pure and SHALL NOT touch `window`, `document`, `localStorage` or the clock (steering `tech.md`).
 2. A separate thin module under `src/storage/` SHALL read and write `localStorage`: the current session and the history under distinct keys. It SHALL write after each state change and SHALL tolerate `localStorage` being unavailable or full without throwing (the app keeps working, only without persistence).
 3. Only `main.ts` and `src/ui/` own the clock and pass `now` into the engine.
+4. IF a stored session or history text is present but unreadable (invalid JSON, wrong or missing version, or failing validation), THEN THE storage adapter SHALL copy the raw text once, unchanged, to a backup key before its first write to that key, SHALL NOT overwrite an existing backup, and SHALL leave the original text untouched if the backup write fails.
 
 ### R12. Event contract
 
