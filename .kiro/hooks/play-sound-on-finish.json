@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Play sound when agent finishes",
+      "trigger": "Stop",
+      "description": "Plays a spooky low-to-high A minor chime when the agent stops, so you know the task is done.",
+      "action": {
+        "type": "command",
+        "command": "powershell -NoProfile -ExecutionPolicy Bypass -File .kiro/hooks/halloween-chime.ps1",
+        "timeout": 10
+      }
+    }
+  ]
+}

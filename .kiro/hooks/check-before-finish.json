@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Run type-check and lint before finishing",
+      "trigger": "Stop",
+      "description": "Runs npm run check (tsc --noEmit plus eslint) when the agent is about to finish a task.",
+      "action": {
+        "type": "command",
+        "command": "npm run check",
+        "timeout": 120
+      }
+    }
+  ]
+}
