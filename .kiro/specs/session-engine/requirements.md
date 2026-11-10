@@ -67,7 +67,7 @@ The session engine is the pure core of Candlewatch. It holds the life of one foc
 1. WHEN `tick` is received in `lit` and burn time has reached the session length, THE engine SHALL enter `burned-out` with the end time set to the instant of completion (start time plus total paused time plus length), not to `now`.
 2. WHEN `tick` is received in `paused` and the pause limit has been passed, THE engine SHALL enter `snuffed` as in R3.5.
 3. In every other case `tick` SHALL return the state unchanged, and it SHALL be safe to send any number of times (idempotent for a fixed `now`).
-4. Any event other than `tick` that arrives after a session's completion instant or pause-limit instant but before the engine has seen it SHALL first settle the session (R5.1, R5.2) and then be handled in the settled phase.
+4. Any event other than `tick`, `hide` and `show` that arrives after a session's completion instant or pause-limit instant but before the engine has seen it SHALL first settle the session (R5.1, R5.2) and then be handled in the settled phase. `hide` and `show` are exempt: they never settle and return the state unchanged (R8.2).
 
 ### R6. Snuff
 
@@ -128,6 +128,7 @@ The session engine is the pure core of Candlewatch. It holds the life of one foc
 1. The events are exactly: `light` (with length and optional intent), `pause`, `resume`, `snuff`, `tick`, `hide`, `show`, `reload` (with the restored state). Each is handled with a `now` argument.
 2. The engine SHALL be total: for every state and every event it returns a state, never throws.
 3. The engine SHALL NOT mutate its input state or event.
+4. `step` SHALL floor `now` to an integer, and SHALL return the state unchanged (the same value) when `now` is not finite. The selectors (time left, wax fraction, break) SHALL return 0 (or `false` for the break selector) when `now` is not finite.
 
 ## Property-based tests (fast-check)
 
@@ -139,7 +140,7 @@ Each property uses generated event sequences with non-decreasing (and, where sta
 | P2 | For any number of pause and resume pairs (each within the 10-minute total limit), the session still burns for exactly its length: the completion instant moves later by exactly the total paused time, and burn time at completion equals the session length. | R3.3, R4.1 |
 | P3 | The same events at the same timestamps, with any number of extra `tick` events inserted at any timestamps, produce the same final state (except where a tick is the first to settle a completion, which yields the same end time per R5.1). | R4.3, R5 |
 | P4 | No event sequence, including invalid events, reaches a phase outside the five, or a transition outside R1.2. | R1, R12 |
-| P5 | Wax fraction stays in [0, 1] and never grows during a session, even when `now` goes backwards. | R4.4, R4.5, R4.6 |
+| P5 | Wax fraction is always in [0, 1]. For a probe time at or before the state's anchor (`litSince` when lit, `pausedAt` when paused) it equals the fraction at the anchor; for a probe past the anchor it never exceeds the fraction at the anchor. | R4.4, R4.5, R4.6 |
 | P6 | History serialize then deserialize is the identity, for generated histories with arbitrary intents. | R10.3 |
 | P7 | Total paused time never exceeds 10 minutes in a non-snuffed session; any session that would exceed it ends `snuffed` with end time at the limit instant. | R3.4, R3.5 |
 | P8 | Reload equivalence: serializing a running state, then `reload` at time T, equals feeding a `tick` at T to the original state. | R9.2, R9.3 |
