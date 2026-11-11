@@ -85,7 +85,7 @@ Build order note: the Blueprint comes before its tests (tasks 2 and 3 before 4),
   - Requirements: R3.1 to R3.6, R4.1, R4.3, R6.5. Properties: none.
   - Done when the report is written and `npm run verify` still passes in the main working tree.
 
-- [ ] 9. **[owner]** Create the service from the Blueprint
+- [x] 9. **[owner]** Create the service from the Blueprint
   - Merge the pull request with tasks 1 to 8 into `main` first, so Render reads the final `render.yaml`.
   - Follow design section 9: connect Render to `UBayouski/Candlewatch`; New, Blueprint; branch `main`; check the preview shows one free static site named `candlewatch` with auto-deploy on, previews off and the exact build command; apply; wait for the first deploy.
   - Report back to the agent: the service URL, whether it is `https://candlewatch.onrender.com`, the plan shown in the dashboard, the build time and result of the first deploy, whether the build log shows `npm ci` finishing and no browser download, whether Render accepted `pullRequestPreviewsEnabled` (the one field the sibling evidence does not cover), and any bandwidth or build-minute limit the dashboard shows.
@@ -93,7 +93,7 @@ Build order note: the Blueprint comes before its tests (tasks 2 and 3 before 4),
   - Files: none.
   - Requirements: R1.5, R2.1, R2.2, R11.2. Properties: none.
   - Done when the owner has confirmed the first deploy succeeded and has given the URL.
-
+  - Result (2026-11-10, reported by the owner): the Blueprint was applied; the service is a **free static site** at **https://candlewatch.onrender.com** (the expected URL, so R1.5 needs no change); the first deploy passed. Not reported: the first build's time, the `npm ci` and browser-download lines of its log, whether Render accepted `pullRequestPreviewsEnabled` (the service was created, so it did not reject the Blueprint), and any usage limit shown. The later deploy log (task 12) shows Render used Node.js 22.23.4 through `NODE_VERSION`.
 - [x] 10. First smoke run against the live site
   - Run `BASE_URL=<owner's URL> npm run smoke` (or plain `npm run smoke` if the URL is the expected one). Report the full result, group by group.
   - On failure: report the failing check with the live header values next to the Blueprint's. Likely causes are in design section 10 (Render merged or duplicated a header, did not apply a path rule, or added its own `Strict-Transport-Security`). Fix the Blueprint with a small pull request, **[owner]** merges it and waits for the redeploy, and the smoke run is repeated until it passes. Do not edit the smoke test to match Render without saying why the live behaviour is acceptable.
@@ -104,35 +104,35 @@ Build order note: the Blueprint comes before its tests (tasks 2 and 3 before 4),
   - Requirements: R5.4, R9, R11.3, R11.4, R12.2. Properties: none.
   - Done when `npm run smoke` passes against the live URL with groups A, B and C all run (none skipped), and the result is in `KIRO_USAGE.md`.
 
-- [ ] 11. README "Live" section and Status
+- [x] 11. README "Live" section and Status
   - Only now (R10.1), add the "Live" section to `README.md` from design section 8, with the real URL, and update the Status section so that it says only what is deployed on this day. Remove "There is no live URL yet." Keep to plain, short sentences, no trademarks beyond the single provider mention (Decision P2), and the naming rule in `product.md` ("focus session").
   - Add `smoke` to the README's script list with one line on what it does, and mention `render.yaml` in "How it is built" if it fits in one sentence.
   - Files: `README.md`.
   - Requirements: R10.1 to R10.5. Properties: none.
   - Done when `npm run verify` passes and every claim in the README is true of the deployed site.
-
-- [ ] 12. **[owner]** Prove auto-deploy
+  - Result (2026-11-10): "Live" section added near the top of `README.md` with the real URL; Status rewritten to say what is deployed (the candle scene draws, always an unlit candle, no controls yet); `smoke` added to the script list; the host named once, in the Live section; `render.yaml` explained in "How it is built". The README also had other claims that were no longer true (no scene, no live URL, "specs not written", the reviewer "has not had real work"); they were corrected so that every claim matches the deployed site.
+- [x] 12. **[owner]** Prove auto-deploy
   - Merge the task 11 pull request to `main`. Without touching the dashboard, check that Render starts a deploy for that commit and finishes it. The owner reports the deploy's commit and result.
   - Then the agent runs `npm run smoke` again and records the result.
   - Files: none.
   - Requirements: R2.1, R2.3, R9, R12.2. Properties: none.
   - Done when the dashboard shows a deploy of the README commit and the second smoke run passes.
-
-- [ ] 13. Steering and structure
+  - Result (2026-11-10): after the HSTS change (Decision P10) was pushed to `main`, Render started a deploy by itself (the owner confirms nobody started it by hand) and it passed: the log shows the unit tests running (30 files, 508 tests, the count of the pushed commit, 11.28 s), `vite build` (`index-vVv36xvi.css` 4.75 kB, `index-Dmuuuxe1.js` 18.22 kB, built in 63 ms), "Using Node.js version 22.23.4 via environment variable NODE_VERSION", and "Your site is live". The owner also deleted the old HSTS header rule from the Render dashboard. `npm run smoke` against the live URL after the redeploy: 12 of 12 passed (A1 to A5, B1 to B4, C1 to C3). The log excerpt does not show the commit hash or the trigger; the trigger is the owner's report.
+- [x] 13. Steering and structure
   - Update `.kiro/steering/structure.md` (the layout tree and the root files list) with `render.yaml`, `playwright.live.config.ts`, `src/hosting/` (test-only), and the three new `e2e` files.
   - Update `.kiro/steering/tech.md` (Scripts and Stack) with the `smoke` script, the build command used on Render, the rule that the Render build never runs `verify` or the end-to-end tests, and the pointer that the Blueprint is the one place for headers.
   - Keep both files plain and short. State what exists, not what is planned.
   - Files: `.kiro/steering/structure.md`, `.kiro/steering/tech.md`.
   - Requirements: R5.5, R13.1. Properties: none.
   - Done when `npm run verify` passes.
-
+  - Result (2026-11-10): `structure.md` lists `render.yaml`, `playwright.live.config.ts`, `src/hosting/` (test-only), `e2e/headers-local.spec.ts` and `e2e/live.spec.ts`, and the boundary that `src/hosting/` is never imported by shipped code. `tech.md` names the host and URL, adds `npm run smoke`, and has a new Hosting section: the Blueprint is the one place for headers, the Render build never runs `verify` or the end-to-end tests, Render sets HSTS, the CSP allows only `'self'` and `'none'`, and agents never touch Render resources.
 - [ ] 14. Dated checks and wrap-up
   - Write the three dated smoke checks (R12.2) into `KIRO_USAGE.md` as a short list: after the first deploy (done in task 10), before submission on Dec 3, 2026, and on or after Jan 29, 2027. Run the Dec 3 check when the date comes and record the result; the Jan 29 check is run then and recorded in the same way.
   - Tick the tasks, add the final log entry (surface, what was asked, what was produced, what was changed by hand, how the surface differed), and note anything Render did differently from the design.
   - Files: `KIRO_USAGE.md`, this file.
   - Requirements: R11.4, R12.2, R12.3. Properties: none.
   - Done when tasks 1 to 13 are ticked, the Dec 3 check is recorded, and the Jan 29 check is listed with its date. The Jan 29 line stays open until that date.
-
+  - Status (2026-11-10): **open**, on purpose. The three dated checks are written in `KIRO_USAGE.md`: after the first deploy (done: 12 of 12 on 2026-11-10, again after the HSTS redeploy), before the submission on Dec 3, 2026 (not yet due), and on or after Jan 29, 2027 (not yet due). The task is ticked when the Dec 3 result is recorded; the Jan 29 line stays open until that date. Everything else in the wrap-up (the log entry, the notes on what Render did differently from the design) is done.
 ## Coverage
 
 | Requirement | Tasks |
@@ -155,4 +155,4 @@ Property-based testing is not enabled for this spec (requirements R13.4). The mu
 
 ## Decisions
 
-None yet. The points for review are at the end of `design.md`.
+See `design.md` section 13 (P1 to P10). P10, found by task 10: Render sets `Strict-Transport-Security` itself.

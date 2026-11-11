@@ -6,7 +6,7 @@
 - Vitest for unit tests, fast-check for property-based tests, Playwright for end-to-end tests with a faked clock.
 - ESLint for linting.
 - Node 22+.
-- Static site, no backend, no API keys, no AI calls at run time. Free hosting, always on until Jan 29, 2027.
+- Static site, no backend, no API keys, no AI calls at run time. Free hosting, always on until Jan 29, 2027: a Render static site defined by `render.yaml`, at https://candlewatch.onrender.com.
 - Written from scratch. No code is shared with any other project.
 - Pin exact dependency versions (no `^` or `~`).
 
@@ -26,7 +26,15 @@ Inline SVG driven by CSS custom properties. Flame: layered radial gradients with
 
 ## Scripts
 
-`npm run dev`, `npm test`, `npm run build`, `npm run e2e`, `npm run verify` (type-check, lint, unit, build and e2e in one command).
+`npm run dev`, `npm test`, `npm run build`, `npm run e2e`, `npm run verify` (type-check, lint, unit, build and e2e in one command), `npm run smoke` (the smoke test against `BASE_URL`, default the live URL; GET and HEAD requests only).
+
+## Hosting
+
+- `render.yaml` is the only place for the hosting setup and for the security and cache headers. Tests read it; no second copy of the header table is kept. The app itself never names the host.
+- The Render build is `npm ci && npm run check && npm test && npm run build`, publishing `dist/`, with `NODE_VERSION` "22". **It never runs `npm run verify` or the end-to-end tests** (they need a browser): run `npm run verify` before merging.
+- Render sets `Strict-Transport-Security` itself; the Blueprint does not define it. `npm run smoke` checks it (B4).
+- The Content-Security-Policy allows only `'self'` and `'none'`: no inline style or script, no remote font, no network call. Set styles with `style.setProperty`, import fonts so Vite hashes them into `/assets/`, never put them in `public/`.
+- No agent creates or changes a Render resource; the repo owner does, in the dashboard.
 
 ## Property-based tests to keep true
 

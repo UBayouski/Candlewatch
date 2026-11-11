@@ -84,11 +84,12 @@ This spec writes no application code. It adds the Blueprint, tests that keep the
    | `Permissions-Policy` | `camera=(), microphone=(), geolocation=(), payment=(), usb=()` |
    | `Cross-Origin-Opener-Policy` | `same-origin` |
    | `Cross-Origin-Resource-Policy` | `same-origin` |
-   | `Strict-Transport-Security` | `max-age=31536000` |
+
+   The Blueprint SHALL NOT define `Strict-Transport-Security` (R5.4, Decision P10).
 
 2. The Content Security Policy SHALL NOT contain `unsafe-inline`, `unsafe-eval`, a wildcard source, or any origin other than `'self'` and `'none'`. It follows from R1.4: the app talks to no one. A future spec that needs more changes the code, or changes the policy in `render.yaml` in the same pull request (Decision P5).
 3. The site SHALL work under that policy. The app already satisfies it: it ships one module script, one stylesheet and an inline SVG with no `style` attributes, and it sets styles through script (`style.setProperty`), which the policy allows. A browser test SHALL load the real build with these exact headers applied and fail on any policy violation (R8.3).
-4. IF Render adds a header of the same name itself (for example `Strict-Transport-Security`), THEN the live response SHALL still carry exactly one value for it, equal to the Blueprint's. The smoke test checks this (R9.4).
+4. Render sets `Strict-Transport-Security` itself on every response of its own domain (observed on 2026-11-10: `max-age=315360000; includeSubdomains; preload`), so the Blueprint SHALL NOT define it. The live response SHALL carry exactly one `Strict-Transport-Security` header, with a `max-age` of at least 31536000. The smoke test checks this (R9.4, check B4).
 5. The headers SHALL be written once, in `render.yaml`. No second copy SHALL be kept, except the tests that read `render.yaml` itself.
 
 ### R6. Cache headers
@@ -126,7 +127,7 @@ This spec writes no application code. It adds the Blueprint, tests that keep the
 1. A Playwright spec `e2e/live.spec.ts` SHALL run against a base URL taken from the environment variable `BASE_URL`. A second config, `playwright.live.config.ts`, SHALL run only that spec, with no web server, and the default base URL SHALL be the expected URL.
 2. An npm script `smoke` SHALL run it (`npm run smoke`), so `BASE_URL=<url> npm run smoke` checks any deployment, and plain `npm run smoke` checks the live site. The existing `e2e` and `verify` scripts SHALL keep working unchanged and SHALL NOT need a network.
 3. The page checks SHALL hold on any base URL, including `vite preview` on localhost: the page loads with status 200 and the title "Candlewatch"; the scene root `#scene` has `role="img"` and an `aria-label`; a fresh browser shows an unlit candle (`data-flame="unlit"`); there is no console error, no failed request and no policy violation; and every request the page makes goes to the page's own origin.
-4. The header checks SHALL run only when the base URL is not localhost. They SHALL read `render.yaml` and check, for `/`, `/index.html` and one real hashed script and one stylesheet taken from the page, that every header the Blueprint defines for that path is present in the live response with exactly the Blueprint's value, and that no header appears twice with different values.
+4. The header checks SHALL run only when the base URL is not localhost. They SHALL read `render.yaml` and check, for `/`, `/index.html` and one real hashed script and one stylesheet taken from the page, that every header the Blueprint defines for that path is present in the live response with exactly the Blueprint's value, and that no header appears twice with different values. They SHALL also check that `Strict-Transport-Security`, which the Blueprint does not define (R5.4), is present once on `/` and `/index.html` with a `max-age` of at least 31536000 (check B4).
 5. The live-only checks SHALL also confirm: an unknown path answers 404; `/.env`, `/package.json` and `/render.yaml` answer 404; and `http://` redirects to `https://`.
 6. A failing smoke check SHALL fail the command with a non-zero exit code and a message naming the check. It SHALL NOT retry silently more than the Playwright default.
 7. The smoke test SHALL NOT need credentials, SHALL NOT write to the site, and SHALL send only GET and HEAD requests.
@@ -189,3 +190,4 @@ The decisions are recorded in `design.md` section 13 and applied above:
 - **P7:** the service fields are verified by a working sibling Blueprint (R1.2, R3.4); the remaining unknowns are listed in design section 0.
 - **P8:** header and live-only smoke checks skip themselves on localhost (R9.4).
 - **P9:** no build id for now (design 7.3).
+- **P10:** Render sets `Strict-Transport-Security` itself; the Blueprint does not define it and smoke check B4 requires it once with a `max-age` of at least 31536000 (R5.1, R5.4, R9.4). Found by the first live smoke run on 2026-11-10; see `design.md` section 13.
