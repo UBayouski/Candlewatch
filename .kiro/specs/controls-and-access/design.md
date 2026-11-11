@@ -27,7 +27,7 @@ A layer of controls and text on top of the finished scene, driven by the finishe
         │                              │               └─ step → storage.save → state'
         │                              ├─ effects.announce → live writer
         │                              ├─ effects.focus    → focus target (after the next apply)
-        │                              └─ effects.settings → settings store
+        │                              (settings changes do not pass through uiStep: the panel calls onSettings → settings store)
         ▼
  every frame (main.ts):  dispatch(tick) → scene.apply(sceneModel(...)) → ui.update(state, now)
         └─ ui.update: engine-phase changes → uiStep; announcer; viewOf(state, ui, settings, now, placement) → apply(view)
@@ -126,7 +126,7 @@ export function lengthOf(choice: LengthChoice): LengthResult;            // pres
 export function nextChoice(index: 0 | 1 | 2 | 3, key: "ArrowLeft" | "ArrowRight" | "ArrowUp" | "ArrowDown"): 0 | 1 | 2 | 3;
 ```
 
-- `parseLength`: `trim()` spaces (ASCII space, tab), then `^[0-9]{1,3}$`, then `5 <= value <= 90`. The constants are `MIN_LENGTH_MIN` and `MAX_LENGTH_MIN` from the engine. `reason` is `empty` for empty text, `format` for anything that is not one to three ASCII digits, `range` for digits outside 5..90. No `Number(text)` shortcut (it would accept `+25`, `2e1`, `0x19`, `25.`).
+- `parseLength`: `trim()` spaces (ASCII space, tab; text that is empty or only spaces and tabs is `empty`, any other white space is `format`), then `^[0-9]{1,3}$`, then `5 <= value <= 90`. The constants are `MIN_LENGTH_MIN` and `MAX_LENGTH_MIN` from the engine. `reason` is `empty` for empty text, `format` for anything that is not one to three ASCII digits, `range` for digits outside 5..90. No `Number(text)` shortcut (it would accept `+25`, `2e1`, `0x19`, `25.`).
 - The chooser has four stops: 15, 25, 50, custom (indices 0 to 3). `nextChoice` implements the arrow keys of a radio group: Left and Up go to the previous stop and Right and Down to the next, wrapping around. In the custom text field only Up and Down leave it; Left and Right move the caret (section 8.2). The index mapping is checked by an example test, and the wrap-around by a small property (P2b: for any index and key the result is in range, and four presses of the same key return to the start).
 
 ### 3.3 `light.ts`
@@ -171,10 +171,10 @@ The map, row by row (any row not listed gives `null`, and the DOM layer then lea
 | Escape | overlay none; phase `lit` or `paused` | `open-snuff` |
 | `t` or `T` | overlay none; phase `lit` or `paused`; focus not `text` | `announce-time` |
 | anything with Ctrl, Alt or Meta | any | `null` |
-| Space, Enter or `t` with `repeat` | any | `null` |
+| any key with `repeat` (Space, Enter, `t`, Escape, every key) | any | `null` (a held key never acts twice) |
 
 - With an overlay open nothing else applies: no light, pause or announce. Tab and Shift+Tab are not handled here; the native dialog keeps the focus inside.
-- Shift changes nothing (Shift+Space still pauses). A held Escape does nothing extra because `open-snuff` while the overlay is open is not an action.
+- Shift changes nothing (Shift+Space still pauses). Every repeat returns `null`, Escape included: a held Escape would otherwise open the snuff dialog and, on its next repeat, close it again (batch 1 decision 1, section 17).
 - No key ever gives a `snuff` action. The only path to the engine's `snuff` is `confirm-snuff`, which comes from activating the confirm button (section 3.5).
 - `FocusKind` is computed by `dom/events.ts` from `document.activeElement`: `text` for `input[type=text]` and `textarea`; `button` for `button`, `a[href]`, `[role=radio]`, `[role=switch]` and `select`; `body` for `body` or the scene; `other` otherwise. A key that gives an action is `preventDefault`ed, so the browser does not also act on it; in particular Enter in the intent or custom field gives `light` and the form's native submit does not fire as well (the `submit` event is then only the click or tap on the Light button).
 
@@ -215,14 +215,14 @@ Transitions (the phase is the engine's, at the moment of the action; an action t
 | `toggle-pause` | overlay none; `lit` or `paused` | unchanged | `pause` if `lit`, `resume` if `paused` | focus `pause-resume` |
 | `open-snuff` | overlay none; `lit` or `paused` | overlay `snuff`, `returnFocus` `element` | none | focus `keep-burning` |
 | `keep-burning` | overlay `snuff` | overlay none | none | focus `restore` |
-| `confirm-snuff` | overlay `snuff` | overlay none | `snuff` if phase is `lit` or `paused`; none if the session already ended | focus `light` (held in `pendingFocus` until the phase has changed, then released) |
+| `confirm-snuff` | overlay `snuff` | overlay none; `pendingFocus` `light` | `snuff` if phase is `lit` or `paused`; none if the session already ended | no immediate focus: the move to Light is held in `pendingFocus` and released as `focus: light` by the next `engine` input (the phase change), batch 1 decision 4 |
 | `open-settings` | overlay none | overlay `settings`, `returnFocus` `element` | none | focus `settings-first` |
 | `close-settings` | overlay `settings` | overlay none | none | focus `settings-button`, or the held `pendingFocus` |
 | `announce-time` | overlay none; `lit` or `paused` | unchanged | none | announce `time` |
 | `select-preset` | overlay none or `settings`; any phase | `length` preset; `refusal` cleared | none | none |
 | `set-custom` | any | `length` custom with the text; `customTouched` true; `refusal` cleared if the text is now valid | none | none |
 | `set-intent` | any | `intentText` | none | none |
-| `engine` from running to ended (burn-out, pause limit) | any | overlay `snuff` closes (`none`); an open settings panel stays | none | focus `light` unless `typing` (the user is in a text field) or the settings panel is open, in which case `pendingFocus` `light` is held |
+| `engine` from running to ended (burn-out, pause limit, a confirmed snuff) | any | overlay `snuff` closes (`none`); an open settings panel stays; `pendingFocus` is released | none | focus `light`, except: while `typing` (a text field has focus) focus stays in the field and the move is dropped (`pendingFocus` null); while the settings panel is open the move is held (`pendingFocus` `light`) until `close-settings` releases it (batch 1 decision 3) |
 | `engine`, any other change of phase (for example a reload into a running session) | any | unchanged | none | none |
 
 Invariants (they are the properties P5 and P8):
@@ -231,7 +231,7 @@ Invariants (they are the properties P5 and P8):
 - No `UiInput` changes anything about time: `uiStep` returns events only from the table, and no event is `tick`, `hide`, `show` or `reload`.
 - The step is total: for every `UiState`, input and phase it returns a value, and equal inputs give equal outputs (pure, no mutation).
 
-`UiState` starts as `{ length: preset(default length) or custom if the default is not a preset, intentText: "", overlay: "none", refusal: null, customTouched: false, returnFocus: "none", pendingFocus: null }`. A default length of 25 selects the 25 preset; a custom default like 40 selects the custom stop with the text `40`.
+The state is built by `initialUi(settings: Settings)`; the parameter is the `Settings` type of `src/storage/settings.ts` (a type-only import; task 20 switched it from `{ defaultLength }`). `UiState` starts as `{ length: preset(default length) or custom if the default is not a preset, intentText: "", overlay: "none", refusal: null, customTouched: false, returnFocus: "none", pendingFocus: null }`. A default length of 25 selects the 25 preset; a custom default like 40 selects the custom stop with the text `40`.
 
 ### 3.6 `view.ts` — the view model
 
@@ -593,7 +593,7 @@ The refusal clears as soon as the custom text becomes valid or a preset is chose
 | Let it go dark | `button#snuff`, same | `snuff.open` | `open-snuff` |
 | Settings | `button#settings-button[aria-haspopup=dialog]`, in the floor-band zone, the rightmost zone control | `settings.open` | `open-settings` |
 | Dialog buttons | `button#keep`, `button#confirm` | `snuff.keep`, `snuff.confirm` | `keep-burning`, `confirm-snuff` |
-| Switches | `button[role=switch][aria-checked]` | `settings.sound`, `settings.ghosts` | `settings-change` |
+| Switches | `button[role=switch][aria-checked]` | `settings.sound`, `settings.ghosts` | none in `uiStep`: the DOM layer builds the next `Settings` and calls `onSettings` (11.2) |
 | Close | `button#close` | `settings.close` | `close-settings` |
 
 ### 8.2 The length chooser
@@ -728,7 +728,7 @@ Thresholds are `L · 0.75`, `L · 0.5`, `L · 0.25` (L the length in ms) and `60
 | Snuff confirmed | `#light`, once the phase has changed | `uiStep` `confirm-snuff` → `pendingFocus` |
 | Candle burns out, or the pause limit snuffs, no overlay, not typing | `#light` | `uiStep` `engine` |
 | Same, with the settings panel open | held; `#light` when the panel closes | `pendingFocus` |
-| Same, with the user typing in a field | stays in the field | `typing` |
+| Same, with the user typing in a field | stays in the field; the move to Light is dropped, not held | `typing` |
 | Settings opened | the Sound switch | `uiStep` `open-settings` |
 | Settings closed | `#settings-button` (or the held `pendingFocus`) | `uiStep` `close-settings` |
 | Light refused | `#custom` | `uiStep` `light` |
@@ -755,11 +755,11 @@ export function createSettingsStore(kv: KeyValueStore | null): SettingsStore;
 
 - **`parseSettings`**: `null`, text that is not JSON, a non-object, or a `v` that is not `1` gives `DEFAULT_SETTINGS`. For a version-1 object each field is read on its own: `sound` and `ghosts` keep a boolean and default otherwise; `defaultLength` keeps an integer from 5 to 90 (`Number.isInteger` and the engine's range) and defaults otherwise. Unknown fields are dropped. A document with `v` greater than 1 is read as defaults and **not** overwritten until the user changes a setting (the store remembers it was unreadable and writes on the first change only).
 - **`serializeSettings`** writes the fixed key order, so `serializeSettings(parseSettings(serializeSettings(s)))` is the same text (P6).
-- **`createSettingsStore(kv)`**: `load` reads `SETTINGS_KEY` through `kv.getItem` inside a try; `save` writes inside a try; with `kv === null` both are in-memory only. Nothing throws, nothing is shown (R11.6). There is no backup copy of unreadable settings (Decision Q6).
+- **`createSettingsStore(kv)`**: `load` reads `SETTINGS_KEY` through `kv.getItem` inside a try; `save` writes inside a try; with `kv === null` both are in-memory only. Nothing throws, nothing is shown (R11.6). Unreadable settings follow the session and history adapter: text that is not JSON, not an object, or not version 1 is read as defaults and, before the first write over it, copied to `SETTINGS_BACKUP_KEY` (`candlewatch:settings:unreadable`), never over an existing backup; if the backup cannot be written the original is left untouched and the new value lives in memory until the next save. A field that is invalid inside a version 1 object is only defaulted (no backup). This replaces "no backup copy" (Decision Q6) on the owner's instruction in batch 2. `readSettings(text)` returns `{ status: "absent" | "ok" | "unreadable", settings }` (as `readSession` does) and `parseSettings` is its `.settings`.
 
 ### 11.2 In the interface
 
-`createInterface` takes the loaded `Settings` and an `onSettings` callback. The panel calls `uiStep`'s `settings-change` effect; the DOM layer applies it to the switches and calls `onSettings(next)` at once; `main.ts` stores it. Sound on means sound is allowed: nothing plays here, and nothing may play before the first user gesture (Decision Q6, brief section 7); `sound-and-title` reads `settings.sound`. Ghosts off hides ghosts only; the distraction count is untouched, and the setting is not an input of the engine (P8).
+`createInterface` takes the loaded `Settings` and an `onSettings` callback. Settings changes are not handled by `uiStep` (it has no settings action or effect; batch 1 decision 2). The panel's switch and chooser handlers in the DOM layer build the next `Settings`, call `onSettings(next)` at once and let the next `viewOf` show it; `main.ts` stores it. To `uiStep` a settings change is a UI-only input that changes nothing the engine sees (P8). Sound on means sound is allowed: nothing plays here, and nothing may play before the first user gesture (Decision Q6, brief section 7); `sound-and-title` reads `settings.sound`. Ghosts off hides ghosts only; the distraction count is untouched, and the setting is not an input of the engine (P8).
 
 The default length sets the initial `UiState.length` the next time the chooser is built (page load) and the selected stop of the main chooser **only if the user has not chosen a length since** (a change in the panel while idle updates the main chooser's selection, a change during a session does not touch the running session).
 
@@ -942,3 +942,25 @@ The review answers Q1 to Q8 are in `requirements.md` Decisions. These are the de
 - **D12. Coordination with `ghosts-and-graveyard`.** The left edge band below y = 300 units is the door's slot. In the ended phases the setup controls are on screen while that session's ghosts may still be; the ghosts spec must keep ghosts clear of the control rectangles (`Placement`), or hide them while the controls are shown. This spec exports `placeControls` for it.
 - **D14. Design review change 1: the Settings opener is a zone control.** It sits in the floor-band zone with the time text, Pause or Resume and Let it go dark, rightmost, in every phase and at every size (6.3, 6.5). So no persistent control is ever in the light pool, at any size or wax height, and the pool rule has no exception (R8.4). Re-checked at 360 × 640 with 44 px targets: the zone is 80 px tall, the three buttons are 44 × 44 at y 578..622 (x 8..52, 256..300, 308..352), the time text is 36 px, centred at x 180, and the status line is one line 136 px wide while the buttons are shown and up to two lines 240 px wide at rest. At 1280 × 800 the buttons are labelled and Settings is at x 976..1072. The cost is the narrower status line while running (it was 228 px), so a long intent is cut short with an ellipsis (the full text stays for screen readers). The pool analysis of the first design (6.4) is dropped.
 - **D15. Design review change 2: Tab order equals the visual order in every layout.** In the compact layout the length chooser is drawn above the intent field, as in the wide layout, so the reading order is chooser, intent, Light, then the zone controls (12.2, 6.3). Two compact variants keep that order: `top-row` (the chooser is a row of four cells across the top) and `left-region` (a 2 × 2 grid on the left, for stages limited by height). The cost is a narrow compact intent field (128 px at 360 × 640, 176 px at 480 × 800), because the window pane sits between it and Light; the field scrolls its text, and the engine keeps the first 80 characters. The order is checked by P10 (rectangles against the DOM order) and E4 (Tab through the real page).
+
+### Decisions from the batch 1 build
+
+Six questions came up while the pure modules were built (tasks 1 to 14). All six were accepted as built; the design above now says the same as the code.
+
+1. **Every key repeat returns `null`, Escape included.** A held Escape cannot open the snuff dialog and close it on the next repeat. R10.3 now says a held key never acts twice (3.4 table and notes).
+2. **Settings changes are handled outside `uiStep`.** `UiAction` and `Effects` have no settings action. The panel's DOM handlers call `onSettings` (11.2, 8.1, 1.2).
+3. **Typing and settings, one rule.** While the user types in a field, focus stays in the field and the pending move to Light is dropped. While the settings panel is open, the move is held in `pendingFocus` and released when the panel closes. Sections 3.5 and 10 say the same thing.
+4. **`confirm-snuff`** sends `snuff` only while a session runs, sets no immediate focus, and holds the move to Light until the next `engine` input (3.5).
+5. **`initialUi({ defaultLength })`** takes the one field it needs, because `storage/settings.ts` did not exist yet. Task 20 switches the parameter to the `Settings` type.
+6. **`parseLength`** treats text of only spaces and tabs as `empty` (3.2).
+
+### Decisions from the batch 2 build
+
+Tasks 15 to 22 (strings, announcer, layout, settings, view model). Choices made while building; the first one changes an earlier decision.
+
+1. **Settings keep a backup of unreadable text** (owner's instruction for batch 2): `candlewatch:settings:unreadable`, same rules as the session and history keys (11.1). This replaces Q6's "without a backup copy"; `requirements.md` Q6 is updated to say so.
+2. **`initialUi` takes `Settings`** (task 20), as decided in batch 1.
+3. **The first-visit line is shorter**: "Enter lights. Space pauses. Esc lets it go dark." (48 characters) instead of the 62-character draft, so it fits two lines of the 240 px resting status at the compact size. New key `intent.overLimit` ("{max}+") is the short mark of 8.3.
+4. **The announcer** marks the milestones already passed as done on the first call after a load for both `lit` and `paused` (9.3 pseudocode said only `lit`; a paused session reloaded and resumed would otherwise repeat a milestone, against R9.3). A new session starts with none done; a late first call after a light says `lit` and the next call may then say the milestone already crossed.
+5. **Layout names and checks**: `Placement.keepClear.windowPane` (the purity scan forbids the word `window`). P10 treats the time text and the status line as one stack (they touch, as the rectangles of 6.5 do) and requires only that the status line is under the time text; every other pair keeps 4 px. The "left edge band" check covers the rows from 300 room units down to the floor line (the zone controls are below the floor line and are not in the door's slot).
+6. **View model**: `timeWords` is empty for an invalid custom length (there is no time to say); the first-visit line shows only while the phase is `idle` and the history is empty.

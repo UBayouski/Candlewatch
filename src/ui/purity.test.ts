@@ -13,10 +13,10 @@ const SRC_DIR = join(UI_DIR, "..");
  * The pure modules of src/ui (design 3). A task adds its file here when it creates it; the test fails if a listed file is
  * missing. Files: format, length, light, keys, ui-state, announcer, layout, view (tasks 4, 6, 8, 10, 12, 16, 18, 22).
  */
-const PURE_UI_FILES: readonly string[] = ["format.ts", "length.ts", "light.ts", "keys.ts", "ui-state.ts"];
+const PURE_UI_FILES: readonly string[] = ["format.ts", "length.ts", "light.ts", "keys.ts", "ui-state.ts", "announcer.ts", "layout.ts", "view.ts"];
 
 /** The one pure module outside src/ui: the settings document (task 20 adds "settings.ts"). */
-const PURE_STORAGE_FILES: readonly string[] = [];
+const PURE_STORAGE_FILES: readonly string[] = ["settings.ts"];
 
 const FORBIDDEN_IN_PURE: readonly { name: string; pattern: RegExp }[] = [
   { name: "window", pattern: /\bwindow\b/ },
@@ -50,6 +50,11 @@ function importAllowed(specifier: string, siblings: readonly string[]): boolean 
   if (specifier === "../engine" || specifier === "../strings" || specifier === "../storage/settings") return true;
   const sibling = /^\.\/([a-z-]+)$/.exec(specifier)?.[1];
   return sibling !== undefined && siblings.includes(`${sibling}.ts`);
+}
+
+/** The settings document may also take the `KeyValueStore` type from the storage adapter next to it. */
+function importAllowedInStorage(specifier: string): boolean {
+  return specifier === "../engine" || specifier === "./storage";
 }
 
 /** Removes // and block comments, leaving string contents alone. */
@@ -155,9 +160,9 @@ describe("the scanner itself", () => {
   });
 
   it("allows only the engine index, the strings, the settings type and pure siblings", () => {
-    const siblings = ["format.ts", "length.ts", "light.ts", "keys.ts", "ui-state.ts"];
+    const siblings = ["format.ts", "length.ts", "light.ts", "keys.ts", "ui-state.ts", "announcer.ts", "layout.ts", "view.ts"];
     for (const ok of ["../engine", "../strings", "../storage/settings", "./format", "./length"]) expect(importAllowed(ok, siblings), ok).toBe(true);
-    for (const bad of ["../engine/step", "../scene", "../scene/index", "../storage/storage", "../distraction/visibility", "./view", "./test-kit", "vitest"]) {
+    for (const bad of ["../engine/step", "../scene", "../scene/index", "../storage/storage", "../distraction/visibility", "./dom/build", "./test-kit", "vitest"]) {
       expect(importAllowed(bad, siblings), bad).toBe(false);
     }
   });
@@ -195,7 +200,7 @@ describe("the pure modules are pure (R1.5)", () => {
   it("each pure module imports only the engine index, the strings, the settings type and pure siblings (design 1.4)", () => {
     const offenders = sources.flatMap((s) =>
       importsOf(s.code)
-        .filter((spec) => !importAllowed(spec, PURE_UI_FILES))
+        .filter((spec) => !(s.name.startsWith("../storage/") ? importAllowedInStorage(spec) : importAllowed(spec, PURE_UI_FILES)))
         .map((spec) => `${s.name} imports ${spec}`),
     );
     expect(offenders).toEqual([]);

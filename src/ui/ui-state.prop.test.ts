@@ -17,6 +17,7 @@ import {
   validInPhase,
 } from "./test-kit";
 import type { UiOpStep } from "./test-kit";
+import { DEFAULT_SETTINGS } from "../storage/settings";
 import { initialUi, uiStep } from "./ui-state";
 
 const running = (phase: State["phase"]): boolean => phase === "lit" || phase === "paused";
@@ -100,7 +101,7 @@ describe("P8 (R14): UI-only inputs never change what the engine does", () => {
         (t0, script, extras, typingFlags) => {
           const reference = runScript(script, t0);
           let engine: State = INITIAL_STATE;
-          let ui = initialUi({ defaultLength: 25 });
+          let ui = initialUi(DEFAULT_SETTINGS);
           reference.forEach((entry, i) => {
             for (const op of extras[i] ?? []) {
               const action =

@@ -4,6 +4,7 @@
 import type { Event, State } from "../engine";
 import { PRESET_LENGTHS_MIN } from "../engine";
 import { lightRequest } from "./light";
+import type { Settings } from "../storage/settings";
 import { parseLength } from "./length";
 import type { LengthChoice, PresetMinutes } from "./length";
 
@@ -79,7 +80,7 @@ const unchanged = (ui: UiState): { ui: UiState; effects: Effects } => ({ ui, eff
  * The UI state at page load. The default length selects the preset 15, 25 or 50, or, when it is another whole number,
  * the custom stop with the text of that number.
  */
-export function initialUi(settings: { readonly defaultLength: number }): UiState {
+export function initialUi(settings: Settings): UiState {
   const preset = PRESET_LENGTHS_MIN.find((minutes) => minutes === settings.defaultLength);
   const length: LengthChoice =
     preset !== undefined ? { kind: "preset", minutes: preset } : { kind: "custom", text: String(settings.defaultLength) };

@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
+import { DEFAULT_SETTINGS } from "../storage/settings";
 import { initialUi, uiStep } from "./ui-state";
 import type { UiAction, UiInput, UiState } from "./ui-state";
 import type { State } from "../engine";
 
 type Phase = State["phase"];
 
-const base = initialUi({ defaultLength: 25 });
+const base = initialUi(DEFAULT_SETTINGS);
 const act = (action: UiAction): UiInput => ({ type: "action", action });
 const run = (ui: UiState, action: UiAction, phase: Phase) => uiStep(ui, act(action), phase);
 const withOverlay = (overlay: UiState["overlay"]): UiState => ({ ...base, overlay });
@@ -14,11 +15,11 @@ const engine = (from: Phase, to: Phase, typing = false): UiInput => ({ type: "en
 describe("initialUi (R2.2)", () => {
   it("selects a preset when the default is one", () => {
     for (const minutes of [15, 25, 50] as const) {
-      expect(initialUi({ defaultLength: minutes }).length).toEqual({ kind: "preset", minutes });
+      expect(initialUi({ ...DEFAULT_SETTINGS, defaultLength: minutes }).length).toEqual({ kind: "preset", minutes });
     }
   });
   it("selects the custom stop for another whole number", () => {
-    expect(initialUi({ defaultLength: 40 }).length).toEqual({ kind: "custom", text: "40" });
+    expect(initialUi({ ...DEFAULT_SETTINGS, defaultLength: 40 }).length).toEqual({ kind: "custom", text: "40" });
   });
   it("starts quiet", () => {
     expect(base).toMatchObject({ intentText: "", overlay: "none", refusal: null, customTouched: false, pendingFocus: null });

@@ -2,6 +2,7 @@
 // src/ui/purity.test.ts checks it. Arbitraries are added here by the task that first needs them.
 import * as fc from "fast-check";
 import { INITIAL_STATE, step } from "../engine";
+import { DEFAULT_SETTINGS } from "../storage/settings";
 import type { Event, State } from "../engine";
 import { arbGap, assertInvariants } from "../engine/test-kit";
 import { keyAction } from "./keys";
@@ -186,7 +187,7 @@ export function afterEngineStep(ui: UiState, from: State["phase"], to: State["ph
  */
 export function runUiScript(steps: readonly UiOpStep[], t0: number, defaultLength = 25): UiTraceEntry[] {
   const trace: UiTraceEntry[] = [];
-  let world: UiWorld = { engine: INITIAL_STATE, ui: initialUi({ defaultLength }) };
+  let world: UiWorld = { engine: INITIAL_STATE, ui: initialUi({ ...DEFAULT_SETTINGS, defaultLength }) };
   let now = t0;
   for (const s of steps) {
     now += s.gap;

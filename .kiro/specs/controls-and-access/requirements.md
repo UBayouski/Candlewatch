@@ -169,7 +169,7 @@ To make the logic testable in Node (Vitest runs with `environment: "node"` and n
    - T SHALL announce only in `lit` or `paused`, with no overlay open, and never while the focus is in a text field (so the letter can be typed in the intent), and not on a repeat;
    - Enter SHALL light only when the focus is not on a button, link or switch (which Enter activates natively) and not in a settings control, and in the intent and custom length fields (R4.2);
    - while an overlay is open, only the overlay's keys apply (Tab cycle, Esc to close, Enter and Space on the focused button), and the shortcuts for lighting and pausing do nothing;
-   - a key that repeats because it is held (`repeat` true) SHALL do nothing for Space and Enter, so that a held Space cannot pause and resume in a loop;
+   - a key that repeats because it is held (`repeat` true) SHALL do nothing, whatever the key (Space, Enter, T and Escape included), so that a held Space cannot pause and resume in a loop and a held Escape cannot open the snuff dialog and close it again;
    - a shortcut that is not valid in the phase SHALL do nothing and SHALL NOT prevent the browser's default for that key.
 4. **Focus is always visible.** Every focusable element SHALL show a focus indicator whenever it has focus, including after a programmatic focus move, in every state, on every background of the scene and of the zone. The indicator SHALL have at least 3:1 contrast against the colours next to it (the room's darkest and brightest backgrounds, the zone's, and the control's own background), SHALL be at least 2 CSS pixels thick, SHALL not be clipped by an ancestor, and SHALL not be removed by `outline: none` without a replacement. Under forced colours the indicator and every control's border SHALL still be visible.
 5. **Focus management.** Focus SHALL never be left on an element that has disappeared or been disabled by a state change. The target after each change is:
@@ -317,7 +317,7 @@ Review answers to the open questions of the first draft. Each is applied in the 
 - **Q3. Yes (R4.4).** No break countdown. The status line says "The wax cools." while `isBreak`; Light skips the break.
 - **Q4. Yes (R5.4, R5.6, R1.1).** A pure engine selector `pauseLeftMs`, recorded in the session-engine Decisions (design item 10, requirements note) as an addition required by this spec, with its own unit tests and property P9. The pause allowance is shown as text while paused.
 - **Q5. Yes (R9.5, R10.2, R10.3).** The T key announces the time left.
-- **Q6. Yes (R11.1, R11.7).** Defaults: sound on, ghosts on, default length 25. "Sound on" means sound is allowed; nothing plays before the first user gesture (brief section 7). An unreadable settings document is replaced by defaults without a backup copy.
+- **Q6. Yes (R11.1, R11.7).** Defaults: sound on, ghosts on, default length 25. "Sound on" means sound is allowed; nothing plays before the first user gesture (brief section 7). An unreadable settings document is read as defaults and copied to `candlewatch:settings:unreadable` before the first write over it, as for the session and history (changed in batch 2, on the owner's instruction; it first said "without a backup copy").
 - **Q7. Yes (R14.2).** The first-visit line is shown while the history is empty and the phase is `idle`; no extra storage key.
 - **Q8. Yes (R15.6).** This spec's code tasks may run before `ghosts-and-graveyard`; the left edge band below y = 300 room units is kept free for its door.
 
