@@ -234,7 +234,7 @@ The requirements fix constraints. The cue recipes (frequencies, envelopes, noise
 7. WHEN this spec changes a wording drawn in a screenshot, THE tasks SHALL retake every affected `graveyard-*` and `ghosts-*` screenshot in `docs/screenshots/`, and the summary SHALL list the retaken file names.
 8. THE final task of the spec SHALL be a review by the Costume_Reviewer of the finished cues and title, and its findings SHALL be recorded in the design's Decisions, each with an outcome of fixed or accepted with a reason.
 9. THE Costume_Reviewer SHALL check that each Cue shows one state change, that with reduced motion on every state a Cue marks is still shown by a visible or textual change, and that the Time_Text keeps a contrast ratio of at least 4.5:1 against its background.
-10. THE tasks SHALL add the entry for this spec to `KIRO_USAGE.md` only when the owner asks, and this spec's files SHALL NOT edit `KIRO_USAGE.md`.
+10. THE build tasks SHALL add entries for this spec to `KIRO_USAGE.md` in the manner of the other specs: one entry at each batch checkpoint (batches 1 to 3), and a final entry in the wrap-up task, which also covers batch 4. Each entry SHALL record the surface, what was built, any property failure with its seed, the mutation results, the screenshot checks, the costume review and the counts, as far as the batch or the whole spec has them.
 
 ## Final Wording
 
@@ -323,7 +323,7 @@ This spec does not edit other specs. The following changes are requested and rec
 | CR4 | `controls-and-access` R7.7 | `formatTime` gains a second reader (`titleFor`). Its behaviour does not change. | R6.7 |
 | CR5 | `ghosts-and-graveyard` requirements: R2.11, R4.9, R8.5, R8.8, R8.9, R5.1, Open Questions | Replace "placeholder" wording and the examples ("38 older stones not shown", "12 older days not shown", "No stones yet", "No candles on the shelf yet", "Planned: ...") with the Final Wording table. Move the five wording Open Questions to resolved. S, D, K and G stay open for that design. | R8.1 to R8.3 |
 | CR6 | `ghosts-and-graveyard` design 4.7 and its tests | Replace the placeholder strings with the final wording; update literals in unit tests and in E3 and E6. Retake affected screenshots. | R8.1, R9.7 |
-| CR7 | `.kiro/steering/structure.md` | List the new files in `src/audio/`, the title module and the Hidden_Tick source, and the test-only Fake_AudioContext helper. The owner makes this edit. | R1.4, R1.5 |
+| CR7 | `.kiro/steering/structure.md` | List the new files in `src/audio/`, the title module and the Hidden_Tick source, and the test-only Fake_AudioContext helper. The wrap-up task makes this edit, done by Kiro. | R1.4, R1.5 |
 | CR9 | `ghosts-and-graveyard` design (`cardLines`), P18 and its text tests | `cardLines` takes the kind-specific first line (`graveyard.card.stoneLine` or `graveyard.card.stubLine`); the null-intent card line uses `graveyard.card.unnamed`. P18 still checks that the card contains the exact intent. The Item's accessible name does not change. | R8.13 to R8.15 |
 | CR8 | `session-engine`, `distraction-tracking`, `candle-scene`, `hosting` | None. The engine, the scene and `render.yaml` do not change. If P9 finds that a `tick` while hidden changes a hide span, that is an engine finding to raise, not a change made here. | R5.14, R5.18 |
 
