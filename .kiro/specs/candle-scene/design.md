@@ -2,7 +2,7 @@
 
 Implements `requirements.md` in this folder (R1-R13, P1-P8, Decisions Q1-Q5). Scope: a pure scene model, a thin SVG and CSS renderer, the minimal `main.ts` wiring, and the browser tests. No ghosts, graveyard, shelf, controls, time text, sound or page title.
 
-Status: **draft for review.** Design only. Tasks are not written.
+Status: **review answers applied** for P2 to P7 (see Decisions). P1 is still open. Design only. Tasks are not written.
 
 ## 1. Overview
 
@@ -293,7 +293,7 @@ All shapes are static markup in `room.ts`. IDs are prefixed `cw-`. Classes carry
 | 8 | `.smoke-wisp` | A curling path above the wick, inside `.head`. Opacity `var(--smoke)`. | An ended session. |
 | 9 | `.halo` | Radial gradient circle around the flame, inside `.head`, opacity from flame glow. | Flame state. |
 
-Furniture (the wall, the table, the dish, the window frame) carries no state. It is kept to the minimum needed to hold the candle and give the light something to fall on. Point for review P2 asks `costume-reviewer` to confirm.
+The wall, floor and window are kept (Decision P2): the light pool falls on the wall and floor, and the dawn shows in the window. The table and dish carry no state and are **pending the `costume-reviewer` review**. If it judges them decoration, they are removed and the candle stands on the floor line (the stub's base moves to the floor line at y = 900 and layer 5 is dropped).
 
 ### 5.3 The light pool
 
@@ -336,7 +336,7 @@ Three drips, each a rounded stroke hanging from the rim and travelling with it (
 | 2 | 332 (right edge) | 100 |
 | 3 | 284 (inside left) | 60 |
 
-Drip `n` is shown when the model's `drips >= n`. In CSS, with a number: `transform: scaleY(clamp(0, calc(var(--drips) - (n - 1)), 1)); transform-origin: top; transform-box: fill-box;`. A clip path at the table line (y = 840) keeps drips from running below the candle at the end of a session. When `animateDrips` is true, a transition on `transform` runs the new drip down over 3.5 seconds; otherwise it appears at once (R4.3, R4.4). After a reload the first paint has no transition (section 6.5), so existing drips appear whole (R4.5).
+Drip `n` is shown when the model's `drips >= n`. In CSS, with a number: `transform: scaleY(clamp(0, calc(var(--drips) - (n - 1)), 1)); transform-origin: top; transform-box: fill-box;`. A clip path at the base of the candle (the table line, y = 840, or the floor line if the table is removed) keeps drips from running below the candle at the end of a session. Drips hang from the rim and travel with it for a reason (Decision P7): fixed marks on the side would be clipped as the wax burns past them, so the visible drip count would fall, which R4.2 forbids. When `animateDrips` is true, a transition on `transform` runs the new drip down over 3.5 seconds; otherwise it appears at once (R4.3, R4.4). After a reload the first paint has no transition (section 6.5), so existing drips appear whole (R4.5).
 
 ### 5.6 The flame
 
@@ -455,6 +455,8 @@ The final names are fixed in the tasks.
 - The dawn is "muted": early light in hue and softness, not in luminance. A bright white morning would force dark text.
 - The flame's halo and core are brighter than the bound. They are small, sit around the flame, and are not a place for text. This is stated so that `controls-and-access` keeps the time text away from the flame.
 
+**Handoff note for `controls-and-access`:** the time text must never sit over the flame or its halo. The flame core and halo are brighter than the bound, and the bound does not cover them. Place the time text in the part of the stage away from the candle's head, which moves down the candle as the wax burns, so keep it clear of the whole candle column (x 200 to 400 in room units), not just the flame's current position.
+
 A palette test (section 12.3) reads `scene.css`, parses the background colour stops, and checks them against the bounds.
 
 ## 8. Reduced motion
@@ -522,7 +524,7 @@ if (root) {
 
 ### 10.1 The placeholder heading
 
-The current `main.ts` writes a visible `h1` and a tagline. The scene shows no text (R11.4), and the controls spec owns the visible text. So the placeholder `h1` and tagline stay in the DOM with the class `visually-hidden`, defined in `scene.css` (the standard clip technique, 1 px box, not `display: none`). The existing smoke test (`getByRole("heading")` visible) keeps passing, and the screenshots are text-free. See Point for review P3.
+The current `main.ts` writes a visible `h1` and a tagline. The scene shows no text (R11.4), and the controls spec owns the visible text. So the placeholder `h1` and tagline stay in the DOM, still read by screen readers, with the class `visually-hidden`, defined in `scene.css` (the standard clip technique, 1 px box, not `display: none`). The existing smoke test (`getByRole("heading")` visible) keeps passing, and the screenshots are text-free. See Decision P3.
 
 ## 11. Browser tests (e2e/scene.spec.ts)
 
@@ -666,14 +668,13 @@ A mutation check like the engine's is planned in the tasks: remove the `paused` 
 
 ## 16. Points for review
 
-1. **P1. `unlit` vs `smoke` at flame level.** R5.6 asks that any two flame modes differ in two of size, colour, shape. Neither of these two has a flame, so at flame level only the shape differs (nothing vs the wisp). Recommendation: read R5.6 at scene level for this one pair. The whole still scene differs in wax height (whole candle vs stub), light radius (small pool vs none) and the wisp, and the unit test says so (12.1). The alternative is to give `smoke` a dull ember colour on the wick, which adds an element that duplicates the cooling glow.
-2. **P2. Furniture.** The wall, floor, table, dish and window frame carry no state. They are the minimum for the candle to stand on and the light to fall on, and the window is part of the dawn. `costume-reviewer` should confirm none of them counts as decoration; if it does, the table and dish can go and the candle can stand on the floor line.
-3. **P3. Placeholder heading.** The visible `h1` and tagline become visually hidden, so the scene has no text (R11.4) and the smoke test keeps passing. The controls spec will replace them. The alternative is to leave them visible and let them overlap the scene until then.
-4. **P4. A change outside `src/scene/` and `main.ts`.** `src/strings.ts` gets the five accessible names, because steering `structure.md` says all user-visible text lives there. The e2e file and the screenshots are required by R13. If you want `src/strings.ts` untouched, the names can move into `src/scene/` for now and move later.
-5. **P5. The halo and core are brighter than the contrast bound.** The bound (section 7.2) covers backgrounds, not the flame itself. `controls-and-access` must keep the time text off the flame. If you would rather the whole stage stay inside the bound, the halo would have to be weaker and the flame would read less warm.
-6. **P6. Playwright importing the engine.** The fixtures import `../src/engine` and `../src/storage/storage` from the test. The first task verifies that Playwright resolves these extensionless imports; the fallback is a `globalSetup` script that writes the fixture strings.
-7. **P7. Drips follow the rim.** Drips hang from the top of the wax and move down with it, and they are clipped at the table line. They are not fixed marks on the side of the candle, because the wax passes any fixed mark, which would leave a drip hanging in the air. This reads the brief's "a drip runs down at each quarter" as a new runnel at the rim.
+1. **P1. `unlit` vs `smoke` at flame level (open).** R5.6 asks that any two flame modes differ in two of size, colour, shape. Neither of these two has a flame, so at flame level only the shape differs (nothing vs the wisp). Recommendation: read R5.6 at scene level for this one pair. The whole still scene differs in wax height (whole candle vs stub), light radius (small pool vs none) and the wisp, and the unit test says so (12.1). The alternative is to give `smoke` a dull ember colour on the wick, which adds an element that duplicates the cooling glow.
 
 ## 17. Decisions
 
-None yet. Answer the points for review above and they will be moved here, with this design changed to match.
+- **P2. Furniture:** keep the wall, floor and window. The light pool falls on the wall and floor, and the dawn shows in the window. The table and dish are pending the `costume-reviewer` review. If it judges them decoration, the candle stands on the floor line. **This point closes after that review**, which runs in the Kiro CLI (`kiro-cli chat --agent costume-reviewer`); its finding will be added here.
+- **P3. Placeholder heading:** yes. The `h1` and tagline become visually hidden and are still read by screen readers (section 10.1).
+- **P4. Strings:** yes. The five accessible names go in `src/strings.ts` (section 6.4).
+- **P5. Flame brightness:** accepted. The contrast bound covers backgrounds, not the flame or its halo. A handoff note for `controls-and-access` sits next to the bound in section 7.2: the time text must never sit over the flame or its halo.
+- **P6. Playwright imports:** yes. The first code task proves that Playwright resolves the engine and storage imports in the fixtures. If it does not, the `globalSetup` fallback in section 11.1 is used.
+- **P7. Drips follow the rim:** yes. The reason: fixed drips would be clipped as the wax burns past them, so the visible drip count would fall, which R4.2 forbids (section 5.5).
