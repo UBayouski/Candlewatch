@@ -745,17 +745,19 @@ Accepted by the reviewer, no change: three drips instead of four (Q4), and the r
 
 ### 17.3 Costume review of the finished scene (task 23, R13.8)
 
-The review of the finished scene was run with the `costume-reviewer` agent itself (`kiro-cli chat --agent costume-reviewer`), in two passes. This is the run 17.2 said was still to come. Task 23 is done: the findings are applied.
+The review of the finished scene was run with the `costume-reviewer` agent itself (`kiro-cli chat --agent costume-reviewer`), in three passes. This is the run 17.2 said was still to come. Task 23 is done: the findings are applied.
 
 **Pass 1. Verdict: CHANGES NEEDED.** Findings and what was done:
 
 1. **Ember too small to read (rule 1).** In `candle-burned-out-desktop`, `-phone` and `-desktop-reduced` the cooling glow (radius 8, two stops) read as a dot, so the break was not legible. *Fix:* radius 15 (`EMBER` in `constants.ts`), centre (300, 456), and a third gradient stop at 0.8 opacity, so it reads as a warm glow on the stub's rim (5.7). Checked by `room.test.ts` (radius 14 to 16, three stops), `scene.css.test.ts` (stop opacities) and three e2e tests (size against the stub, an orange pixel beside the wick in `burned-out`, plain wax after the break, the same with reduced motion).
 2. **The dawn window did not light up (rule 1).** The wash was drawn over the pane and dimmed it to about 1.1:1 against the wash. *Fix:* `.window` is drawn above `.dawn-wash` (5.2). The dawn pane keeps its colour `#566683` and is 1.45:1 against the wash behind it (7.2). No colour changed. Checked by `room.test.ts` (layer order) and an e2e pixel test (pane centre at least 30 channel units brighter than the wash beside it, and equal to `--window-dawn`).
 3. **Paused halo was amber around a blue flame (rule 1).** Flame and halo showed the state in two colours. *Fix:* the halo stops mix `--flame-blue-outer` in by `--flame-blue` (5.6). Checked by `scene.css.test.ts` and e2e tests that read the computed stop colours (blue when paused, amber when steady and guttering).
-4. **Flat wall (look).** *Fix proposed:* a faint, fixed, seeded grain on the wall.
+4. **Flat wall (look).** *Fix proposed:* grain (withdrawn in pass 2).
 5. **Drips are clipped in the last minute: accepted.** Below about 25 percent wax the rim is close to the floor line and the `.lit` clip cuts the drips off, so fewer than three are fully visible. The wax height still carries the time, and the drip count is the quarter counter only while there is wax to hang them from.
 
 **Pass 2. Verdict: the ember, the dawn window and the paused halo fixes hold; the wall grain is decoration (rule 1).** It showed no state of its own, and `product.md` says an element that does not map to state does not ship. **The grain was proposed, judged decoration by the costume-reviewer, and removed completely:** the `GRAIN` constants, the filter, the pattern and the `.grain` rect, and every test that mentioned it. The room has no `feTurbulence` and no `<pattern>`, and `room.test.ts` checks that. The wall stays what Decision P2 made it: the surface the light pool reveals, with nothing added.
+
+**Pass 3 (final, R13.8): PASS on the finished scene and all 21 screenshots.**
 
 **Decisions recorded**
 
