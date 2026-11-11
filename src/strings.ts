@@ -9,4 +9,13 @@ export const STRINGS = {
     guttering: "The flame gutters.",
     smoke: "Smoke curls from the wick.",
   },
+  /** Times in words and the placeholder for a time that cannot be shown (controls-and-access design 3.1, 8.9). {n} and {time} are filled by `fill`. */
+  time: {
+    minute: "{n} minute",
+    minutes: "{n} minutes",
+    second: "{n} second",
+    seconds: "{n} seconds",
+    timeLeft: "{time} left",
+    timeUnknown: "--:--",
+  },
 } as const;

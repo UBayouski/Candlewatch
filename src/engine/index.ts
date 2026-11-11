@@ -13,7 +13,7 @@ export {
   SESSION_SCHEMA_VERSION,
 } from "./constants";
 export { distractionCount, ghostSize, ghostSpansMs } from "./ghosts";
-export { isBreak, timeLeftMs, waxFraction } from "./selectors";
+export { isBreak, pauseLeftMs, timeLeftMs, waxFraction } from "./selectors";
 export {
   parseHistory,
   readHistory,

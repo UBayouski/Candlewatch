@@ -16,21 +16,21 @@ Conventions for every task:
 
 ## Tasks
 
-- [ ] 1. The engine selector `pauseLeftMs` and its unit tests (a session-engine addition)
+- [x] 1. The engine selector `pauseLeftMs` and its unit tests (a session-engine addition)
   - In `src/engine/selectors.ts` add `pauseLeftMs(state, now)` exactly as in design section 2: `0` unless the phase is `paused` and `now` is finite; otherwise `pauseLimitAt(state) - max(floor(now), state.pausedAt)` clamped to `[0, PAUSE_LIMIT_MS - session.pausedTotalMs]`. Import `pauseLimitAt` from `./time` and `PAUSE_LIMIT_MS` from `./constants`. Export it from `src/engine/index.ts`. Do not touch `step`, `settle`, the types or the serialized formats.
   - In `src/engine/selectors.test.ts` add examples: a pause that has just started (full allowance); halfway; with an earlier closed pause (`pausedTotalMs` of 4 minutes leaves 6); at the limit instant (exactly 0, and the state is still `paused` after a `tick`); one millisecond past it (0, and a `tick` snuffs); a clock that moved backwards (`now` before `pausedAt` gives the full remaining allowance, never more); `idle`, `lit`, `burned-out` and `snuffed` (0); `NaN` and infinite `now` (0); a fractional `now` (floored); the input state is not changed.
   - Record the addition: update `.kiro/specs/session-engine/design.md` Decisions item 10 to say "built by `controls-and-access` tasks 1 and 2", and the matching note in `.kiro/specs/session-engine/requirements.md` Decisions. Change nothing else in the session-engine spec.
   - Files: `src/engine/selectors.ts`, `src/engine/index.ts`, `src/engine/selectors.test.ts`, the two session-engine spec files.
   - Requirements: R1.1, R5.6. Properties: none (P9 is task 2).
   - Done when `npm run verify` passes, including the engine's purity test.
-
-- [ ] 2. Required: P9, the pause allowance
+  - Result (2026-11-10): `pauseLeftMs` added to `src/engine/selectors.ts` and exported from `src/engine/index.ts`; 10 unit tests added to `selectors.test.ts`, including the boundary (elapsed 0 gives the whole allowance, exactly `PAUSE_LIMIT_MS` gives 0 and the state is still `paused`, one millisecond past gives 0 and a tick snuffs). The session-engine Decisions (design item 10, requirements note) now say it is built.
+- [x] 2. Required: P9, the pause allowance
   - Add P9 to `src/engine/selectors.prop.test.ts`, with the engine's generators (`arbScript`, `runScript`) and probe times drawn around each paused state's limit instant (the limit minus a gap, the limit, the limit plus a gap, and arbitrary): `pauseLeftMs` is in `[0, PAUSE_LIMIT_MS]` for every state and `now`, including `NaN`, infinite and negative `now`; it is 0 in every phase but `paused`; while `paused` it never increases as `now` grows (probe pairs `a <= b`); it equals `pausedAt + (PAUSE_LIMIT_MS - pausedTotalMs) - now` for `now` between `pausedAt` and the limit, and is 0 from the limit on; if it is greater than 0 then `step(state, tick, now)` is still `paused`; a state that a `tick` has snuffed had `pauseLeftMs === 0`; the input is deep-frozen and unchanged.
   - Files: `src/engine/selectors.prop.test.ts`.
   - Requirements: R5.6. Properties: P9.
   - Done when `npm run verify` passes.
-
-- [ ] 3. UI purity test, banned-call scan and test-kit skeleton
+  - Result (2026-11-10): P9 added to `selectors.prop.test.ts` (300 runs): range, zero outside `paused`, non-increasing, the exact formula, agreement with a `tick`, and no change to the input (deep-frozen copy). Mutation spot-checks: with the `max(now, pausedAt)` floor and the clamp removed (`pauseLimitAt(state) - floor(now)`) the property failed (seed -830941260, a paused state probed before its pause began gave 1000000600001 against a bound of 600000); with an off-by-one (`floor(now) + 1`) it failed too; both restored.
+- [x] 3. UI purity test, banned-call scan and test-kit skeleton
   - Create `src/ui/purity.test.ts` (design 13.1) with a comment-stripping, whole-word scanner like the engine's and the scene's: the pure modules (`format.ts`, `length.ts`, `light.ts`, `keys.ts`, `ui-state.ts`, `view.ts`, `announcer.ts`, `layout.ts`) and `src/storage/settings.ts` contain none of `window`, `document`, `localStorage`, `Date`, `performance`, `Math.random`, `setTimeout`, `setInterval`, `requestAnimationFrame`, `matchMedia`; they import only `../engine`, `../strings` and (types) `../storage/settings`; `test-kit.ts` is imported by no non-test file; `src/ui/` never imports `src/scene/` or `src/distraction/`; and the banned calls `innerHTML`, `insertAdjacentHTML`, `document.write`, `setAttribute("style"` and `style.cssText` appear nowhere in `src/ui/`. The test lists the files that exist so far and skips the ones not yet written; a later task adds each file to the list (it fails if a listed file is missing).
   - Create `src/ui/test-kit.ts` (test-only) with the shared arbitraries that later tasks fill in: `arbKeyDescriptor`, `arbFocusKind`, `arbLengthText`, `arbIntentText`, `arbSettingsDoc`. It re-exports `PROP_PARAMS`. Add only what is used when it is first used.
   - Remove `src/ui/.gitkeep`.
@@ -38,78 +38,90 @@ Conventions for every task:
   - Requirements: R1.5, R1.7. Properties: none.
   - Done when `npm run verify` passes.
 
-- [ ] 4. `format.ts`: the time text, the spoken time, `fill`
+  - Result (2026-11-10): purity.test.ts (27 tests) and test-kit.ts written; the pure list grows with each task (now format, length, light, keys, ui-state).
+- [x] 4. `format.ts`: the time text, the spoken time, `fill`
   - Create `src/ui/format.ts` (design 3.1): `formatTime(ms)` (`mm:ss`, minutes at least two digits, rounded up to whole seconds, `00:00` for zero, negative, `NaN` and infinite), `spokenTime(ms)` (minutes and seconds in words with singular and plural units, a zero unit skipped, "0 seconds" for zero, the same rounding) and `fill(template, values)` (`{name}` substitution, unknown names left as they are). `spokenTime` takes its unit templates from `strings.ts`: this task adds the small `time` group there (`minute`, `minutes`, `second`, `seconds`, `timeLeft`, `timeUnknown`, drafts in design 8.9); task 15 adds the rest.
   - Create `src/ui/format.test.ts` with the examples of the requirements: `formatTime` at 0, 1, 999, 1000, 1001 ms, 60 000, 12 minutes 30.1 s (`12:31`), 25 minutes (`25:00`), 90 minutes (`90:00`), `NaN`, `-5`, `Infinity`; `spokenTime` at 12:31, 1:00, 0:45, 0, 1:01 (singular units); `fill` with one, two, repeated and unknown placeholders.
   - Files: `src/ui/format.ts`, `src/ui/format.test.ts`, `src/strings.ts` (the `time` group); add `format.ts` to the purity list.
   - Requirements: R7.3, R7.7, R9.1. Properties: none (P1 is task 5).
   - Done when `npm run verify` passes.
 
-- [ ] 5. Required: P1, the time text
+  - Result (2026-11-10): format.ts and STRINGS.time added. Found by P1 (task 5): ms of 5e-324 made Math.ceil(ms/1000) underflow to 0; fixed with Math.max(1, ...).
+- [x] 5. Required: P1, the time text
   - Create `src/ui/format.prop.test.ts` and add P1: for arbitrary `ms` (integers and fractions in `[0, 90 minutes]`, then negatives, `NaN`, `±Infinity`, large values) the text matches `^\d{2,}:\d{2}$`; seconds are 00 to 59; for finite `ms` in `[0, 90 minutes]` its value in seconds equals `ceil(ms / 1000)`; the text is `00:00` for `ms` of 0, negative, `NaN` or infinite and only then; reading the text back gives the same seconds; for finite `a >= b` the text of `a` is not earlier than that of `b`; at `ms` equal to a whole length it shows that length; `spokenTime` names the same minutes and seconds as `formatTime` (digits extracted from the sentence).
   - Files: `src/ui/format.prop.test.ts`.
   - Requirements: R7.3, R9.1. Properties: P1.
   - Done when `npm run verify` passes.
 
-- [ ] 6. `length.ts`: parsing and the chooser's movement
+  - Result (2026-11-10): P1 added (300 runs); oracle uses the bounds (s-1)*1000 < ms <= s*1000. Mutation: round-down mutant caught (seed -152089541).
+- [x] 6. `length.ts`: parsing and the chooser's movement
   - Create `src/ui/length.ts` (design 3.2): `LengthChoice`, `LengthResult`, `parseLength(text)` (trim ASCII space and tab, then `^[0-9]{1,3}$`, then `MIN_LENGTH_MIN <= value <= MAX_LENGTH_MIN`, with the reasons `empty`, `format`, `range`; no `Number(text)` shortcut), `lengthOf(choice)`, and `nextChoice(index, key)` for the four stops (Left and Up previous, Right and Down next, wrapping). Take the constants from the engine.
   - Create `src/ui/length.test.ts`: `parseLength` at 4, 5, 90, 91, ` 25 `, `025`, `2 5`, `25.0`, `+25`, `2e1`, `0x19`, `25.`, empty, and an Arabic-Indic digit text; the reasons; `lengthOf` for presets and custom; `nextChoice` for every index and key.
   - Files: `src/ui/length.ts`, `src/ui/length.test.ts`; add `length.ts` to the purity list.
   - Requirements: R2.1, R2.3, R2.4. Properties: none (P2 is task 7).
   - Done when `npm run verify` passes.
 
-- [ ] 7. Required: P2 (and P2b), length parsing and chooser movement
+  - Result (2026-11-10): length.ts written; whitespace-only text gives "empty" (spaces and tabs trimmed only).
+- [x] 7. Required: P2 (and P2b), length parsing and chooser movement
   - Create `src/ui/length.prop.test.ts`. P2: generated texts (digit strings of length 0 to 5, padded with spaces and tabs, signed, decimal, exponent, hexadecimal, other digit scripts, mixed text) are accepted exactly when, after trimming, they are one to three ASCII digits worth 5 to 90, and the result is that integer; every integer from 5 to 90 and every preset round-trips through `String`; values 0 to 4 and 91 up are rejected with `range`; the result is never outside 5 to 90. P2b: for any index and arrow key `nextChoice` is in `0..3`, and four presses of the same key return to the start.
   - Files: `src/ui/length.prop.test.ts`.
   - Requirements: R2.4, R2.6. Properties: P2, P2b.
   - Done when `npm run verify` passes.
 
-- [ ] 8. `light.ts`: the light request
+  - Result (2026-11-10): P2 and P2b added. Mutations: Number(text) parsing caught (counterexample "9.0"); ArrowUp-goes-forward caught.
+- [x] 8. `light.ts`: the light request
   - Create `src/ui/light.ts` (design 3.3): `lightRequest(choice, intentText)` returns a refusal with the reason, or `{ ok: true, event: { type: "light", length, intent } }` with the intent passed unchanged and the key omitted when the text is empty.
   - Create `src/ui/light.test.ts`: a preset and an intent; a valid custom length; an invalid custom length for each reason; an empty intent; an intent with line breaks, trailing spaces and 100 characters is passed unchanged (the engine normalizes it).
   - Files: `src/ui/light.ts`, `src/ui/light.test.ts`; add `light.ts` to the purity list.
   - Requirements: R2.6, R3.3, R4.2. Properties: none (P3 is task 9).
   - Done when `npm run verify` passes.
 
-- [ ] 9. Required: P3, the light request through the engine
+  - Result (2026-11-10): light.ts written.
+- [x] 9. Required: P3, the light request through the engine
   - Create `src/ui/light.prop.test.ts` and add P3: for any selection (a preset, or custom text from the P2 generator) and any intent text (arbitrary Unicode, line breaks, long text, emoji, whitespace), `lightRequest` gives either a refusal (and no event exists) or a `light` event whose length is an integer from 5 to 90. Stepping the engine with that event from `idle`, and from `burned-out` and `snuffed` states built with the engine's test kit, always gives `lit`, with `intent` either `null` or a single line of at most 80 code points (`Array.from(intent).length`) with no leading or trailing space, and never throws. An invalid length never produces an event.
   - Files: `src/ui/light.prop.test.ts`.
   - Requirements: R2.6, R3.3, R4.2. Properties: P3.
   - Done when `npm run verify` passes.
 
-- [ ] 10. `keys.ts`: the key map
+  - Result (2026-11-10): P3 added. Mutations: UI trims the intent caught (counterexample preset 15 + " "); invalid length still builds an event caught.
+- [x] 10. `keys.ts`: the key map
   - Create `src/ui/keys.ts` (design 3.4): `KeyDescriptor`, `FocusKind` (`body`, `text`, `button`, `other`), `KeyContext`, `KeyAction` and `keyAction(context, key)` with exactly the rows of the design's table: Enter lights outside buttons; Space pauses or resumes outside text fields and buttons; Escape closes an overlay or opens the snuff dialog; `t`/`T` announces the time in `lit` or `paused`, never with a text field focused; anything with Ctrl, Alt or Meta and anything with `repeat` gives nothing; with an overlay open only Escape applies. No key ever gives a snuff.
   - Create `src/ui/keys.test.ts`: every row of the table, including each phase, each focus kind, each overlay, Shift+Space, Ctrl+Enter, Alt+Space, a held Space and Enter, `t` in the intent field.
   - Files: `src/ui/keys.ts`, `src/ui/keys.test.ts`; add `keys.ts` to the purity list.
   - Requirements: R5.2, R5.3, R6.1, R6.4, R9.5, R10.2, R10.3. Properties: none (P4 is task 11).
   - Done when `npm run verify` passes.
 
-- [ ] 11. Required: P4, the key map
+  - Result (2026-11-10): keys.ts written. Design question: every repeat returns null, including a held Escape (R10.3 names only Space and Enter; design adds t).
+- [x] 11. Required: P4, the key map
   - Create `src/ui/keys.prop.test.ts` and add P4 over all contexts (phase, overlay, focus kind) and generated key events (printable keys, Enter, Space, Escape, Tab, arrows, with random modifier flags and `repeat`): Ctrl, Alt or Meta gives no action; a repeated Space, Enter or `t` gives no action; Space never gives an action with a text field or any button focused; no key gives a snuff; Escape gives "open the dialog" only in `lit` or `paused` with no overlay open, and "close" with an overlay open; with an overlay open no key gives light, pause or announce; no action is ever invalid for the phase; `t` gives "announce the time" only in `lit` or `paused` with no overlay open and no text field focused.
   - Files: `src/ui/keys.prop.test.ts`.
   - Requirements: R5.3, R6.1, R6.4, R9.5, R10.3. Properties: P4.
   - Done when `npm run verify` passes.
 
-- [ ] 12. `ui-state.ts`: the UI state machine
+  - Result (2026-11-10): P4 added, plus a metamorphic property (where the plain key acts, Ctrl, Alt, Meta and repeat each give null). Mutations: Space acts with text focus caught; t announces while typing caught; repeats-act and meta mutants first survived 1 run in 8, now caught 10/10.
+- [x] 12. `ui-state.ts`: the UI state machine
   - Create `src/ui/ui-state.ts` (design 3.5): `UiState`, `UiAction`, `UiInput`, `Effects`, `FocusTarget` and `uiStep(ui, input, phase)` with every row of the transition table: `light` (success sends one `light` event, clears the intent, focuses `pause-resume`; refusal sets `refusal`, sets `customTouched`, announces the refusal, focuses `custom-length`), `toggle-pause`, `open-snuff`, `keep-burning`, `confirm-snuff` (one `snuff` event only if the phase is still running), `open-settings`, `close-settings`, `announce-time`, `select-preset`, `set-custom`, `set-intent`, and the `engine` input (the snuff overlay closes when the phase leaves `lit` and `paused`; focus to Light unless the user is typing or the settings panel is open, in which case it is held in `pendingFocus`). Also `initialUi(settings)`: the default length selects the preset 15, 25 or 50, or the custom stop with the text of the number.
   - Create `src/ui/ui-state.test.ts`: every row of the table and each invariant of the design (the dialog only while running; a `snuff` event only from `confirm-snuff` with the dialog open; no `tick`, `hide`, `show` or `reload` event is ever produced; an action not valid for the phase changes nothing).
   - Files: `src/ui/ui-state.ts`, `src/ui/ui-state.test.ts`; add `ui-state.ts` to the purity list.
   - Requirements: R2.2, R2.5, R3.5, R4, R5, R6, R10.5. Properties: none (P5 and P8 are tasks 13 and 14).
   - Done when `npm run verify` passes.
 
-- [ ] 13. Required: P5, the UI state machine against the engine
+  - Result (2026-11-10): ui-state.ts and 33 unit tests written; ui-state.ts added to the purity list. Design gaps reported: no settings-change action in 3.5 (11.2 mentions one); typing vs pendingFocus (3.5 vs section 10, followed section 10); confirm-snuff sends snuff only while running and holds pendingFocus "light" for the engine input; initialUi takes { defaultLength }.
+- [x] 13. Required: P5, the UI state machine against the engine
   - In `src/ui/test-kit.ts` add the UI script generator and a small interpreter that applies a script the way `main.ts` does: a UI input goes through `keyAction` where it is a key, then `uiStep`; its events go through `step` at the script's `now`; after every step the interpreter feeds the `engine` input when the phase changed (as `update` does). Script steps: key presses, button clicks, preset and text changes, time advances of any size (including long gaps), visibility changes, reloads, and engine events from the engine's `arbScript`.
   - Create `src/ui/ui-state.prop.test.ts` and add P5: the engine's own invariants (`assertInvariants`) hold after every step and the phases follow only the allowed transitions; `snuff` is sent only right after the dialog was open and the confirm was activated, never otherwise; the dialog is open only while the phase is `lit` or `paused`; opening, closing or cancelling the dialog and the settings panel never changes the time left; the UI never sends an event that is invalid for the phase; a script made only of UI inputs that are not Light, Pause, Resume or confirm leaves the engine state exactly where time alone puts it.
   - Files: `src/ui/test-kit.ts`, `src/ui/ui-state.prop.test.ts`.
   - Requirements: R1.4, R5, R6.4 to R6.6. Properties: P5.
   - Done when `npm run verify` passes.
 
-- [ ] 14. Required: P8, no UI input changes time
+  - Result (2026-11-10): P5 added (4 tests: any inputs, control-heavy scripts, neutral-only scripts); interpreter and generators in test-kit.ts. Mutations: keep-burning emits snuff caught 4/4; engine input keeps the dialog caught 4/4; toggle-pause always sends pause first SURVIVED (random scripts rarely reach paused), so a control-heavy generator was added, then caught 8/8. confirm-snuff keeping the overlay open is equivalent at script level (the engine input closes it) and is caught by the unit test instead.
+- [x] 14. Required: P8, no UI input changes time
   - Add P8 to `src/ui/ui-state.prop.test.ts`: for any generated engine script (`arbScript`), the engine state after the script is deeply equal whether or not arbitrary UI-only inputs (opening and closing the dialog and the settings panel, changing settings, typing in the fields, Tab, key presses that have no action, a `T` press) were interleaved between the events at the same times.
   - Files: `src/ui/ui-state.prop.test.ts`.
   - Requirements: R1.2, R6.5, R11.7. Properties: P8.
   - Done when `npm run verify` passes.
 
+  - Result (2026-11-10): P8 added: neutral UI inputs interleaved at the same times leave every engine state equal to the plain run, and each sends no event. Mutations: announce-time sends pause caught; open-snuff allowed while idle caught (P5/P8 file).
 - [ ] 15. Strings
   - Add all the new text to `src/strings.ts` (design 8.9): the setup labels, buttons, the dialog, the settings labels, the time units and `timeLeft`, `timeUnknown`, the status lines, the announcements, the regions, and the unit templates `spokenTime` uses. Keep the existing `title`, `tagline` and `scene` keys unchanged. Use `{name}` placeholders. The draft wording of the design may be improved in the tone of brief section 6 (short and dry); no trademark, no real product name, never "Pomodoro".
   - Create `src/ui/strings.test.ts` (design 13.1): every key used in `src/ui/` exists; every key of the new groups is used by some `src/ui/` file once those exist (until task 24 the check lists the keys still to be used and does not fail on them, and task 24 turns it on); no visible string literal in `src/ui/` outside `strings.ts`; the whole of `src/` contains no "pomodoro" (case-insensitive); every status text that is shown while Pause and Let it go dark are on screen is at most 24 characters or is allowed to be cut (the note records which are cut at 136 px).

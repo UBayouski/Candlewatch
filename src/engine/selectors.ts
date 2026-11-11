@@ -1,4 +1,5 @@
-import { burnMs, lengthMs } from "./time";
+import { PAUSE_LIMIT_MS } from "./constants";
+import { burnMs, lengthMs, pauseLimitAt } from "./time";
 import type { State } from "./types";
 
 /**
@@ -24,4 +25,16 @@ export function waxFraction(state: State, now: number): number {
 export function isBreak(state: State, now: number): boolean {
   if (!Number.isFinite(now)) return false;
   return state.phase === "burned-out" && now < state.breakEndsAt;
+}
+
+/**
+ * Pause allowance left in ms, in [0, PAUSE_LIMIT_MS]. Zero outside `paused` and for a non-finite `now`.
+ * It is the instant `settle` snuffs the pause (`pauseLimitAt`) minus `now`, so the two cannot disagree;
+ * a `now` before the pause started counts as the pause start (R4.5), so a clock that moved backwards
+ * cannot give more than the allowance that remains. Does not settle (controls-and-access R5.6).
+ */
+export function pauseLeftMs(state: State, now: number): number {
+  if (state.phase !== "paused" || !Number.isFinite(now)) return 0;
+  const left = pauseLimitAt(state) - Math.max(Math.floor(now), state.pausedAt);
+  return Math.min(Math.max(left, 0), PAUSE_LIMIT_MS - state.session.pausedTotalMs);
 }

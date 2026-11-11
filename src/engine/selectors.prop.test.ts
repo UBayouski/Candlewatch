@@ -2,7 +2,7 @@
 import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { BREAK_MS, MS_PER_MINUTE, PAUSE_LIMIT_MS } from "./constants";
-import { isBreak, waxFraction } from "./selectors";
+import { isBreak, pauseLeftMs, waxFraction } from "./selectors";
 import { step } from "./step";
 import { PROP_PARAMS, arbLength, arbScript, arbSignedScript, arbT0, runScript } from "./test-kit";
 import { INITIAL_STATE } from "./types";
@@ -113,6 +113,77 @@ describe("P11: the break selector", () => {
         expect(isBreak(out, end + BREAK_MS - 1)).toBe(true);
         expect(isBreak(out, end + BREAK_MS)).toBe(false);
         expect(isBreak(out, end - 1)).toBe(true); // R7.2 has no lower bound: phase burned-out and now < breakEndsAt
+      }),
+      PROP_PARAMS,
+    );
+  });
+});
+// P9 (controls-and-access R5.6): the pause allowance left.
+describe("P9: pause allowance (pauseLeftMs)", () => {
+  const limitOf = (s: State): number => (s.phase === "paused" ? s.pausedAt + (PAUSE_LIMIT_MS - s.session.pausedTotalMs) : NaN);
+
+  const deepFreeze = <T>(value: T): T => {
+    if (typeof value === "object" && value !== null && !Object.isFrozen(value)) {
+      Object.freeze(value);
+      for (const v of Object.values(value)) deepFreeze(v);
+    }
+    return value;
+  };
+
+  /** Probe offsets from the limit instant: well before it, around it (the boundary), and well after it. */
+  const arbOffsets = fc.array(
+    fc.oneof(
+      fc.integer({ min: -PAUSE_LIMIT_MS - HOUR, max: 0 }),
+      fc.integer({ min: -2, max: 2 }),
+      fc.integer({ min: 0, max: 2 * HOUR }),
+    ),
+    { minLength: 3, maxLength: 8 },
+  );
+  const arbOdd = fc.constantFrom(NaN, Infinity, -Infinity, -1, 0, 0.5, -0.5);
+
+  it("is in [0, PAUSE_LIMIT_MS] for every state and now; 0 outside paused; non-increasing and exactly the formula while paused; agrees with the engine; reads without changing the state", () => {
+    fc.assert(
+      fc.property(arbT0, arbSignedScript, arbOffsets, arbOdd, (t0, script, offsets, odd) => {
+        for (const { after, now } of runScript(script, t0)) {
+          const frozen = deepFreeze(structuredClone(after));
+          const before = JSON.stringify(frozen);
+
+          // Range, for the step's own time and for odd values of now.
+          for (const probe of [now, odd]) {
+            const left = pauseLeftMs(frozen, probe);
+            expect(left).toBeGreaterThanOrEqual(0);
+            expect(left).toBeLessThanOrEqual(PAUSE_LIMIT_MS);
+            expect(Number.isFinite(left)).toBe(true);
+          }
+          expect(pauseLeftMs(frozen, NaN)).toBe(0);
+          expect(pauseLeftMs(frozen, Infinity)).toBe(0);
+
+          if (frozen.phase !== "paused") {
+            for (const o of offsets) expect(pauseLeftMs(frozen, now + o)).toBe(0);
+            expect(JSON.stringify(frozen)).toBe(before);
+            continue;
+          }
+
+          const limit = limitOf(frozen);
+          const probes = offsets.map((o) => limit + o).sort((a, b) => a - b);
+          let previous = Infinity;
+          for (const probe of probes) {
+            const left = pauseLeftMs(frozen, probe);
+            // Never increases as now grows.
+            expect(left).toBeLessThanOrEqual(previous);
+            previous = left;
+            // The exact formula between the start of the pause and the limit; zero from the limit on.
+            if (probe >= frozen.pausedAt && probe < limit) expect(left).toBe(limit - Math.floor(probe));
+            if (probe >= limit) expect(left).toBe(0);
+            // A clock before the pause started gives the whole remaining allowance, never more.
+            if (probe < frozen.pausedAt) expect(left).toBe(limit - frozen.pausedAt);
+            // Agreement with the engine: time left means still paused after a tick; a tick that snuffs means none left.
+            const after2 = step(frozen, { type: "tick" }, probe);
+            if (left > 0) expect(after2.phase).toBe("paused");
+            if (after2.phase === "snuffed") expect(left).toBe(0);
+          }
+          expect(JSON.stringify(frozen)).toBe(before);
+        }
       }),
       PROP_PARAMS,
     );
