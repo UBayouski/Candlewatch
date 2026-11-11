@@ -2,7 +2,7 @@
 
 Implements `requirements.md` in this folder (R1-R13, P1-P8, Decisions Q1-Q5). Scope: a pure scene model, a thin SVG and CSS renderer, the minimal `main.ts` wiring, and the browser tests. No ghosts, graveyard, shelf, controls, time text, sound or page title.
 
-Status: **review answers applied** for P2 to P7 (see Decisions). P1 is still open. Design only. Tasks are not written.
+Status: **costume review applied.** The review was done in the Kiro CLI against the three rules of the `costume-reviewer` agent, on the previous draft: verdict CHANGES NEEDED, then applied (findings F1 to F6 and the closing of P1 and P2 are in Decisions). Design only. The tasks are in `tasks.md`.
 
 ## 1. Overview
 
@@ -71,6 +71,7 @@ export interface SceneModel {
   readonly flameRagged: number;          // 0 or 1  1 = leaning, ragged tip
   readonly flameGlow: number;            // [0, 1]  strength of the flame's own light
   readonly smoke: number;                // 0 or 1  the wisp
+  readonly stub: number;                 // 0 or 1  the stub of an ended candle (burned-out, snuffed)
   readonly lightRadius: number;          // [0, 1]  fraction of LIGHT_FULL_UNITS
   readonly dawn: number;                 // 0 or 1
   readonly cooling: boolean;             // isBreak(state, now)
@@ -91,7 +92,7 @@ export const MOTION_FIELDS = [
 
 Notes:
 
-- `flameRagged`, `smoke` and `dawn` are 0 or 1 today but typed as numbers, so a later spec can ease them in the model without changing the renderer.
+- `flameRagged`, `smoke`, `stub` and `dawn` are 0 or 1 today but typed as numbers, so a later spec can ease them in the model without changing the renderer.
 - The model has no strings except the two fixed unions (`phase`, `flameMode`), and no user text (R2.5).
 - `animateSmoke` is `!reducedMotion && flameMode === "smoke"`. `animateDrips` and `animateEase` are `!reducedMotion`.
 
@@ -130,6 +131,7 @@ lightRadius= idle ? LIGHT_MIN
            : running ? LIGHT_MIN + (LIGHT_MAX - LIGHT_MIN) * frac            // R7.2, linear in wax height
            : 0                                                                // R7.5
 dawn       = phase === "burned-out" ? 1 : 0                                   // R8.2, whole phase
+stub       = ended ? 1 : 0                                                    // R3.4, R3.7: the fixed stub is drawn only after the end
 cooling    = isBreak(state, now)                                              // R8.5
 ```
 
@@ -137,7 +139,7 @@ Why `<=` and no rounding for drips: lengths are whole minutes, so session length
 
 Why linear light: the requirement is "a non-decreasing function of wax height with a minimum above 0" (R7.2). Linear is the simplest function that follows the wax exactly, and it makes P2 easy to state. The perceived darkening is helped by the flame glow (section 4), not by a curve here.
 
-Idle is a state with no session, so `frac` is 0 there; the table above is the Q1 decision. In `idle` the room is dim (`LIGHT_MIN`) and the flame is `unlit`, so the pool is faint (section 6.3).
+Idle is a state with no session, so `frac` is 0 there; the table above is the Q1 decision. In `idle` the room is dim (`LIGHT_MIN`) and the flame is `unlit`, so the pool is small (section 6.3).
 
 ### 3.3 The flame table
 
@@ -170,7 +172,7 @@ R5.6 check (still version, size, colour, shape):
 - `steady` vs `guttering`: size (1 vs 0.6) and shape (teardrop vs ragged).
 - `steady` vs `paused`: size (1 vs 0.35) and colour (amber vs blue).
 - `guttering` vs `paused`: size, colour and shape.
-- `unlit` vs `smoke`: neither has a flame, so only the shape differs at flame level (no mark vs wisp). See Point for review P1 below: the scene as a whole differs in wax height (1 vs stub), light radius (0.2 vs 0) and the wisp.
+- `unlit` vs `smoke`: neither has a flame, so at flame level only the shape differs (no mark vs wisp). R5.6 is read at scene level for this one pair (Decision P1, accepted): the whole still scene differs in the candle (whole candle vs stub), the pool (small vs none) and the wisp.
 - A flame mode vs `unlit` or `smoke`: size and shape.
 
 ### 3.4 Motion values
@@ -256,7 +258,7 @@ Ranges (the RANGES in `types.ts`): lean `[-7, 7]` (documented `[-12, 12]` leaves
 
 ### 4.5 What flicker may touch
 
-The renderer applies `flickerLean` as a rotation of the flame, `flickerHeight` as a vertical scale and `flickerGlow` as the strength of the flame's halo and the depth of the light pool's centre. It does not touch `lightRadius` (R7.6). The wax and the light radius have no flicker.
+The renderer applies `flickerLean` as a rotation of the flame, `flickerHeight` as a vertical scale and `flickerGlow` as the strength of the flame's halo. It does not touch `lightRadius` (R7.6). The wax and the light radius have no flicker.
 
 ## 5. The room (SVG)
 
@@ -279,53 +281,56 @@ The container is `position: fixed; inset: 0; overflow: hidden`, with `html, body
 
 ### 5.2 Layers (back to front)
 
-All shapes are static markup in `room.ts`. IDs are prefixed `cw-`. Classes carry the CSS hooks.
+All shapes are static markup in `room.ts`. IDs are prefixed `cw-`. Classes carry the CSS hooks. After the costume review (Decisions F1 to F6) there is no table and no dish, and every layer shows one thing.
 
 | # | Layer (class) | Contents | Shows (R11.8) |
 |---|---|---|---|
-| 1 | `.wall` | Large rect, vertical gradient (lit wall colours). Floor rect below y = 900. | Structure for the light to fall on. No state. |
-| 2 | `.window` | A pane at x 190..410, y 70..250, drawn on the wall behind the candle. Fill is night blue; `--dawn` blends it to dawn light (opacity of a second pane). | Dawn (completion). |
-| 3 | `.night` | Large rect filled `--room-night`, masked by `#cw-pool-mask` (section 5.3). Opacity `calc(1 - var(--dawn) * 0.6)`. | Progress (the dark outside the pool). |
-| 4 | `.dawn-wash` | Large rect with a vertical gradient (cool at the top, warm low), opacity `var(--dawn)`. | Dawn. |
-| 5 | `.table` | Dark band y 840..900 spanning the stage and beyond; a brass `.dish` ellipse at (300, 840), rx 70, ry 10. | The candle's support. No state. |
-| 6 | `.candle` | `.stub` (x 268..332, y 812..840, fixed). `.body` (x 268..332, y 420..812, `scaleY(var(--wax-height))` from the bottom). | Time left. |
-| 7 | `.head` | A group translated down by `(1 - var(--wax-height)) * 392px`. Contains the rim ellipse (the melt pool), `.wick`, `.drip-1..3`, the `.flame` stack and `.ember`. | Wax top follows time left. |
-| 8 | `.smoke-wisp` | A curling path above the wick, inside `.head`. Opacity `var(--smoke)`. | An ended session. |
-| 9 | `.halo` | Radial gradient circle around the flame, inside `.head`, opacity from flame glow. | Flame state. |
+| 1 | `.wall` | A large rect from y = -600 down to the floor line (y = 900), vertical gradient `--wall-top` to `--wall-low`. | Nothing of its own. It is the surface the light pool reveals, so it carries progress: the lit part of the wall is the pool. Without it the pool would have nothing to show. |
+| 2 | `.night` | A rect over the same area, filled `--room-night`, opacity constant 1, masked by `#cw-pool-mask` (5.3). It ends at the floor line. | Progress (the dark outside the pool). |
+| 3 | `.window` | A pane at x 190..410, y 70..250 on the wall, drawn above `.night` so it keeps its colour in the dark. `.window-rest` is filled `--window-night`, a constant faint night colour that is visible against both the night and the lit wall. `.window-dawn` is filled `--window-dawn`, opacity `var(--dawn)`. Only the pane: no frame, sill, mullion or curtain. | Dawn (completion): the pane lights up. |
+| 4 | `.dawn-wash` | A rect over the wall area, vertical gradient from `--dawn-cool` (top) to `--dawn-warm` (low), stops at alpha `--dawn-alpha`, opacity `var(--dawn)`. Layered above `.night`; `.night` is not faded. | Dawn. |
+| 5 | `.candle` | `.body`: x 268..332, from the floor line up 420 units, `scaleY(var(--wax-height))` from the bottom. `.stub`: x 268..332, y 872..900, opacity `var(--stub)`. | Time left (body). An ended session (stub). |
+| 6 | `.lit` (group) | Not translated; carries `clip-path: url(#cw-above-floor)`, the stage area above y = 900. Inside it, `.head`, translated down by `(1 - var(--wax-height)) * 420px`, holds the rim ellipse, `.wick`, `.drip-1..3`, the `.flame` stack, `.ember`, `.smoke-wisp` and `.halo`. | Wax top (time left), drips (quarters burned), flame (session state), ember (break), smoke (ended), halo (flame state). |
+| 7 | `.zone` | An opaque band from the floor line down to y = 1600 and across the whole backdrop. `.zone-rest` is filled `--zone-bg-darkest`; `.zone-dawn` is filled `--zone-bg-brightest`, opacity `var(--dawn)`. Topmost layer. It contains an invisible marker rect, `.zone-text-area` (x 110..490, y 900..1000, no fill), so tests and the controls spec can read where the time text goes. | The reserved time-text zone (5.4, 7.2). It brightens at dawn (completion). |
 
-The wall, floor and window are kept (Decision P2): the light pool falls on the wall and floor, and the dawn shows in the window. The table and dish carry no state and are **pending the `costume-reviewer` review**. If it judges them decoration, they are removed and the candle stands on the floor line (the stub's base moves to the floor line at y = 900 and layer 5 is dropped).
+The floor is the zone (Decision F2). The wall is kept only as the substrate of the light pool (Decision P2). Clipping `.lit` at the floor line and painting `.zone` last each keep the flame, its halo, the drips, the smoke and the light pool out of the zone at any wax height. Either one alone would do; both are tested (12.3, 11.3).
 
+The stage is 600 x 1000 units. The part of the zone inside the stage is the band from y = 900 to 1000.
 ### 5.3 The light pool
 
 ```svg
-<mask id="cw-pool-mask" maskUnits="userSpaceOnUse" x="-2200" y="-600" width="5000" height="2200">
-  <rect class="mask-all" x="-2200" y="-600" width="5000" height="2200"/>      <!-- white: night shows -->
-  <circle class="pool" cx="0" cy="0" r="700" fill="url(#cw-pool-hole)"/>        <!-- black centre, clear edge -->
+<mask id="cw-pool-mask" maskUnits="userSpaceOnUse" x="-2200" y="-600" width="5000" height="1500">
+  <rect class="mask-all" x="-2200" y="-600" width="5000" height="1500" fill="white"/>  <!-- white: night shows -->
+  <circle class="pool" cx="0" cy="0" r="700" fill="url(#cw-pool-hole)"/>                 <!-- black centre, clear edge -->
 </mask>
 ```
 
 - `#cw-pool-hole` is a radial gradient from opaque black at the centre, through 0.75 alpha at 60 percent, to transparent at the edge. Black in the mask removes the night, so the pool is the lit wall.
 - `.pool` is moved and scaled by CSS only:
-  `transform: translate(300px, calc(340px + (1 - var(--wax-height)) * 392px)) scale(var(--light-radius));`
+  `transform: translate(300px, calc(400px + (1 - var(--wax-height)) * 420px)) scale(var(--light-radius));`
   The pool follows the flame down the candle and its radius is `lightRadius * 700` room units (R7.2). At a whole candle the pool (700 units) covers the stage; at `LIGHT_MIN` it is 140 units.
-- `.pool` opacity is `calc(0.3 + 0.7 * clamp(0, var(--flame-glow) + var(--flicker-glow), 1))`. A strong flame digs a full hole; an unlit candle (idle) digs only a faint one, so the dim room is dim, not lit.
+- **The pool's intensity is constant** (Decision F4). `.pool` has no opacity rule and does not read the flame glow. The pool shows progress only, by its radius. The flame's glow and flicker act on `.halo` only.
+- The night layer and the mask end at the floor line, so the pool is cut off there and never lights the zone.
 - The vignette is not a separate layer. It is what is left of `.night` beyond the pool edge.
-
 ### 5.4 Candle geometry (room units)
+
+The drawn height of the candle is exactly proportional to the wax height (R3.6, Decision F6): `420 * waxHeight`. Nothing fixed is added to it while the session is running.
 
 | Name | Value |
 |---|---|
 | Candle x range | 268 to 332 (width 64, centre 300) |
-| Table line | y = 840 |
-| Stub | y 812 to 840 (28, always drawn) |
-| Body at full height | y 420 to 812 (392) |
-| Rim at wax height `h` | y = 812 - 392 h |
+| Floor line | y = 900. The candle's base, the drip clip line and the top of the time-text zone. |
+| Full candle height (`CANDLE_H`) | 420 |
+| Body at full height | y 480 to 900 |
+| Rim at wax height `h` | y = 900 - 420 h |
+| Drawn candle height | 420 h exactly, in `idle`, `lit` and `paused`. At `h = 0` the body is gone. |
+| Stub | y 872 to 900 (28, `STUB_H`), drawn only in `burned-out` and `snuffed` (`--stub` is 1). It is the whole candle then. |
 | Wick | 20 tall, standing on the rim |
-| Flame at full height | 120 tall, base on the wick |
-| Reserved edge bands | x 0..110 and x 490..600, all y, and everything beyond |
+| Flame at full height | 120 tall, base on the wick. At a whole candle its tip is at y = 340, below the window (y 70..250). |
+| Time-text zone | The stage band below the floor line. The text area is x 110..490, y 900..1000 (380 x 100). |
+| Reserved edge bands | x 0..110 and x 490..600 for every y, including the outer parts of the zone band, and everything beyond. |
 
-The reserved bands hold no object. They are for ghosts and the door of later specs (R10.4).
-
+The pure helper `candleHeightUnits(model)` in `model.ts` returns this drawn height for tests (12.1). The reserved bands hold no object. They are for ghosts and the door of later specs (R10.4). A `lit` state whose time is up but not yet settled draws a body of height 0 and no stub for a frame, until the next tick settles it.
 ### 5.5 Drips
 
 Three drips, each a rounded stroke hanging from the rim and travelling with it (children of `.head`):
@@ -336,8 +341,7 @@ Three drips, each a rounded stroke hanging from the rim and travelling with it (
 | 2 | 332 (right edge) | 100 |
 | 3 | 284 (inside left) | 60 |
 
-Drip `n` is shown when the model's `drips >= n`. In CSS, with a number: `transform: scaleY(clamp(0, calc(var(--drips) - (n - 1)), 1)); transform-origin: top; transform-box: fill-box;`. A clip path at the base of the candle (the table line, y = 840, or the floor line if the table is removed) keeps drips from running below the candle at the end of a session. Drips hang from the rim and travel with it for a reason (Decision P7): fixed marks on the side would be clipped as the wax burns past them, so the visible drip count would fall, which R4.2 forbids. When `animateDrips` is true, a transition on `transform` runs the new drip down over 3.5 seconds; otherwise it appears at once (R4.3, R4.4). After a reload the first paint has no transition (section 6.5), so existing drips appear whole (R4.5).
-
+Drip `n` is shown when the model's `drips >= n`. In CSS, with a number: `transform: scaleY(clamp(0, calc(var(--drips) - (n - 1)), 1)); transform-origin: top; transform-box: fill-box;`. The `.lit` group's clip at the floor line (y = 900) keeps drips from running below the candle's base. Drips hang from the rim and travel with it for a reason (Decision P7): fixed marks on the side would be clipped as the wax burns past them, so the visible drip count would fall, which R4.2 forbids. When `animateDrips` is true, a transition on `transform` runs the new drip down over 3.5 seconds; otherwise it appears at once (R4.3, R4.4). After a reload the first paint has no transition (section 6.5), so existing drips appear whole (R4.5).
 ### 5.6 The flame
 
 Four stacked groups inside `.head`, from the outside in:
@@ -357,8 +361,7 @@ The wisp (`.smoke-wisp`) is a still S-curve drawn above the wick in `--smoke`. W
 
 ### 5.8 Dawn
 
-When `--dawn` is 1: the window pane is pale, `.dawn-wash` is full, `.night` drops to opacity 0.4, and the stub is unlit. With `data-ease="true"` the change eases in over 3 seconds. The dawn differs from the dim idle room in colour (cool and warm wash against blue-black), in brightness, and in the window (R8.4). The dawn does not depend on the break (Decision Q3).
-
+When `--dawn` is 1: the window's dawn pane is fully shown, `.dawn-wash` is fully shown above the night layer, `.zone-dawn` is fully shown, and the candle is the stub (`--stub` is 1). `.night` is not faded (Decision F4); the wash is layered above it, so each layer shows one thing. With `data-ease="true"` the change eases in over 3 seconds. The dawn differs from the dim idle room in colour (cool and warm wash against blue-black), in brightness, and in the window (R8.4). The dawn does not depend on the break (Decision Q3).
 ## 6. The renderer
 
 ### 6.1 API
@@ -381,24 +384,24 @@ export function createScene(root: HTMLElement): Scene
 | `flameHeight` | `--flame-height` | `.flame-shape` scale |
 | `flameBlue` | `--flame-blue` | `.flame-amber` and `.flame-blue` opacity |
 | `flameRagged` | `--flame-ragged` | `.flame-ragged` and teardrop opacity |
-| `flameGlow` | `--flame-glow` | `.halo`, `.pool` opacity |
+| `flameGlow` | `--flame-glow` | `.halo` only |
 | `smoke` | `--smoke` | `.smoke-wisp` opacity |
+| `stub` | `--stub` | `.stub` opacity |
 | `lightRadius` | `--light-radius` | `.pool` scale |
-| `dawn` | `--dawn` | `.window`, `.night`, `.dawn-wash` |
+| `dawn` | `--dawn` | `.window-dawn`, `.dawn-wash`, `.zone-dawn` |
 | `cooling` | `--cooling` (`1` or `0`) | `.ember` opacity |
 | `flickerLean` | `--flicker-lean` | `.flame-flicker` rotation |
 | `flickerHeight` | `--flicker-height` | `.flame-flicker` scale |
-| `flickerGlow` | `--flicker-glow` | `.halo`, `.pool` |
+| `flickerGlow` | `--flicker-glow` | `.halo` only |
 | `phase` | `data-phase` | hook for later specs; no rule here |
 | `flameMode` | `data-flame` | hook; the e2e tests assert it |
 | `animateDrips`, `animateSmoke`, `animateEase` | `data-animate-drips`, `data-animate-smoke`, `data-ease` (`"true"`/`"false"`) | CSS transitions and animations |
 
 Numbers are written with `String(value)`; booleans are converted by the table (`true` becomes `1` for `--cooling`, `"true"` for data attributes).
 
-### 6.3 Pool intensity when idle
+### 6.3 Pool intensity
 
-In `idle`, `--flame-glow` is 0, so the pool opacity is 0.3 at radius `LIGHT_MIN`: a faint, small patch. No separate idle rule exists.
-
+The pool's intensity is constant (Decision F4), so there is no idle rule and no rule on the flame glow. In `idle` the pool is at radius `LIGHT_MIN` like the end of a candle, a small patch around an unlit candle.
 ### 6.4 The accessible name (R12)
 
 `root` has `role="img"`. `apply` sets `aria-label` from `STRINGS.scene[model.flameMode]` only when `flameMode` changes. It does not include the time. This is the one attribute besides custom properties and data attributes that the renderer writes (R12 allows it). New strings in `src/strings.ts`:
@@ -426,12 +429,11 @@ The renderer counts its calls. On the first call it sets `data-settled="false"`;
 | `--room-night` | `#05070d` | the dark outside the pool |
 | `--room-bg-darkest` | `#05070d` | **handoff (R7.7):** the darkest room background |
 | `--room-bg-brightest` | `#566683` | **handoff (R7.7):** the brightest room background |
+| `--zone-bg-darkest` | `#080b12` | **handoff (R7.8):** the time-text zone at rest |
+| `--zone-bg-brightest` | `#4b4358` | **handoff (R7.8):** the time-text zone at dawn |
 | `--wall-top` | `#14192a` | lit wall, top |
-| `--wall-low` | `#3a2a1c` | lit wall, near the table (amber-lit) |
-| `--floor` | `#120e0a` | floor |
-| `--table` | `#1a1410` | table band |
-| `--dish` | `#8b6a3a` | brass dish |
-| `--wax-ivory` | `#efe6cf` | wax |
+| `--wall-low` | `#3a2a1c` | lit wall, low (amber-lit) |
+| `--wax-ivory` | `#efe6cf` | wax, and the reference brightness for the time text |
 | `--wax-shade` | `#cfc2a2` | wax shading, drips |
 | `--flame-amber-outer` | `#ff9b2f` | amber flame, outer |
 | `--flame-amber-mid` | `#ffc25a` | amber flame, mid |
@@ -441,24 +443,40 @@ The renderer counts its calls. On the first call it sets `data-settled="false"`;
 | `--halo` | `#ffb347` | halo |
 | `--smoke-colour` | `#8a93a6` | the wisp (`--smoke` is the 0 or 1 number the renderer writes) |
 | `--ember` | `#ff7a2e` | cooling glow |
-| `--window-night` | `#0d1424` | window pane at night |
-| `--window-dawn` | `#566683` | window pane at dawn (equals the brightest) |
+| `--window-night` | `#233152` | window pane at rest: constant, faint, visible against the night and the wall |
+| `--window-dawn` | `#566683` | window pane at dawn (equals the brightest room background) |
 | `--dawn-cool` | `#4a5a78` | dawn wash, top |
 | `--dawn-warm` | `#5a4a52` | dawn wash, low |
+| `--dawn-alpha` | `0.85` | alpha of both wash stops |
 
-The final names are fixed in the tasks.
+There is no `--floor`, `--table` or `--dish`: the table and dish are gone, and the floor is the zone (Decisions F1, F2). The final names are fixed in the tasks.
 
-### 7.2 The contrast handoff (R7.7)
+### 7.2 The contrast handoff (R7.7, R7.8)
 
-`--room-bg-darkest` (`#05070d`) and `--room-bg-brightest` (`#566683`) are the bounds of every background colour the scene paints under the stage. Ivory (`#efe6cf`, the wax colour) against them has WCAG contrast 16.2 and 4.66. So a light, ivory-like time text stays at 4.5:1 or better against any background in the scene. The time text colour is chosen by `controls-and-access`; this spec only guarantees the bounds. Two consequences, both deliberate:
+The scene reserves one place for the time text, the **time-text zone** (Decision F2): the band below the floor line, with the text area at x 110..490, y 900..1000 in room units, marked by `.zone-text-area` (5.2). It has its own two backgrounds, published as `--zone-bg-darkest` (every state except the dawn) and `--zone-bg-brightest` (the dawn). Nothing lit can enter the zone: the lit group is clipped at the floor line, the night layer and the pool end there, and the zone is the topmost layer (5.2). So the flame, its halo, the drips, the smoke and the light pool never sit behind the text, at any wax height.
 
-- The dawn is "muted": early light in hue and softness, not in luminance. A bright white morning would force dark text.
-- The flame's halo and core are brighter than the bound. They are small, sit around the flame, and are not a place for text. This is stated so that `controls-and-access` keeps the time text away from the flame.
+Contrast figures, from the WCAG relative luminance formula (ivory `#efe6cf` has luminance 0.7945):
 
-**Handoff note for `controls-and-access`:** the time text must never sit over the flame or its halo. The flame core and halo are brighter than the bound, and the bound does not cover them. Place the time text in the part of the stage away from the candle's head, which moves down the candle as the wax burns, so keep it clear of the whole candle column (x 200 to 400 in room units), not just the flame's current position.
+| Pair | Ratio |
+|---|---|
+| ivory on `--zone-bg-darkest` `#080b12` | 15.83 |
+| ivory on `--zone-bg-brightest` `#4b4358` | 7.53 |
+| ivory on `--room-bg-darkest` `#05070d` | 16.20 |
+| ivory on `--room-bg-brightest` `#566683` | 4.66 |
+| ivory on the dawn wash over the night layer, cool end (`#404E68`) | 6.74 |
+| ivory on the dawn wash over the night layer, warm end (`#4D4048`) | 7.88 |
 
-A palette test (section 12.3) reads `scene.css`, parses the background colour stops, and checks them against the bounds.
+Every ratio is at least 4.5:1. The two zone ratios are the ones the time text meets. A mix of the two zone colours during the 3 second dawn ease has a luminance between them, so its ratio is between 7.53 and 15.83.
 
+For the window pane at rest (not text, visibility only): `--window-night` `#233152` against `--room-night` is 1.57:1 and against `--wall-top` it is 1.36:1. It is faint and constant, and it is visible, so the dawn reads as the window lighting up.
+
+**Handoff for `controls-and-access`:**
+
+- Put the time text inside the zone text area (`.zone-text-area`, x 110..490, y 900..1000 in room units; on a 360 by 640 phone that is a band about 60 px tall across the middle). Do not put it over the candle, the flame or the window.
+- The time text must be at least as bright as ivory (`#efe6cf`): relative luminance 0.7945 or more. With that, it meets at least 7.53:1 against the zone in every state. Dimmer text may fail at the dawn colour.
+- The reserved edge bands (x 0..110 and 490..600) stay free for the ghosts, the door and the controls.
+
+The room bounds cover every background colour the scene paints above the floor line. The flame core and halo are brighter than the room bound; they are small, sit around the flame, and are kept out of the zone by the clip. A palette test (12.3) reads `scene.css` and checks all of the above.
 ## 8. Reduced motion
 
 ```css
@@ -472,7 +490,7 @@ A palette test (section 12.3) reads `scene.css`, parses the background colour st
 
 - This holds before the first model is applied (R9.5).
 - The model side is separate: `main.ts` reads `matchMedia("(prefers-reduced-motion: reduce)")`, passes `reducedMotion` in the options, and re-reads it on the `change` event (R9.4). The flicker values become 0 and the three `animate*` flags become false.
-- What remains in the still version: wax height, three drip shapes, flame size/colour/shape per mode, pool radius, the window and wash at dawn, the wisp as a still curve, the ember dot.
+- What remains in the still version: wax height, three drip shapes, the stub, flame size/colour/shape per mode, pool radius, the window and wash at dawn, the wisp as a still curve, the ember dot.
 
 ## 9. Responsive behaviour (summary)
 
@@ -575,21 +593,25 @@ The clock is frozen, `requestAnimationFrame` frames are driven by `runFor`, and 
 
 ### 11.3 Assertions (R13.7)
 
-For each fixture the test waits for `data-settled="true"` on `#scene`, then reads the root's `data-flame`, `data-phase`, and the computed custom properties (as numbers, with `toBeCloseTo`):
+For each fixture the test waits for `data-settled="true"` on `#scene` and for finished transitions (`await Promise.all(document.getAnimations().map((a) => a.finished))`), then reads the root's `data-flame`, `data-phase`, and the computed custom properties (as numbers, with `toBeCloseTo`):
 
-| Fixture | `data-flame` | `--wax-height` | `--drips` | `--light-radius` | `--dawn` | `--cooling` | `--smoke` |
-|---|---|---|---|---|---|---|---|
-| `idle` | `unlit` | 1 | 0 | 0.2 | 0 | 0 | 0 |
-| `lit-start` | `steady` | 1 | 0 | 1 | 0 | 0 | 0 |
-| `lit-half` | `steady` | 0.5 | 2 | 0.6 | 0 | 0 | 0 |
-| `lit-last-minute` | `guttering` | 0.02 | 3 | 0.216 | 0 | 0 | 0 |
-| `paused` | `paused` | 0.6 | 1 | 0.68 | 0 | 0 | 0 |
-| `burned-out` (in break) | `smoke` | 0 | 0 | 0 | 1 | 1 | 1 |
-| `burned-out` (after break) | `smoke` | 0 | 0 | 0 | 1 | 0 | 1 |
-| `snuffed` | `smoke` | 0 | 0 | 0 | 0 | 0 | 1 |
+| Fixture | `data-flame` | `--wax-height` | `--drips` | `--light-radius` | `--dawn` | `--cooling` | `--smoke` | `--stub` |
+|---|---|---|---|---|---|---|---|---|
+| `idle` | `unlit` | 1 | 0 | 0.2 | 0 | 0 | 0 | 0 |
+| `lit-start` | `steady` | 1 | 0 | 1 | 0 | 0 | 0 | 0 |
+| `lit-half` | `steady` | 0.5 | 2 | 0.6 | 0 | 0 | 0 | 0 |
+| `lit-last-minute` | `guttering` | 0.02 | 3 | 0.216 | 0 | 0 | 0 | 0 |
+| `paused` | `paused` | 0.6 | 1 | 0.68 | 0 | 0 | 0 | 0 |
+| `burned-out` (in break) | `smoke` | 0 | 0 | 0 | 1 | 1 | 1 | 1 |
+| `burned-out` (after break) | `smoke` | 0 | 0 | 0 | 1 | 0 | 1 | 1 |
+| `snuffed` | `smoke` | 0 | 0 | 0 | 0 | 0 | 1 | 1 |
 
-Also: `aria-label` equals the string for the mode (R12); `role="img"`; with reduced motion on, `--flicker-*` are 0 and `data-ease`, `data-animate-drips`, `data-animate-smoke` are `"false"`; and at the four viewports there is no scrollbar (`scrollWidth <= clientWidth`, same for height) and `.candle` and `.flame-shape` lie inside the viewport.
+Also:
 
+- `aria-label` equals the string for the mode (R12); `role="img"`; with reduced motion on, `--flicker-*` are 0 and `data-ease`, `data-animate-drips`, `data-animate-smoke` are `"false"`.
+- At the four viewports there is no scrollbar (`scrollWidth <= clientWidth`, same for height) and `.candle` and `.flame-shape` lie inside the viewport.
+- **Candle height is proportional (F6).** For `lit-start`, `lit-half`, `lit-last-minute` and `paused`, the bounding-box height of `.body` divided by its height at `lit-start` equals `--wax-height` (within 0.01), and `.stub` has computed opacity 0. For `burned-out` and `snuffed`, `.body` has height under 1 px and `.stub` has opacity 1.
+- **The zone stays clear (F5).** For every fixture, the screenshot region of `.zone-text-area` is decoded in the page (`createImageBitmap` and a canvas, test code only). Every pixel is within 2 per channel of `--zone-bg-darkest`, or of `--zone-bg-brightest` in the dawn fixtures. `lit-last-minute` is the case that matters, because the flame and halo are at their lowest there.
 ### 11.4 Screenshots (R13.3 to R13.5)
 
 Names: `docs/screenshots/candle-<state>-<size>[-reduced].png`, with state in `idle`, `lit-start`, `lit-half`, `lit-last-minute`, `paused`, `burned-out`, `snuffed` and size in `desktop` (1280x800) or `phone` (360x640). The set is 7 x 2 = 14, plus the 7 reduced-motion shots at desktop (`candle-lit-half-desktop-reduced.png`, and so on): 21 files. The `burned-out` shot is taken inside the break, so it shows the dawn and the ember. The tests write the files with `page.screenshot({ path })`. They do not compare pixels; a wrong state is caught by the assertions above (R13.7).
@@ -602,11 +624,12 @@ Following `scene.md`, any later change to what a user sees retakes the affected 
 
 - Flame mode at time left 60 001, 60 000, 59 999 and 0 ms (lit), at 0 for paused, and in the last minute for paused.
 - Drip count at wax 0.76, 0.75, 0.5, 0.25 and 0.0, and 0 in idle and in the ended phases.
-- Idle: wax 1, no flame, light radius 0.2, drips 0. Burned-out: wax 0, dawn 1, light 0, smoke 1. Snuffed: wax 0, dawn 0, light 0, smoke 1.
+- Idle: wax 1, no flame, light radius 0.2, drips 0, stub 0. Burned-out: wax 0, dawn 1, light 0, smoke 1, stub 1. Snuffed: wax 0, dawn 0, light 0, smoke 1, stub 1.
+- The stub (F6): `stub` is 0 in idle, lit and paused at every wax height, including wax 0.02 and a lit state whose time left is 0; it is 1 in burned-out and snuffed.
+- Candle height (F6): the pure helper `candleHeightUnits(model)` (in `model.ts`) gives `CANDLE_H * waxHeight` while `stub` is 0 and `STUB_H` when it is 1. Over a sweep of wax heights, `candleHeightUnits / waxHeight` is the constant `CANDLE_H` (420), so the drawn height is exactly proportional. `CANDLE_H` is 420, `FLOOR_Y` is 900, `STUB_H` is 28.
 - The reference table of flicker for seed 20261031 at 8 instants (hard-coded numbers, to catch an accidental change of the hash or steps), for each mode.
-- R5.6 on `FLAME_LOOK`: any two of `steady`, `guttering`, `paused` differ in at least two of size, colour, shape; and `unlit` vs `smoke` differ in wax height, light radius and `smoke` (section 3.3).
+- R5.6 on `FLAME_LOOK`: any two of `steady`, `guttering`, `paused` differ in at least two of size, colour, shape; and `unlit` vs `smoke` differ in the candle (`stub`), light radius and `smoke` (section 3.3, Decision P1).
 - `cooling` is true at the end instant and 299 999 ms after, false at `breakEndsAt` and later.
-
 ### 12.2 Purity test (`purity.test.ts`)
 
 Reuses the technique of the engine's purity test (comment stripping, whole-word matches):
@@ -616,13 +639,21 @@ Reuses the technique of the engine's purity test (comment stripping, whole-word 
 - **`render.ts`**: no import from `../engine`.
 - **`model.ts`**: does not mention `.session`, `.litSince`, `.pausedAt`, `.history`, `.endedAt` or `.breakEndsAt` (R1.2).
 
-### 12.3 Stylesheet tests (`scene.css.test.ts`, node)
+### 12.3 Stylesheet and markup tests (`scene.css.test.ts`, `room.test.ts`, node)
 
 - The file contains an `@media (prefers-reduced-motion: reduce)` block that sets `animation: none` and `transition: none`.
 - Every custom property listed in section 6.2 is used by at least one rule (so the renderer never writes a property nobody reads).
-- The palette test: parse the background colour stops (`--room-night`, `--wall-*`, `--floor`, `--table`, `--window-*`, `--dawn-*`); each has relative luminance between that of `--room-bg-darkest` and `--room-bg-brightest`; the composited brightest dawn colour over the lit wall is within the bounds; and `--wax-ivory` against both bounds is at least 4.5:1.
+- **Palette test.** Parse the colours in `scene.css`:
+  - Every background colour stop (`--room-night`, `--wall-*`, `--window-*`, and `--dawn-*` composited over `--room-night` at `--dawn-alpha`) has a relative luminance between that of `--room-bg-darkest` and `--room-bg-brightest`.
+  - `--wax-ivory` against `--room-bg-darkest`, `--room-bg-brightest`, `--zone-bg-darkest` and `--zone-bg-brightest` is at least 4.5:1 in each case. The test also asserts the four figures to two decimals (16.20, 4.66, 15.83, 7.53), so a palette edit that changes the handoff shows up.
+  - `--window-night` against `--room-night` is at least 1.4:1, and `--window-night` is a single value that no state rule changes.
+- **Markup test** on `ROOM_SVG`:
+  - `.zone` is the last layer; `.lit` carries `clip-path: url(#cw-above-floor)` and that clip path covers the stage only above y = 900; `.halo` is inside `.lit`.
+  - `.wall` and `.night` end at y = 900.
+  - There are no `.table`, `.dish` or `.floor` elements, and the window has only its two pane rects (no frame).
+  - `.pool` has no opacity rule and `.night` has no rule that reads `--dawn` or `--flame-glow` (F4).
+  - `.stub` takes its opacity from `--stub`; `.body` is `scaleY(var(--wax-height))` and its full height is `CANDLE_H` (F6).
 - No `url(` for a raster file, no `<img>`, `<canvas>` or `image` element in `room.ts` (R11.1).
-
 ## 13. How P1 to P8 are generated
 
 All properties use `numRuns: 300` through the engine's shared `PROP_PARAMS`, in `src/scene/model.prop.test.ts` (P1 to P3, P5 to P8) and `src/scene/flicker.prop.test.ts` (P4). Generators come from the engine's `test-kit.ts` (imported by tests only): `arbT0`, `arbScript`, `arbSignedScript`, `runScript`. The scene tests add `arbNow` (finite values near a run's times, large, negative, plus `NaN`, `Infinity`, `-Infinity`), `arbSeed` (any double) and `arbReduced` (boolean).
@@ -636,9 +667,9 @@ Each run: draw `t0` and a script, run it with `runScript`, and evaluate the mode
 | P3 | Two parts. (a) Build pairs of lit states with different lengths, intents and different earlier history (a script prefix that ends sessions), each probed at `now` so that time left equals a drawn `T` (from a boundary-biased set: 0, 1, 59 999, 60 000, 60 001, then arbitrary up to the shorter length); also paused states with the same time left. (b) Pool all samples of a run into a `Map` keyed by `(phase, timeLeftMs)`. | In (a) both states give the same `flameMode`. In (b) every key maps to exactly one mode. In both, the mode equals an independent oracle in the test (a plain `if` table of R5.1) for all five phases. |
 | P4 | `fc.tuple(arbSeed, arbNow, arbMode)`, plus small `d` (1 to 5 ms) and a second seed. | Calling twice gives equal values. Every value is finite and in range. All three are exactly 0 for `unlit` and `smoke`. `sceneModel` for two different states of the same mode, same `now`, same seed gives the same flicker fields. `|f(now + d) - f(now)| <= 3 * A * d / step` per channel, plus the dip term `0.45 * (pi / 2) / 200 * d` for height and `0.9 *` that for glow in `guttering`. Different seeds give different flicker at most instants (checked on a fixed 200-instant grid: not all equal). |
 | P5 | Any trace sample, `arbNow`, `arbSeed`, both values of `reducedMotion`. | The two models are deep equal after removing `MOTION_FIELDS`. With `reducedMotion: true` the three flicker values are 0 and the three flags are false. |
-| P6 | Trace samples and extra states from `arbWildScript` (invalid events included), with `arbNow` and `arbSeed`. | No throw. Every number is finite and inside `RANGES`; `drips` is 0, 1, 2 or 3; `flameMode` and `phase` are in their unions; booleans are booleans. |
+| P6 | Trace samples and extra states from `arbWildScript` (invalid events included), with `arbNow` and `arbSeed`. | No throw. Every number is finite and inside `RANGES`; `drips` is 0, 1, 2 or 3; `stub` is 0 or 1; `flameMode` and `phase` are in their unions; booleans are booleans. |
 | P7 | The same samples. The input state is deep-frozen (recursively) before the call, then compared to a `structuredClone` taken before. | Two calls give deep-equal models. The input equals its clone afterwards. Every model value is a number, a boolean, or one of the two fixed unions (no other string, no object, no array). |
-| P8 | Trace samples at `arbNow` probes including times inside and after the break. | `dawn === 1` iff `phase === "burned-out"`, whether or not the break is in progress. `lightRadius === 0` iff the phase is `burned-out` or `snuffed`. `cooling === isBreak(state, now)`. For a burned-out state, the models at an instant inside the break and at an instant after it differ only in `cooling` (the flicker of `smoke` is 0, so `now` changes nothing else). |
+| P8 | Trace samples at `arbNow` probes including times inside and after the break. | `dawn === 1` iff `phase === "burned-out"`, whether or not the break is in progress. `lightRadius === 0` iff the phase is `burned-out` or `snuffed`. `stub === 1` iff the phase is `burned-out` or `snuffed` (F6). `cooling === isBreak(state, now)`. For a burned-out state, the models at an instant inside the break and at an instant after it differ only in `cooling` (the flicker of `smoke` is 0, so `now` changes nothing else). |
 
 A mutation check like the engine's is planned in the tasks: remove the `paused` case from `flameModeOf`, change `<=` to `<` in the drip test, make `lightRadius` grow with the flicker, call `Math.random` in the hash, and drop one `MOTION_FIELDS` entry from the reduced path. Each must be caught by at least one property or example.
 
@@ -668,13 +699,29 @@ A mutation check like the engine's is planned in the tasks: remove the `paused` 
 
 ## 16. Points for review
 
-1. **P1. `unlit` vs `smoke` at flame level (open).** R5.6 asks that any two flame modes differ in two of size, colour, shape. Neither of these two has a flame, so at flame level only the shape differs (nothing vs the wisp). Recommendation: read R5.6 at scene level for this one pair. The whole still scene differs in wax height (whole candle vs stub), light radius (small pool vs none) and the wisp, and the unit test says so (12.1). The alternative is to give `smoke` a dull ember colour on the wick, which adds an element that duplicates the cooling glow.
+None. P1 is closed (accepted); see Decisions.
 
 ## 17. Decisions
 
-- **P2. Furniture:** keep the wall, floor and window. The light pool falls on the wall and floor, and the dawn shows in the window. The table and dish are pending the `costume-reviewer` review. If it judges them decoration, the candle stands on the floor line. **This point closes after that review**, which runs in the Kiro CLI (`kiro-cli chat --agent costume-reviewer`); its finding will be added here.
+### 17.1 Review answers
+
+- **P1. `unlit` vs `smoke` at flame level: accepted.** R5.6 is read at scene level for this one pair. The whole still scene differs: a whole candle, a small pool and no wisp, against a stub, no pool and a wisp (section 3.3, 12.1).
+- **P2. Furniture: closed, with the costume-reviewer's verdict.** The wall is kept as the substrate of the light pool, the window pane is kept, the table and the dish are removed (F1), and the floor becomes the time-text zone (F2). See 17.2.
 - **P3. Placeholder heading:** yes. The `h1` and tagline become visually hidden and are still read by screen readers (section 10.1).
 - **P4. Strings:** yes. The five accessible names go in `src/strings.ts` (section 6.4).
-- **P5. Flame brightness:** accepted. The contrast bound covers backgrounds, not the flame or its halo. A handoff note for `controls-and-access` sits next to the bound in section 7.2: the time text must never sit over the flame or its halo.
+- **P5. Flame brightness: accepted, then superseded by F5.** The contrast bound covers backgrounds, not the flame or its halo. The handoff note that said to keep the text clear of the candle column is replaced by the time-text zone, which the flame and halo cannot enter (section 7.2).
 - **P6. Playwright imports:** yes. The first code task proves that Playwright resolves the engine and storage imports in the fixtures. If it does not, the `globalSetup` fallback in section 11.1 is used.
 - **P7. Drips follow the rim:** yes. The reason: fixed drips would be clipped as the wax burns past them, so the visible drip count would fall, which R4.2 forbids (section 5.5).
+
+### 17.2 Costume review (R13.8)
+
+The review was done in the Kiro CLI against the three rules of the `costume-reviewer` agent (`.kiro/agents/costume-reviewer.json`), on the previous draft of this design. The default CLI agent applied those rules; the agent itself was not launched with `--agent costume-reviewer`, so task 23 runs it on the finished scene. **Verdict: CHANGES NEEDED, then applied.** It checked the three rules: every element shows one piece of state; the reduced-motion version still shows it; the time text keeps WCAG AA contrast. Rule 2 passed. Each finding and its fix:
+
+- **F1. Table and dish were decoration only (rule 1).** They showed no state; their only jobs were to be a surface and the drip clip line. *Fix:* both are removed (layer 5 of the old design, `--table`, `--dish`). The candle stands on the floor line (y = 900), which is also the drip clip line (5.2, 5.4, 5.5).
+- **F2. The floor was a separate rect with no state (rule 1), and there was no usable place for the time text (rule 3, F5).** *Fix:* the floor band below y = 900 is kept and declared the **time-text zone** that `controls-and-access` will use. The wall stays only as the substrate the pool reveals (5.2, 7.2).
+- **F3. The window at rest was an invisible dark rectangle (rule 1).** The dawn would then read as something appearing, not as the window lighting up. *Fix:* the pane has a faint, constant night colour (`--window-night` `#233152`), drawn above the night layer so it stays visible in the dark. It is constant and carries no state. Its ratio to the night is 1.57 and to the wall 1.36. Only the pane is drawn: no frame, sill or curtain (5.2, 7.2).
+- **F4. Two elements showed two things (rule 1).** The pool's opacity followed the flame glow, so the pool showed progress and flame state; the night layer was faded by the dawn, so it showed progress and completion. *Fix:* the pool's opacity is constant (it shows progress only, by its radius), and the dawn is a wash layered above the night layer; the night layer is not faded (5.2, 5.3, 5.8, 6.2).
+- **F5. No usable place for the time text (rule 3).** The contrast bounds held (ivory on `#05070d` 16.20, on `#566683` 4.66), but the candle column and the reserved edge bands left no room on a phone, and the flame halo is brighter than the bound. *Fix:* the zone has its own darkest and brightest background (`--zone-bg-darkest` `#080b12`, `--zone-bg-brightest` `#4b4358`). The lit group is clipped at the floor line, the night layer and pool end there, and the zone is the topmost layer, so the flame, halo and pool never enter it at any wax height. The contrast of ivory is 15.83 against the darkest and 7.53 against the brightest, both at least 4.5:1. The time text must be at least ivory in brightness (relative luminance 0.7945). The zone is in the contrast handoff (7.2) and in the palette test (12.3), and a pixel test checks it is clear (11.3).
+- **F6. The candle was not exactly proportional to the wax (rule 1).** A fixed 28-unit stub was always drawn under the body, so the drawn height was 28 + 392 h, not h (R3.6, brief section 4). *Fix:* the candle's drawn height is exactly `420 * waxHeight`. The fixed stub is drawn only in `burned-out` and `snuffed`, through a new model field `stub` (0 or 1) and `--stub`. The formulas (3.2), the geometry (5.4), the unit tests (12.1) and the e2e assertions (11.3) are updated.
+
+Accepted by the reviewer, no change: three drips instead of four (Q4), and the reduced-motion version (rule 2: every state keeps a still form in size, colour or shape).

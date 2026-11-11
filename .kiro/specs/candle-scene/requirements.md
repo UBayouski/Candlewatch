@@ -2,7 +2,7 @@
 
 Source: `docs/BRIEF.md` section 4 (rows The candle, The flame, The room's light, The dawn), section 7 (visual design, reduced motion, responsive) and section 11 item 3. Constrained by `.kiro/steering/product.md`, `tech.md`, `structure.md` and `scene.md`, and built on the finished `session-engine` spec.
 
-Status: **review answers applied** (see Decisions). Requirements only. Design and tasks are not written.
+Status: **review answers applied** (see Decisions). The design is written and its costume review is applied (verdict CHANGES NEEDED, then applied; findings F1 to F6 in the design's Decisions). The tasks are in `tasks.md`.
 
 ## Introduction
 
@@ -61,6 +61,7 @@ The scene never owns time. It reads engine state only through the session-engine
 4. WHEN the phase is `burned-out` or `snuffed`, THE wax height SHALL be 0 (the selectors give 0), and the renderer SHALL draw a short stub of fixed size so that a candle is still there. A snuffed candle does not show how much wax was left; that detail belongs to `ghosts-and-graveyard` (Decision Q2).
 5. The wax SHALL be drawn in ivory, with its top edge following the wax height linearly. The candle SHALL stay fully inside the visible room at every wax height and at every viewport size in R10.
 6. The wax height SHALL be the only thing that sets the candle's height. Nothing else on the page changes the candle's size.
+7. The drawn height of the candle SHALL be exactly proportional to the wax height: the full candle height times the wax height, with nothing fixed added, in `idle`, `lit` and `paused`. The fixed stub of R3.4 SHALL be drawn only in `burned-out` and `snuffed`. The model SHALL give a `stub` flag (0 or 1) that is 1 exactly in those two phases (costume review F6).
 
 ### R4. Drips at each quarter
 
@@ -90,7 +91,7 @@ The scene never owns time. It reads engine state only through the session-engine
 3. `paused` SHALL win over `guttering`: a paused candle in its last minute is small and blue.
 4. A `lit` state whose time is already up but not yet settled by a tick (time left 0) SHALL show `guttering`, never `smoke`. The scene does not settle; the engine does.
 5. The model SHALL give the flame's height and a blue amount (0 amber, 1 blue) so that the renderer needs no table of its own. These SHALL be constants per mode.
-6. In the still version, any two different flame modes SHALL differ in at least two of: size, colour, shape. Shape is the teardrop, the leaning ragged tip, the absence of a flame, or the wisp.
+6. In the still version, any two different flame modes SHALL differ in at least two of: size, colour, shape. Shape is the teardrop, the leaning ragged tip, the absence of a flame, or the wisp. The one pair with no flame, `unlit` and `smoke`, is read at scene level: the whole still scene differs in the candle (whole or stub), the pool (small or none) and the wisp (accepted, design Decision P1).
 7. WHEN the flame mode changes, THE renderer MAY ease between the two looks. In reduced motion it SHALL switch at once.
 
 ### R6. The flicker is seeded
@@ -115,6 +116,8 @@ The scene never owns time. It reads engine state only through the session-engine
 5. WHEN the phase is `snuffed`, THE light radius SHALL be 0 and the room dark. WHEN the phase is `burned-out`, THE light radius SHALL be 0 and the dawn (R8) lights the room instead.
 6. The model SHALL NOT make the light shrink for any reason other than wax height. The flicker may move the edge of the pool by a small amount (R6) but SHALL NOT change the radius value.
 7. The scene SHALL publish the room's background colour at its darkest and at its brightest as two CSS custom properties, so that the `controls-and-access` spec can check the time text for WCAG AA contrast against both. This spec does not check the time text.
+8. The scene SHALL reserve a time-text zone for `controls-and-access`: the band below the floor line, which is the candle's base, with a text area marked in the markup. The flame, its halo, the drips, the smoke and the light pool SHALL never enter the zone, at any wax height. The zone SHALL have its own darkest and brightest background, published as two CSS custom properties, and the contrast of ivory (`#efe6cf`) against each SHALL be at least 4.5:1. The time text SHALL be at least ivory in brightness (relative luminance at least that of `#efe6cf`) (costume review F2, F5).
+9. The light pool's intensity SHALL be constant: the pool shows progress only, by its radius, and the flame's glow SHALL NOT change it (costume review F4).
 
 ### R8. The dawn
 
@@ -126,6 +129,7 @@ The scene never owns time. It reads engine state only through the session-engine
 4. In the dawn, the room SHALL fill with pale early light (cool at the window, warm low on the wall) and the candle SHALL be an unlit stub. The look SHALL still be different from `idle` in colour and brightness, so that the dawn can be told from a dim waiting room in the still version.
 5. The model SHALL give the break flag `cooling`, equal to `isBreak(state, now)`. WHILE `cooling` is true, THE renderer SHALL show a faint warm glow on the wick of the stub ("the wax cools"). The glow ends when `cooling` turns false. It does not change the dawn amount, the light radius or the flame mode. The glow is a still shape and colour, so it is shown in reduced motion too; only any easing of it is motion.
 6. The chime that goes with the dawn belongs to the `sound-and-title` spec.
+7. The dawn SHALL be a wash layered above the night layer. The night layer SHALL NOT be faded by the dawn, so that each layer shows one thing (costume review F4). The window pane SHALL have a faint, constant night colour at rest that is visible against the wall, so the dawn reads as the window lighting up; the colour carries no state (costume review F3).
 
 ### R9. Reduced motion
 
@@ -145,7 +149,7 @@ The scene never owns time. It reads engine state only through the session-engine
 1. The scene SHALL work from a phone in portrait (360 by 640 CSS pixels) to a wide desktop (at least 1920 by 1080), and in between.
 2. The room SHALL be one SVG that scales with a `viewBox` and fills the available area. The candle, the flame and the full pool of light SHALL always be inside the visible area. There SHALL be no horizontal or vertical scrollbar caused by the scene.
 3. In portrait the candle SHALL stay centred and large enough to read its height; in landscape the extra width SHALL show more of the room (walls, window, shelf space), not a bigger or smaller candle.
-4. Space at the edge of the room SHALL be left clear for the ghosts, the door and the controls of other specs. This spec places none of them.
+4. Space at the edge of the room SHALL be left clear for the ghosts, the door and the controls of other specs. This spec places none of them. The one area it reserves is the time-text zone of R7.8.
 5. The scene SHALL NOT rely on a fixed pixel size, a fixed aspect ratio or a hover.
 
 ### R11. Look and construction
@@ -159,7 +163,7 @@ The scene never owns time. It reads engine state only through the session-engine
 5. All colours and sizes that change with state SHALL be set through CSS custom properties on the scene root. The renderer SHALL write only custom properties and data attributes (for the discrete flame mode and phase), never inline styles on individual shapes or inline logic.
 6. The renderer SHALL contain no branching on phase, time or wax. All such decisions are in the model.
 7. No trademarks, logos or real product names, in code, comments, copy or assets. Say "focus session" (see `product.md`, Naming).
-8. A new visual element SHALL map to a piece of state, or it SHALL NOT ship (`product.md`). Every element in this spec maps as follows: candle and wax to time left, drips to quarters burned, flame to session state, light pool to progress, dawn to completion, the wick glow to the break, smoke to an ended session.
+8. A new visual element SHALL map to a piece of state, or it SHALL NOT ship (`product.md`). Every element in this spec maps as follows: candle and wax to time left, drips to quarters burned, flame to session state, light pool to progress, dawn to completion, the wick glow to the break, smoke to an ended session, the stub to an ended session, the window pane to completion, the wall to nothing of its own (it is the surface the light pool reveals, so it carries progress), and the zone to a reserved area for the time text that also brightens at dawn. There is no table and no dish (costume review F1).
 
 ### R12. Accessible name
 
@@ -179,7 +183,7 @@ The scene never owns time. It reads engine state only through the session-engine
 5. Screenshots SHALL be saved in `docs/screenshots/` with names that say the state, the size and whether reduced motion is on (for example `candle-lit-half-desktop.png`, `candle-lit-half-desktop-reduced.png`).
 6. Following `scene.md`, any later change that alters what a user sees SHALL retake the affected screenshots, and the task summary SHALL say which.
 7. The Playwright tests SHALL also assert the custom properties and data attributes for each state, so that a wrong state is caught without comparing pixels.
-8. The `costume-reviewer` agent SHALL review `design.md` before it is approved, and the finished scene before the spec is closed. Its findings SHALL be recorded in the spec. The review runs in the Kiro CLI (`kiro-cli chat --agent costume-reviewer`), because custom agents live in `.kiro/agents/`; it does not run in Kiro Web.
+8. The `costume-reviewer` agent SHALL review `design.md` before it is approved, and the finished scene before the spec is closed. Its findings SHALL be recorded in the spec. The review runs in the Kiro CLI (`kiro-cli chat --agent costume-reviewer`), because custom agents live in `.kiro/agents/`; it does not run in Kiro Web. Design review done: verdict CHANGES NEEDED, then applied; the findings F1 to F6 are recorded in the design's Decisions (17.2).
 9. Order of work: this spec's code tasks SHALL run only after `distraction-tracking` is complete. Both specs change the engine's public surface, and this spec adds the `main.ts` wiring (R13.1). Writing this spec's design and tasks does not have to wait.
 
 ## Property-based tests (fast-check)
@@ -195,11 +199,11 @@ Files: `*.prop.test.ts`, colocated in `src/scene/`. The generators are the engin
 | P5 | Reduced motion keeps the information: the model with `reducedMotion: true` equals the model with `false` in every non-motion field, and its motion values are all zero or false. | R9.1, R9.2 |
 | P6 | Totality and bounds: for any state, `now` (including `NaN`, `Infinity` and negative values) and options, `sceneModel` returns a model with all numbers finite and in range, and does not throw. | R1.5, R2.2, R2.4 |
 | P7 | Purity: the same input gives a deeply equal model, the input is not changed, and the model has no user text. | R2.3, R2.5, R2.6 |
-| P8 | The dawn amount is 1 exactly when the phase is `burned-out` (whether or not the break is in progress), and 0 otherwise. The light radius is 0 whenever the phase is `burned-out` or `snuffed`. `cooling` equals `isBreak(state, now)` and changes nothing else in the model. | R7.5, R8.2, R8.5 |
+| P8 | The dawn amount is 1 exactly when the phase is `burned-out` (whether or not the break is in progress), and 0 otherwise. The light radius is 0 whenever the phase is `burned-out` or `snuffed`. `cooling` equals `isBreak(state, now)` and changes nothing else in the model. The `stub` flag is 1 exactly when the phase is `burned-out` or `snuffed`. | R3.7, R7.5, R8.2, R8.5 |
 
-Example-based unit tests (not property-based) cover: the five flame modes at their boundaries (time left 60 001, 60 000 and 0 ms; paused in the last minute), the drip count at wax 0.76, 0.75, 0.5, 0.25 and 0, idle values (wax 1, no flame, small light), burned-out and snuffed values, a fixed flicker table for one seed, the purity test (strips comments, whole-word match, like the engine's), the stylesheet containing a `prefers-reduced-motion` block, and the renderer writing only custom properties and data attributes (checked in a DOM test environment or in Playwright).
+Example-based unit tests (not property-based) cover: the five flame modes at their boundaries (time left 60 001, 60 000 and 0 ms; paused in the last minute), the drip count at wax 0.76, 0.75, 0.5, 0.25 and 0, idle values (wax 1, no flame, small light), burned-out and snuffed values, the stub flag in every phase, the drawn candle height proportional to the wax height, the contrast of ivory against the zone's darkest and brightest backgrounds (at least 4.5:1), a fixed flicker table for one seed, the purity test (strips comments, whole-word match, like the engine's), the stylesheet containing a `prefers-reduced-motion` block, and the renderer writing only custom properties and data attributes (checked in a DOM test environment or in Playwright).
 
-Playwright tests (not property-based) cover: each state's custom properties and attributes, the screenshots in R13, no scrollbar at the two sizes, and the candle inside the visible area at both sizes.
+Playwright tests (not property-based) cover: each state's custom properties and attributes, the screenshots in R13, no scrollbar at the two sizes, the candle inside the visible area at both sizes, and the time-text zone staying clear of flame, halo and pool.
 
 ## Out of scope
 
@@ -222,3 +226,4 @@ None. The five questions from the first review are answered below.
 - **Q4. Drips:** three, at 25, 50 and 75 percent burned. This is a **deliberate change from the brief**, which says "a drip at each quarter" (section 4). At 100 percent the candle is out and the flame mode already shows the end, so a fourth drip would say nothing new. The brief itself is not edited.
 - **Q5. Reaching states in e2e:** fixtures through storage, using the real reload path and no hook in shipped code (R13.2). Two additions: fixtures are built with the engine's `serializeSession` and `serializeHistory`, never hand-written JSON, so they follow the session document version (version 2 after `distraction-tracking`); and this spec's code tasks run only after `distraction-tracking` is complete, because both change the engine's public surface and this spec adds the `main.ts` wiring (R13.9).
 - **Costume review:** `costume-reviewer` runs in the Kiro CLI (`kiro-cli chat --agent costume-reviewer`), not in Kiro Web (R13.8).
+- **Costume review of `design.md` (R13.8):** verdict CHANGES NEEDED, then applied. P1 accepted (R5.6 read at scene level for `unlit` vs `smoke`). F1: the table and dish are removed. F2 and F5: the floor band is the time-text zone, with the new R7.8. F3: a constant faint night colour on the window pane (R8.7). F4: constant pool intensity (R7.9) and the dawn as a wash above the night layer (R8.7). F6: the drawn height is exactly proportional to the wax, and the stub is drawn only after the end (R3.7). Details: `design.md` Decisions 17.2.
