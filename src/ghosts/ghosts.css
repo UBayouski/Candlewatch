@@ -1,0 +1,92 @@
+/* The ghost layer (ghosts-and-graveyard design 4.1, R9, R10). The first rule is the still version for reduced motion,
+   so it holds before any script runs (R10.9). The svg's user units are room units (viewBox 0 0 600 1000). */
+
+@media (prefers-reduced-motion: reduce) {
+  .ghost-layer,
+  .ghost-layer * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+.ghost-layer {
+  /* Translucent ivory-blue. Over the darkest room (#05070d) the blend is about 4.6:1; over the brightest wall (#566683)
+     about 2.3:1 for the fill alone, so the lighter stroke carries the edge there. Ghosts are shapes, not text. */
+  --ghost-fill: #c9d6ee;
+  --ghost-stroke: #eef3ff;
+  --ghost-opacity: 0.55;
+  --ghost-stroke-opacity: 0.8;
+
+  position: fixed;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.ghost-layer .body {
+  fill: var(--ghost-fill);
+  fill-opacity: var(--ghost-opacity);
+  stroke: var(--ghost-stroke);
+  stroke-opacity: var(--ghost-stroke-opacity);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
+.ghost-layer .overflow {
+  font-family: "Alegreya Sans", sans-serif;
+  font-weight: 700;
+}
+
+.ghost-layer .overflow[hidden] {
+  display: none;
+}
+
+/* --- fade: 400 ms in, 400 ms out --- */
+.ghost-layer .ghost {
+  opacity: 1;
+  transition: opacity 400ms;
+  animation: ghost-in 400ms;
+}
+
+.ghost-layer .ghost.leaving {
+  opacity: 0;
+}
+
+@keyframes ghost-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* --- drift: at most DRIFT_UNITS = 8 room units in x and y, a different period and delay per slot (L3) --- */
+.ghost-layer .drift {
+  animation: ghost-drift 18s ease-in-out infinite alternate;
+}
+
+@keyframes ghost-drift {
+  from { transform: translate(-8px, 6px); }
+  50% { transform: translate(5px, -8px); }
+  to { transform: translate(8px, 4px); }
+}
+
+.ghost-layer .ghost[data-slot="0"] .drift { animation-duration: 14s; animation-delay: 0s; }
+.ghost-layer .ghost[data-slot="1"] .drift { animation-duration: 15.5s; animation-delay: -3s; }
+.ghost-layer .ghost[data-slot="2"] .drift { animation-duration: 17s; animation-delay: -6s; }
+.ghost-layer .ghost[data-slot="3"] .drift { animation-duration: 18.5s; animation-delay: -9s; }
+.ghost-layer .ghost[data-slot="4"] .drift { animation-duration: 20s; animation-delay: -2s; }
+.ghost-layer .ghost[data-slot="5"] .drift { animation-duration: 21.5s; animation-delay: -5s; }
+.ghost-layer .ghost[data-slot="6"] .drift { animation-duration: 22s; animation-delay: -8s; }
+.ghost-layer .ghost[data-slot="7"] .drift { animation-duration: 16s; animation-delay: -11s; }
+.ghost-layer .ghost[data-slot="8"] .drift { animation-duration: 19s; animation-delay: -1s; }
+.ghost-layer .ghost[data-slot="9"] .drift { animation-duration: 14.5s; animation-delay: -4s; }
+.ghost-layer .ghost[data-slot="10"] .drift { animation-duration: 20.5s; animation-delay: -7s; }
+.ghost-layer .ghost[data-slot="11"] .drift { animation-duration: 17.5s; animation-delay: -10s; }
+
+/* --- reduced motion by the data attribute (set from the user's setting or the media query) --- */
+.ghost-layer[data-reduced="true"],
+.ghost-layer[data-reduced="true"] * {
+  transition: none;
+  animation: none;
+}

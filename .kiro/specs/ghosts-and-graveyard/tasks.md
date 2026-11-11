@@ -1,4 +1,4 @@
-﻿# Implementation Plan: ghosts-and-graveyard
+# Implementation Plan: ghosts-and-graveyard
 
 ## Overview
 
@@ -70,251 +70,251 @@ Conventions for every task:
     - Files: `KIRO_USAGE.md`.
     - _Requirements: CR-K_
 
-- [ ] 2. The ghost pure modules
-  - [ ] 2.1 `src/ghosts/slots.ts`
+- [x] 2. The ghost pure modules
+  - [x] 2.1 `src/ghosts/slots.ts`
     - Create `GHOST_BOX` (70 by 75), `DRIFT_UNITS` (8), `GhostSlot`, `GHOST_SLOTS` (12 entries: slot k has cx 55 when k is even and 545 when odd, cy = 262.5 + 95 * floor(k / 2)) and `OVERFLOW_MARK` (x 545, y 860, font size 24) exactly as design 3.9 and the L2 to L5 table.
     - Create `src/ghosts/slots.test.ts`: the table row by row (all 12 centres, resting boxes and cells); cells tile without overlap; each drifted box stays inside its cell with at least 4 units to the next one; the cells lie inside the bands 0..110 and 490..600, end at y 785 (20 units above `DOOR_RECT`) and clear the floor band and the candle column; the Overflow_Mark box (x 509..581, y 838..864) is clear of the lowest drifted box (783) and the floor band; font size times 0.6 is at least 12; `GHOST_CELLS` of `src/ui/layout.ts` equals the cells of this table.
     - Files: `src/ghosts/slots.ts`, `src/ghosts/slots.test.ts`.
     - _Requirements: R9.4, R9.5, R9.7, R9.8, R9.14, R10.8_
 
-  - [ ] 2.2 `src/ghosts/visible.ts` and the ghost test-kit
+  - [x] 2.2 `src/ghosts/visible.ts` and the ghost test-kit
     - Create `DrawnGhost` and `visibleGhosts(spans, G)` as in design 3.9: `first = max(0, length - G)`, `drawn` = indices `first..length-1` oldest first, `slot = index mod G`, `size = ghostSize(spans[index])`, `hidden = first`; `G` read as `max(0, floor(G))`, `NaN` as 0, so `drawn` is empty and `hidden` is the full count.
     - Create `src/ghosts/test-kit.ts` (test-only) with `arbGhostSpans` (0 to 40 spans, including 0, negative, `NaN` and infinite) and re-export `PROP_PARAMS`.
     - Create `src/ghosts/visible.test.ts`: 0 spans; 1; 12 (no mark); 13 (hidden 1, slot 0 reused); 21 (hidden 9); `G = 0`, negative, fractional and `NaN`; sizes in [0.25, 1]; the input array is not changed.
     - Files: `src/ghosts/visible.ts`, `src/ghosts/test-kit.ts`, `src/ghosts/visible.test.ts`.
     - _Requirements: R1.1, R1.3, R9.1, R9.2, R9.6, R9.9, R9.10, R9.13, R9.16, R9.17_
 
-  - [ ] 2.3 Required: P19, visible ghosts are the newest, with the right size
+  - [x] 2.3 Required: P19, visible ghosts are the newest, with the right size
     - **Property 19: Visible ghosts are the newest, with the right size**
     - Create `src/ghosts/visible.prop.test.ts` (tag Property 19): `drawn.length + hidden` equals the number of spans; `drawn.length <= G`; the drawn indices are the newest ones, oldest first; each drawn `size` equals `ghostSize` of its span and lies in [0.25, 1]; `hidden` is 0 when the length is at most `G`.
     - Mutation check (P19): make `visibleGhosts` draw the oldest `G` indices (`0 .. G-1`) instead of the newest; confirm P19 fails; revert.
     - Files: `src/ghosts/visible.prop.test.ts`.
     - **Validates: Requirements 9.1, 9.2, 9.6, 9.9, 9.10, 9.13**
 
-  - [ ] 2.4 Required: P20, ghost slots are unique and stable
+  - [x] 2.4 Required: P20, ghost slots are unique and stable
     - **Property 20: Ghost slots are unique and stable**
     - Add Property 20 to `src/ghosts/visible.prop.test.ts` (tag Property 20): for any spans and `G >= 1` the drawn slots are all different and below `G`; adding a span keeps the slot of every ghost still drawn, and the new ghost takes the slot of the oldest ghost that left (or the next free slot while fewer than `G` are drawn).
     - Mutation check (P20): use `slot = index` instead of `index mod G`; confirm P20 fails; revert.
     - Files: `src/ghosts/visible.prop.test.ts`.
     - **Validates: Requirements 9.11, 9.12**
 
-  - [ ] 2.5 `src/ghosts/label.ts`
+  - [x] 2.5 `src/ghosts/label.ts`
     - Create `SceneMode`, `countWords(n)` (`STRINGS.count.distraction` for 1, `STRINGS.count.distractions` otherwise, `n` as plain digits, 0 gives "0 distractions") and `sceneLabel(mode, count)` (`STRINGS.scene[mode] + " " + countWords(count) + "."`) as in design 3.10.
     - Create `src/ghosts/label.test.ts`: counts 0, 1, 2, 14, 1000; each scene mode; the label never contains the time.
     - Files: `src/ghosts/label.ts`, `src/ghosts/label.test.ts`.
     - _Requirements: R10.1, R10.2, R10.4_
 
-  - [ ] 2.6 Required: P21, the scene label always gives the engine count
+  - [x] 2.6 Required: P21, the scene label always gives the engine count
     - **Property 21: The scene label always gives the engine count**
     - Create `src/ghosts/label.prop.test.ts` (tag Property 21), using the engine's state generators and `arbScript`: for any state, any flame mode, any `ghosts` setting and any `G`, `sceneLabel(mode, distractionCount(state))` contains the decimal digits of `distractionCount(state)` followed by "distraction" or "distractions", the singular only for 1, and no `mm:ss` time; the text does not change with `ghosts` or `G`.
     - Files: `src/ghosts/label.prop.test.ts`.
     - **Validates: Requirements 10.1, 10.2, 10.4**
 
-- [ ] 3. The graveyard data modules
-  - [ ] 3.1 `src/graveyard/days.ts` and the graveyard test-kit
+- [x] 3. The graveyard data modules
+  - [x] 3.1 `src/graveyard/days.ts` and the graveyard test-kit
     - Create `DayKey`, `DayKeyFn`, `Indexed`, `DayGroup`, `groupByDay`, `newestFirst` (`endedAt` descending, then `startedAt` descending, then `index` descending), `formatCarvedDate` and `dayKeyFromParts` exactly as design 3.1. `Indexed.id` is `${startedAt}:${endedAt}:${index}`. A malformed key gives `STRINGS.graveyard.unknownDate`.
     - Create `src/graveyard/test-kit.ts` (test-only) with `arbEntry` and `arbHistory` (from the engine's generators, with unique `(startedAt, endedAt)` pairs for valid documents, clusters of end times inside one day, both outcomes, intents from `arbIntentText` and `null`), `fixedOffsetDay(hours)`, `dstJumpDay` (a hand-written function with a 23-hour and a 25-hour day, no machine time zone), `arbLimits` (`S`, `D`, `K` from 0 to 15, and the defaults), and re-export `PROP_PARAMS`.
     - Create `src/graveyard/days.test.ts`: the 23:50 to 00:15 example under a fixed offset (R2.2); `formatCarvedDate` for "2026-11-10", the unknown date and month 13; `dayKeyFromParts` padding; equal `endedAt` ordered by `startedAt` then position; groups newest day first.
     - Files: `src/graveyard/days.ts`, `src/graveyard/test-kit.ts`, `src/graveyard/days.test.ts`.
     - _Requirements: R2.1 to R2.10, R2.12_
 
-  - [ ] 3.2 Required: P1, entries group by their end day
+  - [x] 3.2 Required: P1, entries group by their end day
     - **Property 1: Entries group by their end day**
     - Create `src/graveyard/days.prop.test.ts` (tag Property 1) with an independent reference model written differently (sort all entries with a different comparator, then split by key): every entry is in exactly one group; the group key equals `dayKeyOf(endedAt)`; groups are in descending key order; items are in `newestFirst` order; for unique pairs the result is unchanged when the input is reordered; the result equals the reference.
     - Mutation check (P1): group by `startedAt` instead of `endedAt`; confirm P1 fails (the generator's clusters must cross a day boundary); revert.
     - Files: `src/graveyard/days.prop.test.ts`.
     - **Validates: Requirements 2.1, 2.4, 2.6, 2.7, 2.8**
 
-  - [ ] 3.3 Required: P2, a daylight-saving day is one shelf
+  - [x] 3.3 Required: P2, a daylight-saving day is one shelf
     - **Property 2: A daylight-saving day is one shelf**
     - Add Property 2 to `src/graveyard/days.prop.test.ts` using `dstJumpDay`: for any timestamps inside one local day (including the 23-hour and the 25-hour day) all entries land in the same group, and entries of different local days land in different groups.
     - Files: `src/graveyard/days.prop.test.ts`.
     - **Validates: Requirements 2.3**
 
-  - [ ] 3.4 `src/graveyard/visible.ts`
+  - [x] 3.4 `src/graveyard/visible.ts`
     - Create `Limits`, `DEFAULT_LIMITS` (S 10, D 3, K 4), `ShelfView`, `VisibleHistory` and `visibleHistory(history, limits)` as in design 3.2: stones are the newest `S` snuffed entries; shelves are the newest `D` days that hold a burned-out entry, each with its newest `K` stubs and `hiddenStubs`; `hiddenStones`, `hiddenDays`; each limit read as `max(0, floor(x))`, `NaN` as 0; the input is never changed; days with only snuffed entries get no shelf.
     - Create `src/graveyard/visible.test.ts`: 3 sessions hide nothing; 11 stones show 10 with `hiddenStones` 1; 5 days show 3 with `hiddenDays` 2; a day with 6 stubs shows 4 with `hiddenStubs` 2; a snuffed-only day has no shelf; limits 0, negative, fractional and `NaN`; the input array is unchanged.
     - Files: `src/graveyard/visible.ts`, `src/graveyard/visible.test.ts`.
     - _Requirements: R4.1, R4.4, R8.1 to R8.5, R8.8, R8.9, R8.12, R8.15_
 
-  - [ ] 3.5 Required: P7, visible history is a partition of the history
+  - [x] 3.5 Required: P7, visible history is a partition of the history
     - **Property 7: Visible history is a partition of the history**
     - Create `src/graveyard/visible.prop.test.ts` (tag Property 7) with an independent reference (sort, filter, slice): stones are snuffed only, stubs are burned-out only, no entry is counted twice, `stones.length + hiddenStones` equals the number of snuffed entries, and drawn stubs plus the sum of `hiddenStubs` plus the burned-out entries of undrawn days equal the number of burned-out entries.
     - Files: `src/graveyard/visible.prop.test.ts`.
     - **Validates: Requirements 4.1, 4.4, 8.1, 8.3, 8.4, 8.8, 8.9**
 
-  - [ ] 3.6 Required: P8, the newest entries are the ones drawn
+  - [x] 3.6 Required: P8, the newest entries are the ones drawn
     - **Property 8: The newest entries are the ones drawn**
     - Add Property 8 to `src/graveyard/visible.prop.test.ts` (tag Property 8): every drawn Stone is newer by `newestFirst` than every hidden snuffed entry; the drawn Day_Shelves are the newest days with a burned-out entry; in each drawn day the drawn stubs are the newest of that day; `hiddenDays` equals the number of such days beyond `D`; the result equals the reference.
     - Mutation check (P8): take the oldest `S` stones (`slice(-S)` after a newest-first sort); confirm P8 fails; revert.
     - Files: `src/graveyard/visible.prop.test.ts`.
     - **Validates: Requirements 8.3, 8.4, 8.5**
 
-  - [ ] 3.7 Required: P9, visible history does not depend on the array order
+  - [x] 3.7 Required: P9, visible history does not depend on the array order
     - **Property 9: Visible history does not depend on the array order**
     - Add Property 9 to `src/graveyard/visible.prop.test.ts` (tag Property 9): for unique `(startedAt, endedAt)` pairs and any permutation, `visibleHistory` returns equal results (compare ids, counts and order).
     - Files: `src/graveyard/visible.prop.test.ts`.
     - **Validates: Requirements 8.14**
 
-  - [ ] 3.8 `src/graveyard/text.ts`
+  - [x] 3.8 `src/graveyard/text.ts`
     - Create `itemName`, `stoneIntent`, `cardLines` (exactly five lines: intent or placeholder, Carved_Date, planned length with singular or plural minutes, distractions as plain digits, `spokenTime(timeAwayMs)`), `stonesCountLine`, `daysCountLine` and `moreText` (one and other strings, `null` for 0) as in design 3.3. Uses `fill` and `spokenTime` from `../ui/format`.
     - Create `src/graveyard/text.test.ts`: the Item name "Write the essay, 10 Nov"; the null and empty intent placeholder; the five card lines for a known entry (planned 1 minute and 25 minutes, 3 distractions, time away 1:01); the count lines for 0 (null), 1 and 38; `moreText` for 0 and 3; equal inputs give equal text.
     - Files: `src/graveyard/text.ts`, `src/graveyard/text.test.ts`.
     - _Requirements: R4.3, R5.1, R5.2, R5.12, R5.13, R7.1, R7.2, R8.5, R8.8 to R8.10_
 
-  - [ ] 3.9 Required: P3, the carved date comes from the end day
+  - [x] 3.9 Required: P3, the carved date comes from the end day
     - **Property 3: The carved date comes from the end day**
     - Create `src/graveyard/text.prop.test.ts` (tag Property 3): for any entry and any `DayKeyFn`, the date text of the Item name and of the card equals `formatCarvedDate(dayKeyOf(endedAt))` and contains no time of day (no `:` and no `am`/`pm`).
     - Files: `src/graveyard/text.prop.test.ts`.
     - **Validates: Requirements 2.9, 2.10**
 
-  - [ ] 3.10 Required: P10, a history within the limits hides nothing
+  - [x] 3.10 Required: P10, a history within the limits hides nothing
     - **Property 10: A history within the limits hides nothing**
     - Add Property 10 to `src/graveyard/visible.prop.test.ts` (tag Property 10), with a generator that builds histories with at most `S` snuffed entries, at most `D` days and at most `K` burned-out entries per day: all hidden counts are 0, and `stonesCountLine`, `daysCountLine` and `moreText` return `null` for them.
     - Files: `src/graveyard/visible.prop.test.ts`.
     - **Validates: Requirements 8.10, 8.15**
 
-  - [ ] 3.11 Required: P11, count lines state the exact hidden number
+  - [x] 3.11 Required: P11, count lines state the exact hidden number
     - **Property 11: Count lines state the exact hidden number**
     - Add Property 11 to `src/graveyard/text.prop.test.ts` (tag Property 11): for any `n > 0` the count line and the "+n more" text contain the decimal digits of `n` (and the one-form only for 1); for `n = 0` they are `null`.
     - Files: `src/graveyard/text.prop.test.ts`.
     - **Validates: Requirements 8.5, 8.8, 8.9, 8.10**
 
-  - [ ] 3.12 Required: P18, the card text and the Item name equal the entry
+  - [x] 3.12 Required: P18, the card text and the Item name equal the entry
     - **Property 18: The card text and the Item name equal the entry**
     - Add Property 18 to `src/graveyard/text.prop.test.ts` (tag Property 18): for any entry `cardLines` has five lines that contain, in order, the intent (or the placeholder when it is null or empty), the Carved_Date, `lengthMin`, `distractions` and the `spokenTime` of `timeAwayMs`; `itemName` equals the intent (or the placeholder) and the Carved_Date joined by the template.
     - Files: `src/graveyard/text.prop.test.ts`.
     - **Validates: Requirements 5.1, 5.2, 5.12, 5.13, 7.1, 7.2**
 
-- [ ] 4. Checkpoint - Batch 1 ends here
+- [x] 4. Checkpoint - Batch 1 ends here
   - Run `npm run verify`. Ensure all tests pass, ask the user if questions arise. Record the unit file and test counts in `KIRO_USAGE.md`.
   - The e2e suite must still pass after task 1 (the room is unchanged because `view` is always `"room"` until task 16).
 
 > **Batch 1 ends here.** Stop this CLI session. Start batch 2 with task 5.
 
-- [ ] 5. Geometry and contrast
-  - [ ] 5.1 `src/graveyard/geometry.ts`
+- [x] 5. Geometry and contrast
+  - [x] 5.1 `src/graveyard/geometry.ts`
     - Create `Rect`, `DOOR_RECT`, `PANEL_RECT`, `STONES_PER_ROW`, `stoneRect`, `shelfRowY`, `dateLabelRect`, `stubRect`, `moreRect`, `COUNT_LINE_Y`, `EMPTY_LINE_Y`, `CARD_SIZE` and `placeCard` as in design 3.4: above when `item.y >= 463`, else below, 8 units from the item; `x = clamp(item.x + item.w / 2 - 260, 20, 60)`; no third branch.
     - Create `src/graveyard/geometry.test.ts`: every constant against the Section 1 tables (L1, L7, L9); every size times 0.6 is at least 44 for interactive items (R4.13); `DOOR_RECT` against the left band, the candle column, the window pane and the floor band (R3.9); `DOOR_RECT` and the cells equal the constants in `src/ui/layout.ts`; the card positions for stone rows 1 and 2 and shelf rows 1 to 3 equal the L10 values (y 371, 471, 274, 358, 442); the card at 360 x 640 and 1280 x 800 lies inside the viewport.
     - Files: `src/graveyard/geometry.ts`, `src/graveyard/geometry.test.ts`.
     - _Requirements: R3.9, R4.10 to R4.13, R5.10, R5.11_
 
-  - [ ] 5.2 Required: P16, the card never covers its item and stays on the stage
+  - [x] 5.2 Required: P16, the card never covers its item and stays on the stage
     - **Property 16: The card never covers its item and stays on the stage**
     - Create `src/graveyard/geometry.prop.test.ts` (tag Property 16): for every `stoneRect(0..9)` and `stubRect(0..2, 0..3)`, `placeCard` returns a rectangle that does not intersect the item, lies inside x 20..580 and y 215..895 and is at least 8 units from the item.
     - Files: `src/graveyard/geometry.prop.test.ts`.
     - **Validates: Requirements 5.10, 5.11**
 
-  - [ ] 5.3 Required: P17, the layout fits and does not overlap
+  - [x] 5.3 Required: P17, the layout fits and does not overlap
     - **Property 17: The layout fits and does not overlap**
     - Add Property 17 to `src/graveyard/geometry.prop.test.ts` (tag Property 17): for any counts of stones up to `S`, days up to `D` and stubs up to `K`, every rectangle (items, labels, Count_Lines, empty lines, "+n more", return control) lies inside `PANEL_RECT` and no two intersect; every ghost slot box at full size and at its drift extremes lies inside its own cell and outside the other cells, `DOOR_RECT`, the floor band and the keep-clear column.
     - Files: `src/graveyard/geometry.prop.test.ts`.
     - **Validates: Requirements 4.10, 4.11, 4.12, 9.4, 9.5, 10.8**
 
-  - [ ] 5.4 `src/graveyard/contrast.test.ts`
+  - [x] 5.4 `src/graveyard/contrast.test.ts`
     - Compute the WCAG contrast from the hex values of ivory `#efe6cf` on `#1b2030`, `#080b12`, `#566683` and `#05070d`, and assert at least 4.5 and the published figures (13.0, 15.83, 4.66, 16.20, to the second decimal); non-text outlines at least 3:1; the Overflow_Mark on the brightest room stop.
     - Files: `src/graveyard/contrast.test.ts`.
     - _Requirements: R4.14, R9.14_
 
-- [ ] 6. Roving focus
-  - [ ] 6.1 `src/graveyard/focus.ts`
+- [x] 6. Roving focus
+  - [x] 6.1 `src/graveyard/focus.ts`
     - Create `GroupId`, `NavKey`, `NavLayout`, `FocusMemory`, `NO_MEMORY`, `tabStops`, `navigate` and `remember` as in design 3.5: no wrap; Up and Down on the Shelf go to row `r - 1` or `r + 1` at column `min(j, rowLength - 1)`, else stay; Up and Down on a Stone return `current`; an unknown `current` returns the Group's first id; a remembered id that is no longer drawn falls back to the first.
     - Create `src/graveyard/focus.test.ts`: Up on the newest shelf stays; Down on the oldest shelf stays; column clamp onto a shorter row; Home and End; Left on the first and Right on the last stay; empty Groups have no stop; the remembered id is the stop; a stale remembered id falls back.
     - Files: `src/graveyard/focus.ts`, `src/graveyard/focus.test.ts`.
     - _Requirements: R6.2 to R6.12, R6.18, R8.13_
 
-  - [ ] 6.2 Required: P12, roving focus keeps one stop and stays in its Group
+  - [x] 6.2 Required: P12, roving focus keeps one stop and stays in its Group
     - **Property 12: Roving focus keeps one stop and stays in its Group**
     - Create `src/graveyard/focus.prop.test.ts` (tag Property 12) with `arbNavLayout` (0 to 10 graveyard ids, 0 to 3 shelf rows of 1 to 4 ids) added to `src/graveyard/test-kit.ts`, and a reference walk over the flattened list: each non-empty Group has exactly one tabindex-0 id (the remembered id if still drawn, else the first) and an empty Group has none; every `navigate` result is an id of the same Group; Left, Right, Home and End never wrap; the result equals the reference.
     - Mutation check (P12): wrap at the ends (Right on the last goes to the first); confirm P12 fails; revert.
     - Files: `src/graveyard/focus.prop.test.ts`, `src/graveyard/test-kit.ts`.
     - **Validates: Requirements 6.2, 6.3, 6.4, 6.5, 6.6, 6.7, 6.10, 6.11, 6.12, 6.18, 8.13**
 
-  - [ ] 6.3 Required: P13, Up and Down on the Shelf follow the day order
+  - [x] 6.3 Required: P13, Up and Down on the Shelf follow the day order
     - **Property 13: Up and Down on the Shelf follow the day order**
     - Add Property 13 to `src/graveyard/focus.prop.test.ts` (tag Property 13): for any layout and any Stub at row `r`, column `j`, Up goes to row `r - 1` and Down to row `r + 1` at column `min(j, rowLength - 1)`, and when that row does not exist the id does not change.
     - Mutation check (P13): swap Up and Down (or drop the `min(j, rowLength - 1)` clamp); confirm P13 fails; revert.
     - Files: `src/graveyard/focus.prop.test.ts`.
     - **Validates: Requirements 6.8, 6.9**
 
-- [ ] 7. The details card state machine
-  - [ ] 7.1 `src/graveyard/card.ts`
+- [x] 7. The details card state machine
+  - [x] 7.1 `src/graveyard/card.ts`
     - Create `CardState`, `CardInput`, `NO_CARD` and `cardStep` as in design 3.6: `focus` shows and sets `focused`; `blur` clears `focused` and hides a focus-shown card; `hover` shows without touching `focused`; `unhover` falls back to the focused item or null; `tap` toggles; `tap-away` hides; `escape` hides a shown card with `handled = true`, else `handled = false`; `clear` returns `NO_CARD`.
     - Create `src/graveyard/card.test.ts`: hover then focus; focus then hover then unhover (falls back to the focused item); tap, tap again; tap, then tap another item; tap-away; Escape twice (true, then false); clear.
     - Files: `src/graveyard/card.ts`, `src/graveyard/card.test.ts`.
     - _Requirements: R5.3 to R5.9, R5.14, R6.13, R6.14_
 
-  - [ ] 7.2 Required: P15, one card at most, shown by the rules
+  - [x] 7.2 Required: P15, one card at most, shown by the rules
     - **Property 15: One card at most, shown by the rules**
     - Create `src/graveyard/card.prop.test.ts` (tag Property 15) with `arbCardInputs` added to `src/graveyard/test-kit.ts`: at most one id is shown; hover never changes `focused`; a tap on the shown id hides it; a tap on another id shows that id; `tap-away` hides; `escape` hides a shown card and reports `handled = true`, and `false` when none is shown; `focus` of an id shows that id; the shown id was always given in an input.
     - Mutation check (P15): let `hover` set `focused`; confirm P15 fails; revert.
     - Files: `src/graveyard/card.prop.test.ts`, `src/graveyard/test-kit.ts`.
     - **Validates: Requirements 5.3, 5.4, 5.5, 5.6, 5.7, 5.8, 5.9, 5.14, 6.13, 6.14**
 
-- [ ] 8. The Door and the view switch
-  - [ ] 8.1 `src/graveyard/view.ts`
+- [x] 8. The Door and the view switch
+  - [x] 8.1 `src/graveyard/view.ts`
     - Create `View`, `DoorView`, `doorView`, `doorUsable`, `ViewInput`, `ViewFocus` and `viewStep` as in design 3.7: `open` in the Room with a usable Door gives `graveyard` and `first-group`, else nothing changes; `leave` in the graveyard gives `room` and `door`; `phase` forces the Room when the Door is not usable. The initial view is `"room"`.
     - Create `src/graveyard/view.test.ts`: `doorView` for each of the five phases (`usable` and `shut` opposite); `open` in each phase; `leave` in the room and in the graveyard; `phase: lit` closes the view; `phase: snuffed` leaves it open.
     - Files: `src/graveyard/view.ts`, `src/graveyard/view.test.ts`.
     - _Requirements: R3.1, R3.2, R3.5 to R3.7, R3.10 to R3.12, R3.14_
 
-  - [ ] 8.2 Required: P4, the Door is usable exactly when no candle burns
+  - [x] 8.2 Required: P4, the Door is usable exactly when no candle burns
     - **Property 4: The Door is usable exactly when no candle burns**
     - Create `src/graveyard/view.prop.test.ts` (tag Property 4) with `arbViewScript` (a mix of `open`, `leave` and `phase` inputs over all phases) added to `src/graveyard/test-kit.ts`: for any phase `doorView(phase).usable` is true iff the phase is `idle`, `burned-out` or `snuffed`; `shut` always equals `!usable`; and for any engine script (`arbScript`), `doorView(state.phase)` after every step follows the rule for the step's resulting phase. The DOM `hidden` flags are checked in E1 (task 20).
     - Files: `src/graveyard/view.prop.test.ts`, `src/graveyard/test-kit.ts`.
     - **Validates: Requirements 3.1, 3.2, 3.5, 3.6**
 
-  - [ ] 8.3 Required: P5, the Graveyard_View is open only when the Door is usable
+  - [x] 8.3 Required: P5, the Graveyard_View is open only when the Door is usable
     - **Property 5: The Graveyard_View is open only when the Door is usable**
     - Add Property 5 to `src/graveyard/view.prop.test.ts` (tag Property 5): for any sequence of `open`, `leave` and `phase` inputs, starting from the Room, the view is `"graveyard"` only if `doorUsable` holds for the latest phase; `open` while the Door is shut never changes the view; a `phase` input with a running phase always returns the Room.
     - Files: `src/graveyard/view.prop.test.ts`.
     - **Validates: Requirements 3.7, 3.10, 3.11, 3.12**
 
-- [ ] 9. The graveyard key map
-  - [ ] 9.1 `src/graveyard/keys.ts`
+- [x] 9. The graveyard key map
+  - [x] 9.1 `src/graveyard/keys.ts`
     - Create `GraveKeyContext`, `GraveKeyAction` and `graveKeyAction(context, key)` as in design 3.8: Ctrl, Alt, Meta and `repeat` do nothing; an open overlay gives `null`; `g` gives `open` in the Room with a usable Door, `leave` in the graveyard, `null` with a text field focused or a shut Door; Escape in the graveyard gives `hide-card` when a card is shown, else `leave`; arrows, Home and End with `onItem` set give `nav` except Up and Down on a Stone; Enter with `onItem` set gives `show-card`, Enter elsewhere in the graveyard gives `null`; in the Room only `g` is claimed.
     - Create `src/graveyard/keys.test.ts`: every rule above, each phase, each focus kind, each overlay, held keys, modifiers.
     - Files: `src/graveyard/keys.ts`, `src/graveyard/keys.test.ts`.
     - _Requirements: R3.3, R3.13, R6.13 to R6.17_
 
-  - [ ] 9.2 Required: P14, the key maps never clash and the Door key obeys the phase
+  - [x] 9.2 Required: P14, the key maps never clash and the Door key obeys the phase
     - **Property 14: The key maps never clash and the Door key obeys the phase**
     - Create `src/graveyard/keys.prop.test.ts` (tag Property 14) with `arbGraveKey` (the Room map's keys, the nav keys, `g`, letters, with modifiers and repeats) added to `src/graveyard/test-kit.ts`: for any key and any context in the Room, if `graveKeyAction` returns an action then `keyAction` returns `null`; for any phase `g` returns `open` only when `doorUsable(phase)`, `leave` only in the graveyard, and `null` with a text field focused or an overlay open; in the Room arrow keys, Home, End and Escape give no graveyard action.
     - Files: `src/graveyard/keys.prop.test.ts`, `src/graveyard/test-kit.ts`.
     - **Validates: Requirements 3.3, 6.15, 6.16, 6.17**
 
-  - [ ] 9.3 Required: P22, the graveyard view never triggers a room action
+  - [x] 9.3 Required: P22, the graveyard view never triggers a room action
     - **Property 22: The graveyard view never triggers a room action**
     - Add Property 22 to `src/graveyard/keys.prop.test.ts` (tag Property 22): for any key and any `KeyContext` with `view === "graveyard"` and no overlay open, `keyAction` never returns light, toggle-pause, open-snuff, keep-burning, announce-time or a length change; for any context with `view === "graveyard"` and focus on an item, `graveKeyAction` for Enter returns only `show-card`, and Enter with focus elsewhere in the view returns `null`.
     - Mutation check (P22): drop the `view === "graveyard"` check in `keyAction` of `src/ui/keys.ts`; confirm P22 fails; revert.
     - Files: `src/graveyard/keys.prop.test.ts`.
     - **Validates: Requirements 3.13, 6.16, 6.17**
 
-- [ ] 10. UI-only inputs never change the engine
-  - [ ] 10.1 Required: P6, UI-only inputs never change the engine state
+- [x] 10. UI-only inputs never change the engine
+  - [x] 10.1 Required: P6, UI-only inputs never change the engine state
     - **Property 6: UI-only inputs never change the engine state**
     - Create `src/graveyard/ui-only.prop.test.ts` (tag Property 6): for any engine script (`arbScript`) and any interleaving of `viewStep` inputs, `cardStep` inputs, `navigate` and `remember` calls, ghosts-setting toggles and `graveKeyAction` results, the final engine state and the serialized session and history are deeply equal to the state after the same engine script alone; none of these functions takes or returns an engine value (checked by their types and by deep-freezing the state).
     - Files: `src/graveyard/ui-only.prop.test.ts`.
     - **Validates: Requirements 1.3, 3.8, 3.15, 3.16, 8.12, 10.5**
 
-- [ ] 11. Purity tests
-  - [ ] 11.1 `src/ghosts/purity.test.ts`
+- [x] 11. Purity tests
+  - [x] 11.1 `src/ghosts/purity.test.ts`
     - Use the same comment-stripping, whole-word scanner as `src/ui/purity.test.ts`: `slots.ts`, `visible.ts` and `label.ts` contain none of the forbidden identifiers; they import only `../engine` (index), `../strings`, `../ui/format` and their siblings; `test-kit.ts` is imported by no non-test file; the banned calls (`innerHTML`, `insertAdjacentHTML`, `document.write`, `setAttribute("style"`, `style.cssText`) appear nowhere in `src/ghosts/`; the whole folder has no "pomodoro" (case-insensitive). `layer.ts` is exempt from the identifier scan and is added to the folder-wide scans when it exists (task 14).
     - Files: `src/ghosts/purity.test.ts`.
     - _Requirements: R1.1, R1.3 to R1.5, R1.7, R1.8_
 
-  - [ ] 11.2 `src/graveyard/purity.test.ts`
+  - [x] 11.2 `src/graveyard/purity.test.ts`
     - Same scanner: `days.ts`, `visible.ts`, `text.ts`, `geometry.ts`, `focus.ts`, `card.ts`, `view.ts` and `keys.ts` contain none of the forbidden identifiers (including `Date`) and import only `../engine` (index), `../strings`, `../ui/format`, `../ui/layout`, `../ui/keys` (types) and siblings; only `day-key.ts` may read `Date` and the test excludes only that file; the banned calls and "pomodoro" checks apply to the whole folder; no test helper is imported by a source file; `src/ui/` still imports neither `src/ghosts/` nor `src/graveyard/`.
     - Files: `src/graveyard/purity.test.ts`.
     - _Requirements: R1.2 to R1.5, R1.7, R1.8_
 
-- [ ] 12. Checkpoint - Batch 2 ends here
+- [x] 12. Checkpoint - Batch 2 ends here
   - Run `npm run verify`. Ensure all tests pass, ask the user if questions arise. Confirm every property test of tasks 2, 3, 5 to 10 ran at 300 runs through `PROP_PARAMS`, with no skipped, `only` or `todo` tests, and that every mutation named above was caught and reverted (`git diff` on the sources is clean). Record counts and mutation results in `KIRO_USAGE.md`.
 
 > **Batch 2 ends here.** Stop this CLI session. Start batch 3 with task 13.
 
-- [ ] 13. The scene label suffix (CR-S1, CR-S2)
-  - [ ] 13.1 `Scene.apply(model, extra?)` in `src/scene/`
+- [x] 13. The scene label suffix (CR-S1, CR-S2)
+  - [x] 13.1 `Scene.apply(model, extra?)` in `src/scene/`
     - In `src/scene/render.ts` and `src/scene/types.ts` change `Scene.apply` to `apply(model, extra?: { labelSuffix: string })`. The label is `STRINGS.scene[mode] + " " + labelSuffix + "."` and is rewritten when the mode or the suffix changed; without `extra` the label is exactly as today. The model, the flame modes and the light radius do not change (R10.11).
     - Extend `src/scene/render.test.ts`: with and without `extra`; a changed suffix rewrites the label; an unchanged suffix writes nothing; the label for each mode.
     - Update the `candle-scene` spec: design 6 (`render.ts`) for CR-S1, and the reserved-band note for CR-S2 (the bands are now used by ghosts, the Overflow_Mark and the Door). Add an "Amended by ghosts-and-graveyard" note; change nothing else.
@@ -322,63 +322,64 @@ Conventions for every task:
     - Files: `src/scene/render.ts`, `src/scene/types.ts`, `src/scene/render.test.ts`, the `candle-scene` spec files.
     - _Requirements: R10.1, R10.10, R10.11_
 
-- [ ] 14. The ghost layer
-  - [ ] 14.1 `src/ghosts/layer.ts` and `src/ghosts/ghosts.css`
+- [x] 14. The ghost layer
+  - [x] 14.1 `src/ghosts/layer.ts` and `src/ghosts/ghosts.css`
     - Create `createGhostLayer(root)` returning `{ apply }` as in design 4.1: one `<svg viewBox="0 0 600 1000" preserveAspectRatio="xMidYMid meet" aria-hidden="true">` over the scene with `pointer-events: none`; up to 12 `<g class="ghost">` groups (`translate(cx cy) scale(size)` around one silhouette path built with `createElementNS`) and one `<text class="overflow">` at `OVERFLOW_MARK`, fill `#efe6cf`. `apply({ ghosts, on, reduced })` keeps a map from `index` to element: removes ghosts not in `drawn` (400 ms fade, immediate when `reduced`), creates new ones in their `slot` (400 ms fade-in), never rewrites an element's slot or size, shows `+n` with `textContent` only when `hidden > 0`, and draws nothing when `on` is false or the view is the graveyard.
     - `ghosts.css`: the silhouette from custom properties; the drift keyframe of at most `DRIFT_UNITS` in x and y with a per-slot period (14 to 22 s) and delay by `data-slot`; `data-reduced="true"` disables drift and fade.
     - Add `layer.ts` to the folder-wide scans of `src/ghosts/purity.test.ts` (no `innerHTML`, no style attribute, no "pomodoro").
     - Files: `src/ghosts/layer.ts`, `src/ghosts/ghosts.css`, `src/ghosts/purity.test.ts`.
     - _Requirements: R1.7, R9.1 to R9.5, R9.11 to R9.18, R10.3, R10.6 to R10.9_
 
-- [ ] 15. The graveyard DOM layer
-  - [ ] 15.1 `src/graveyard/day-key.ts`
+- [x] 15. The graveyard DOM layer
+  - [x] 15.1 `src/graveyard/day-key.ts`
     - Create `localDayKey(ms)`: `dayKeyFromParts(getFullYear(), getMonth() + 1, getDate())` of `new Date(ms)`; a non-finite `ms` gives `0000-00-00`. It is the only file in the two folders that reads `Date`.
     - Create `src/graveyard/day-key.test.ts` that builds local dates with the `Date` constructor (`new Date(2026, 10, 10, 23, 50)` and `new Date(2026, 10, 11, 0, 15)`) so the expectations hold in any time zone: the keys are "2026-11-10" and "2026-11-11"; a non-finite value gives the unknown date through `formatCarvedDate`.
     - Files: `src/graveyard/day-key.ts`, `src/graveyard/day-key.test.ts`.
     - _Requirements: R2.3, R2.5, R2.12_
 
-  - [ ] 15.2 `src/graveyard/view-dom.ts`
+  - [x] 15.2 `src/graveyard/view-dom.ts`
     - Create `createGraveyard(root, hooks)` returning `{ apply, focusFirst, focusDoor }` as in design 4.2 and 4.3: the `<section class="graveyard">` over the stage box with `--u` set from `stageBox`; the Door button (`hidden` = `!doorView(phase).usable`) and the shut door span (`hidden` = `!shut`, `aria-hidden`); `<h2>`, the two `role="group"` Groups with `aria-label`, Stones and Stubs as native `<button type="button">` with `id`, `tabindex` from `tabStops`, `aria-label = itemName`, `aria-describedby` to a visually hidden description span holding the five `cardLines`, Count_Lines and empty lines as `<p>`, the Details_Card (`aria-hidden`, `pointer-events: none`, placed by `placeCard`), and the return button at `DOOR_RECT`. DOM order is the Tab order. Items are rebuilt only when `state.history` (by identity), the day-key function or the view changes. Events as in 4.3: `focusin`/`focusout`, `pointerenter`/`pointerleave` for `mouse`, touch or pen `pointerdown` plus `click` for the tap (dropping the focus event that follows a touch `pointerdown`, D11), tap-away, and one `keydown` listener that builds a `GraveKeyContext` and acts on `graveKeyAction` (`preventDefault` only when there is an action). User text through `textContent` and `setAttribute` only.
     - Files: `src/graveyard/view-dom.ts`.
     - _Requirements: R3.3 to R3.6, R3.13, R3.14, R4.1 to R4.9, R5.3 to R5.9, R6.1 to R6.19, R7.1 to R7.11, R8.8 to R8.11_
 
-  - [ ] 15.3 `src/graveyard/graveyard.css`
+  - [x] 15.3 `src/graveyard/graveyard.css`
     - Panel (`PANEL_RECT`, opaque `#080b12`), items sized `calc(N * var(--u))` from the L7 table, Stone face (date plus intent with `text-overflow: ellipsis`), Stub outline, Day_Shelf rows, the card (opaque `#080b12`, 1 unit ivory border), the Door and shut-door looks, the 3 px ivory focus ring from the controls' focus rule (never `outline: none` without a replacement), the visually hidden description span, `[hidden] { display: none !important }`, no transition anywhere (so reduced motion needs no extra rule), forced-colours and `prefers-contrast: more` rules, no scroll bars, no overflow.
     - Add `view-dom.ts` and `graveyard.css` to the folder-wide scans of `src/graveyard/purity.test.ts` (no `innerHTML`, no style attributes, no "pomodoro", no `outline: none` without a replacement).
     - Files: `src/graveyard/graveyard.css`, `src/graveyard/purity.test.ts`.
     - _Requirements: R3.9, R4.8, R4.13 to R4.15, R6.19_
 
-- [ ] 16. Wire everything in `main.ts`
-  - [ ] 16.1 Wiring, announcements and the interface hooks
+- [x] 16. Wire everything in `main.ts`
+  - [x] 16.1 Wiring, announcements and the interface hooks
     - In `src/main.ts` follow design 4.5: create the ghost root and the graveyard root and `createGhostLayer` and `createGraveyard`; keep `let view: View = "room"`; each frame after `dispatch(tick)` compute `spans`, call `ghostLayer.apply({ ghosts: visibleGhosts(spans, GHOST_SLOTS.length), on: settings.ghosts && view === "room", reduced })`, `scene.apply(model, { labelSuffix: countWords(distractionCount(state)) })`, `viewStep(view, { type: "phase", phase })` (clearing the card state when the Room is forced) and `graveyard.apply({ view, door: doorView(state.phase), history: state.history, dayKeyOf: localDayKey })`. The interface receives the current `view` so `keyAction` and `viewOf` see it (CR1, CR-V1); the graveyard hooks (`onKey`, `onView`) call `viewStep`, `cardStep` and `navigate` and never call `dispatch`. On a view change call the interface's `announce` once with `STRINGS.graveyard.announceOpen` or `announceLeave`, then move focus with `focusFirst()` or `focusDoor()` in the same frame (CR3). Import `./ghosts/ghosts.css` and `./graveyard/graveyard.css`. Guard with the existing `#app` check.
     - `Date.now()` stays read only in the loop, the visibility clock and `src/ui/dom/events.ts`; neither new folder reads the clock.
     - Files: `src/main.ts`, and the small `src/ui/index.ts` and `src/ui/dom/events.ts` changes that pass `view` through.
     - _Requirements: R1.3, R3.5 to R3.8, R3.10 to R3.15, R7.10, R10.1 to R10.5_
 
-  - [ ] 16.2 Run the page by hand once
+  - [x] 16.2 Run the page by hand once
     - Start `npm run dev` as a background process (never in the foreground), then check by hand with the Playwright MCP: the Door is a shut door while a session burns; after a stored burned-out session the Door opens with a click and with `g`; the view shows a stone and a stub; hover and keyboard focus show a card; Escape hides the card, then leaves; focus returns to the Door; hide the tab during a session and see a ghost. Stop the server afterwards and delete anything the check created outside `test-results/`.
+    - Checked by hand (Playwright MCP, task 16.2): `g` opens the view from a stored session, a stone shows and its card shows on focus; the view closes and focus lands on the Door after Escape. The shut door, the ghost after hiding the tab, and the exact Escape order (first Escape hides the card and stays, second leaves) were not settled by hand: the first two were confirmed in a separate browser run, and task 21.1 must test the Escape order explicitly.
     - Files: none.
     - _Requirements: R3, R5, R6, R9_
 
-- [ ] 17. Strings use check
-  - [ ] 17.1 Every new string is used
+- [x] 17. Strings use check
+  - [x] 17.1 Every new string is used
     - Extend `src/strings.test.ts`: every key of `count`, `ghosts` and `graveyard` is used by some file in `src/ghosts/` or `src/graveyard/`; every key those folders use exists; no visible string literal in their non-test files outside `strings.ts` (the heuristic of `src/ui/strings.test.ts`); no "Pomodoro" anywhere.
     - Files: `src/strings.test.ts`.
     - _Requirements: R1.6, R1.8_
 
-- [ ] 18. Checkpoint - Batch 3 ends here
+- [x] 18. Checkpoint - Batch 3 ends here
   - Run `npm run verify`. Ensure all tests pass, ask the user if questions arise. Existing `e2e/scene.spec.ts` cases may need the Door and the label suffix taken into account: note which, they are fixed in task 19.2. Record counts in `KIRO_USAGE.md`.
 
 > **Batch 3 ends here.** Stop this CLI session. Start batch 4 with task 19.
 
-- [ ] 19. Browser test helpers and existing suites
-  - [ ] 19.1 `e2e/graveyard-fixtures.ts`
+- [x] 19. Browser test helpers and existing suites
+  - [x] 19.1 `e2e/graveyard-fixtures.ts`
     - Build the session and history with `serializeSession` and `serializeHistory` and write them to `localStorage` through `addInitScript`, like `e2e/scene-fixtures.ts`; no hook in shipped code (R11.4). Provide: `openGraveyardApp(browser, options)` (stored session, stored history, viewport, reduced motion, touch, `page.clock.install`); `smallHistory` (3 to 5 entries across 2 days); `largeHistory` (200 sessions over 45 days with both outcomes and long intents); `historyWith(n)`; a session fixture with `n` distractions (0, 1, 12, 21); helpers `doorState(page)` (the `hidden` flags of the button and the shut door), `itemIds(page)`, `rectOf(page, selector)`, `scrolls(page)` and `focused(page)`; the viewport constants (phone 360 x 640, desktop 1280 x 800, 768 x 1024, 1920 x 1080).
     - Add a one-test smoke in `e2e/graveyard.spec.ts` that opens the page with a stored burned-out session and sees the usable Door, to prove the helpers.
     - Files: `e2e/graveyard-fixtures.ts`, `e2e/graveyard.spec.ts`.
     - _Requirements: R11.3, R11.4_
 
-  - [ ] 19.2 Fix the existing suites
+  - [x] 19.2 Fix the existing suites
     - Run the whole existing e2e suite (`npm run e2e`) and fix every case that the Door, the ghost layer, the new CSS or the label suffix changed, by changing the test, not the scene: the scene label text in `e2e/scene.spec.ts`, any pixel check that now sees the Door, the zone-clear test (the Door is outside the zone), the `getByRole("heading")` smoke test. Check that the live smoke test (`e2e/live.spec.ts`) still passes against `vite preview`.
     - Files: `e2e/scene.spec.ts`, `e2e/smoke.spec.ts`, `e2e/live.spec.ts` only if needed.
     - _Requirements: R11.14_
@@ -431,13 +432,12 @@ Conventions for every task:
     - Files: `e2e/screenshots.spec.ts`.
     - _Requirements: R11.10 to R11.13_
 
-  - [ ] 26.2 Retake all 21 `candle-*` screenshots, then look at each
-    - The Door is drawn in every Room phase (usable or shut), so every `candle-*` screenshot changes (CR-E, R11.14). Run `$env:CANDLEWATCH_SHOTS = "1"; npx playwright test e2e/screenshots.spec.ts`, then clear the variable.
-    - **Look at every one of the 21 PNGs** (`docs/screenshots/candle-<state>-<desktop|phone|desktop-reduced>.png`, open each file with the image reader). For each, record in `KIRO_USAGE.md`: it shows the state in its name; the Door is a shut door in `lit-*` and `paused-*` and a usable door in `idle-*`, `burned-out-*` and `snuffed-*`; the Door sits in the left band, clear of the candle, the window, the controls and the floor band; ghosts (if any are stored in the fixture) are in the bands only; nothing else changed. If a shot is wrong, fix the cause (CSS, layout, wiring) and retake every affected shot; do not edit PNGs.
-    - Files: `docs/screenshots/candle-*.png` (21 files).
-    - _Requirements: R11.14_
-
-  - [ ] 26.3 Take the new `ghosts-*` and `graveyard-*` screenshots, then look at each
+  - [ ] 26.2 Retake all 41 existing screenshots (21 `candle-*` and 20 `controls-*`), then look at each
+    - The Door is drawn in every Room phase (usable or shut), so every existing room screenshot changes (CR-E, R11.14): not only the `candle-*` ones but the `controls-*` ones too, which show the same room. Run `$env:CANDLEWATCH_SHOTS = "1"; npx playwright test e2e/screenshots.spec.ts e2e/controls-screenshots.spec.ts`, then clear the variable.
+    - Affected files (41 in `docs/screenshots/`): the 21 `candle-<state>-<desktop|phone|desktop-reduced>.png` (states idle, lit-start, lit-half, lit-last-minute, paused, burned-out, snuffed) and the 20 `controls-*`: `controls-focus-light-desktop`, `-phone`; `controls-focus-pause-desktop`, `-phone`; `controls-idle-returning-desktop`, `-desktop-reduced`, `-phone`; `controls-invalid-length-desktop`, `-phone`, `controls-invalid-length-dawn-desktop`; `controls-lit-intent-desktop`, `-phone`; `controls-settings-desktop`, `-desktop-reduced`, `-phone`, `controls-settings-off-desktop`, `-phone`; `controls-snuff-dialog-desktop`, `-desktop-reduced`, `-phone`.
+    - **Look at every one of the 41 PNGs** (open each file with the image reader). For each, record in `KIRO_USAGE.md`: it shows the state in its name; the Door is a shut door in `lit` and `paused` shots (including `controls-lit-intent-*`, `controls-focus-pause-*` and `controls-snuff-dialog-*`) and a usable door in `idle`, `burned-out` and `snuffed` shots (including `controls-idle-returning-*`, `controls-focus-light-*`, `controls-settings-*`, `controls-invalid-length-*`); the Door sits in the left band, clear of the candle, the window, the controls, the settings panel, the snuff dialog and the floor band; ghosts (if any are stored in the fixture) are in the bands only; nothing else changed. If a shot is wrong, fix the cause (CSS, layout, wiring) and retake every affected shot; do not edit PNGs.
+    - Files: `docs/screenshots/candle-*.png` (21 files), `docs/screenshots/controls-*.png` (20 files).
+    - _Requirements: R11.14_  - [ ] 26.3 Take the new `ghosts-*` and `graveyard-*` screenshots, then look at each
     - Take the 18 new shots of 26.1.
     - **Look at every one of the 18 PNGs.** For each, record in `KIRO_USAGE.md`: it shows the screen in its name; `ghosts-0` has no ghost and no mark; `ghosts-1` has one; `ghosts-g` has 12 and no mark; `ghosts-g-plus-9` has 12 and the mark `+9`, clear of the candle and the floor band; the graveyard shots show stones, shelves and Count_Lines readable and inside the frame with no overlap; the keyboard shot shows the focus ring and the card for the focused Item; the touch shot shows a card opened by tap and does not cover its Item; the reduced-motion shots show the same information as the normal ones; text is readable at its size. If a shot is wrong, fix the cause and retake every affected shot.
     - Files: `docs/screenshots/ghosts-*.png` (9 files), `docs/screenshots/graveyard-*.png` (9 files).
@@ -454,9 +454,9 @@ Conventions for every task:
   - [ ] 28.1 Verify, log and summarise
     - Run `npm run verify` and confirm every property test ran with its full number of runs (all through `PROP_PARAMS`, no literal lower `numRuns`, no skipped, `only` or `todo` tests); report the unit file and test counts and the e2e count against the counts recorded at the start of task 1.
     - Update `.kiro/steering/structure.md`: `src/ghosts/` and `src/graveyard/` are implemented (list their files), `e2e/` holds the new specs and fixtures, the boundaries section names the two folders and the new purity tests.
-    - Confirm `docs/screenshots/` holds the 21 `candle-*` files, the 9 `ghosts-*` files and the 9 `graveyard-*` files, and that no screenshot is older than the last change to `src/ghosts/`, `src/graveyard/`, `src/ui/`, `src/scene/` or `src/main.ts`.
+    - Confirm `docs/screenshots/` holds the 21 `candle-*` files, the 20 `controls-*` files, the 9 `ghosts-*` files and the 9 `graveyard-*` files, and that no screenshot is older than the last change to `src/ghosts/`, `src/graveyard/`, `src/ui/`, `src/scene/` or `src/main.ts`.
     - Add the final `KIRO_USAGE.md` entry: surface used, what was produced, the property failures with counterexamples and seeds, the mutation results (P1, P8, P12, P13, P15, P19, P20, P22, and the P10 mutation of task 1.3), the screenshot checks (tasks 26.2 and 26.3), the costume review (task 27.1), and the final counts.
-    - Write the summary: it names which `candle-*` screenshots changed. All 21 changed, because the Door is drawn in every Room phase (R11.14); list them by name (`candle-idle`, `candle-lit-start`, `candle-lit-half`, `candle-lit-last-minute`, `candle-paused`, `candle-burned-out`, `candle-snuffed`, each at desktop, phone and desktop-reduced), and say which of them also show ghosts.
+    - Write the summary: it names which existing screenshots changed. All 41 changed (the 21 `candle-*` and the 20 `controls-*`), because the Door is drawn in every Room phase (R11.14); list them by name (`candle-idle`, `candle-lit-start`, `candle-lit-half`, `candle-lit-last-minute`, `candle-paused`, `candle-burned-out`, `candle-snuffed`, each at desktop, phone and desktop-reduced), name the 20 `controls-*` files as in task 26.2, and say which of them also show ghosts.
     - Files: `.kiro/steering/structure.md`, `KIRO_USAGE.md`.
     - _Requirements: all_
 

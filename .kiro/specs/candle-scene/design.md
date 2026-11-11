@@ -332,7 +332,7 @@ The drawn height of the candle is exactly proportional to the wax height (R3.6, 
 | Time-text zone | The stage band below the floor line. The text area is x 110..490, y 900..1000 (380 x 100). |
 | Reserved edge bands | x 0..110 and x 490..600 for every y, including the outer parts of the zone band, and everything beyond. |
 
-The pure helper `candleHeightUnits(model)` in `model.ts` returns this drawn height for tests (12.1). The reserved bands hold no object. They are for ghosts and the door of later specs (R10.4). A `lit` state whose time is up but not yet settled draws a body of height 0 and no stub for a frame, until the next tick settles it.
+The pure helper `candleHeightUnits(model)` in `model.ts` returns this drawn height for tests (12.1). The reserved bands hold no object. They are for ghosts and the door of later specs (R10.4). *Amended by ghosts-and-graveyard task 13.1 (CR-S2): the left and right bands are now used by the ghosts, the Overflow_Mark (right band, y 838..864) and the Door (left band, y 805..890). No scene layer changes.* A `lit` state whose time is up but not yet settled draws a body of height 0 and no stub for a frame, until the next tick settles it.
 
 ### 5.5 Drips
 
@@ -375,6 +375,7 @@ When `--dawn` is 1: the window's dawn pane is fully shown, `.dawn-wash` is fully
 
 ```ts
 export interface Scene { apply(model: SceneModel): void; }
+// Amended by ghosts-and-graveyard task 13.1 (CR-S1): apply(model: SceneModel, extra?: { labelSuffix: string }): void;
 export function createScene(root: HTMLElement): Scene
 ```
 
@@ -412,7 +413,7 @@ The pool's intensity is constant (Decision F4), so there is no idle rule and no 
 
 ### 6.4 The accessible name (R12)
 
-`root` has `role="img"`. `apply` sets `aria-label` from `STRINGS.scene[model.flameMode]` only when `flameMode` changes. It does not include the time. This is the one attribute besides custom properties and data attributes that the renderer writes (R12 allows it). New strings in `src/strings.ts`:
+`root` has `role="img"`. `apply` sets `aria-label` from `STRINGS.scene[model.flameMode]` only when `flameMode` changes. It does not include the time. *Amended by ghosts-and-graveyard task 13.1 (CR-S1): when `apply` is given `extra`, the label is `STRINGS.scene[mode] + " " + extra.labelSuffix + "."` and is rewritten when the mode or the suffix changed; without `extra` it is as described here. The model, the flame modes and the light radius do not change.* This is the one attribute besides custom properties and data attributes that the renderer writes (R12 allows it). New strings in `src/strings.ts`:
 
 ```ts
 scene: {

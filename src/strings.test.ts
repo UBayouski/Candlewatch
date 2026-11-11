@@ -1,3 +1,6 @@
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { dirname, join, relative, sep } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { STRINGS } from "./strings";
 import type { FlameMode } from "./scene/types";
@@ -58,5 +61,56 @@ describe("ghosts-and-graveyard strings (CR-ST)", () => {
     for (const s of all) {
       for (const m of s.matchAll(/\{([^}]*)\}/g)) expect(allowed.has(m[1] ?? "")).toBe(true);
     }
+  });
+});
+
+describe("ghosts-and-graveyard strings are all used (task 17.1)", () => {
+  const dir = dirname(fileURLToPath(import.meta.url));
+  const walk = (d: string): string[] => readdirSync(d).flatMap((n) => (statSync(join(d, n)).isDirectory() ? walk(join(d, n)) : [join(d, n)]));
+  const isTest = (p: string): boolean => /\.(?:prop\.)?test\.ts$/.test(p) || /(?:^|[\\/])(?:test-kit|fake-document)\.ts$/.test(p);
+  const strip = (code: string): string => code.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`\\])\/\/.*$/gm, "$1");
+  // The new folders, and main.ts, which announces the view change.
+  const sources = [...walk(join(dir, "ghosts")), ...walk(join(dir, "graveyard")), join(dir, "main.ts")]
+    .filter((p) => p.endsWith(".ts") && !isTest(p))
+    .map((p) => ({ name: relative(dir, p).split(sep).join("/"), code: strip(readFileSync(p, "utf8")) }));
+  const leaves = (prefix: string, value: unknown): string[] =>
+    value !== null && typeof value === "object" && !Array.isArray(value)
+      ? Object.entries(value).flatMap(([k, v]) => leaves(`${prefix}.${k}`, v))
+      : [prefix];
+  const owned = [["count", STRINGS.count], ["ghosts", STRINGS.ghosts], ["graveyard", STRINGS.graveyard]].flatMap(([g, v]) => leaves(String(g), v));
+
+  it("uses every key of count, ghosts and graveyard somewhere in src/ghosts, src/graveyard or main.ts", () => {
+    const all = sources.map((s) => s.code).join("\n");
+    expect(owned.filter((key) => !all.includes(`STRINGS.${key}`))).toEqual([]);
+  });
+
+  it("uses only keys that exist", () => {
+    const known = new Set(owned);
+    const missing: string[] = [];
+    for (const { name, code } of sources) {
+      for (const m of code.matchAll(/STRINGS\.(count|ghosts|graveyard)((?:\.[A-Za-z0-9]+)+)/g)) {
+        const key = `${m[1]}${m[2]}`;
+        if (!known.has(key) && ![...known].some((k) => k.startsWith(`${key}.`))) missing.push(`${name}: ${key}`);
+      }
+    }
+    expect(missing).toEqual([]);
+  });
+
+  it("keeps visible text out of the new folders (no literal reads as a sentence)", () => {
+    const visible = (s: string): boolean => !/^[a-z][A-Za-z0-9-]*(?: [a-z][A-Za-z0-9-]*)*$/.test(s) && (/[A-Za-z]{2,}\s+[A-Za-z]/.test(s) || /[A-Za-z]{3,}[.!?…]$/.test(s));
+    const found: string[] = [];
+    for (const { name, code } of sources) {
+      const noImports = code.replace(/^\s*(?:import|export)\b[^;]*?\bfrom\s+["'][^"']*["'];?/gm, "");
+      for (const m of noImports.matchAll(/"((?:[^"\\\n]|\\.)*)"|'((?:[^'\\\n]|\\.)*)'|`((?:[^`\\]|\\.)*)`/g)) {
+        const literal = m[1] ?? m[2] ?? m[3] ?? "";
+        if (visible(literal)) found.push(`${name}: ${literal}`);
+      }
+    }
+    expect(found).toEqual([]);
+  });
+
+  it("never uses the trademarked word in the new folders", () => {
+    const word = new RegExp(["pomo", "doro"].join(""), "i");
+    expect(sources.filter((s) => word.test(s.code)).map((s) => s.name)).toEqual([]);
   });
 });

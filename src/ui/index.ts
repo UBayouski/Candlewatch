@@ -27,6 +27,8 @@ export interface InterfaceDeps {
   /** The clock, read only for the moment of a user action. */
   readonly now: () => number;
   readonly getState: () => State;
+  /** The view shown now, asked for each key and each frame: the graveyard hides the setup controls and takes the keys of the room (CR1, CR-V1). */
+  readonly view: () => "room" | "graveyard";
   readonly settings: Settings;
   /** Called at once with the new settings whenever the panel changes one. */
   readonly onSettings: (settings: Settings) => void;
@@ -37,6 +39,8 @@ export interface Interface {
   update(state: State, now: number): void;
   /** Writes one line to the live region (a repeated line is cleared for one frame first, so it is read again). */
   announce(text: string): void;
+  /** The overlay that is open now ("none" when none): the graveyard's keys do nothing while one is (R6). */
+  overlay(): "none" | "snuff" | "settings";
 }
 
 export function createInterface(deps: InterfaceDeps): Interface {
@@ -60,8 +64,6 @@ export function createInterface(deps: InterfaceDeps): Interface {
   let lastPhase = deps.getState().phase;
   let queuedFocus: FocusTarget = "none";
   let lastOverLimit = false;
-  /** The view shown. Always the room until the graveyard view is wired in. */
-  const currentView: "room" | "graveyard" = "room";
   /** The user has picked a length since the page loaded: the default length no longer moves the chooser (design 11.2). */
   let chosen = false;
 
@@ -125,7 +127,7 @@ export function createInterface(deps: InterfaceDeps): Interface {
     now: deps.now,
     phase: () => deps.getState().phase,
     overlay: () => ui.overlay,
-    view: () => currentView,
+    view: deps.view,
     handle,
     changeSettings,
     settings: () => settings,
@@ -135,6 +137,7 @@ export function createInterface(deps: InterfaceDeps): Interface {
     announce(text: string): void {
       live.say(text);
     },
+    overlay: () => ui.overlay,
     update(state: State, now: number): void {
       // 1. The engine moved on its own (the candle burned out, the pause ran out, a reload): tell the state machine.
       if (state.phase !== lastPhase) {
@@ -151,7 +154,7 @@ export function createInterface(deps: InterfaceDeps): Interface {
 
       // 3. The view, written only where it changed.
       if (dirty) measure();
-      const model = viewOf(state, ui, settings, now, placement, { finePointer }, currentView);
+      const model = viewOf(state, ui, settings, now, placement, { finePointer }, deps.view());
       apply(model);
       if (model.intent.overLimit && !lastOverLimit) live.say(textOf(limitAnnouncement()));
       lastOverLimit = model.intent.overLimit;

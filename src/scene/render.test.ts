@@ -187,6 +187,73 @@ describe("apply: the accessible name (R12)", () => {
   });
 });
 
+describe("apply: the label suffix (R10.1, R10.11, CR-S1)", () => {
+  const states: [State, number, keyof typeof STRINGS.scene][] = [
+    [INITIAL_STATE, T0, "unlit"],
+    [lit(), T0 + MIN, "steady"],
+    [step(lit(), { type: "pause" }, T0 + MIN), T0 + 2 * MIN, "paused"],
+    [lit(), T0 + 24.5 * MIN, "guttering"],
+    [step(lit(), { type: "snuff" }, T0 + MIN), T0 + 2 * MIN, "smoke"],
+  ];
+  const labelWrites = (log: string[]): number => log.filter((l) => l === "attr aria-label").length;
+
+  it("with extra the label is the mode string, a space, the suffix and a full stop, for each of the five modes", () => {
+    for (const [state, now, mode] of states) {
+      const f = fakeRoot();
+      createScene(f.root).apply(model(state, now), { labelSuffix: "2 distractions" });
+      expect(f.attributes.get("aria-label")).toBe(`${STRINGS.scene[mode]} 2 distractions.`);
+    }
+  });
+
+  it("without extra the label is exactly the plain mode string", () => {
+    const f = fakeRoot();
+    createScene(f.root).apply(model(lit(), T0));
+    expect(f.attributes.get("aria-label")).toBe(STRINGS.scene.steady);
+  });
+
+  it("a changed suffix rewrites the label; an unchanged suffix writes nothing", () => {
+    const f = fakeRoot();
+    const scene = createScene(f.root);
+    scene.apply(model(lit(), T0), { labelSuffix: "0 distractions" });
+    f.log.length = 0;
+    scene.apply(model(lit(), T0 + 5 * MIN), { labelSuffix: "0 distractions" });
+    expect(labelWrites(f.log)).toBe(0);
+    scene.apply(model(lit(), T0 + 6 * MIN), { labelSuffix: "1 distraction" });
+    expect(labelWrites(f.log)).toBe(1);
+    expect(f.attributes.get("aria-label")).toBe(`${STRINGS.scene.steady} 1 distraction.`);
+  });
+
+  it("a changed mode with the same suffix rewrites the label", () => {
+    const f = fakeRoot();
+    const scene = createScene(f.root);
+    scene.apply(model(lit(), T0), { labelSuffix: "1 distraction" });
+    scene.apply(model(lit(), T0 + 24.5 * MIN), { labelSuffix: "1 distraction" });
+    expect(f.attributes.get("aria-label")).toBe(`${STRINGS.scene.guttering} 1 distraction.`);
+  });
+
+  it("switching from extra to no extra restores the plain label, once", () => {
+    const f = fakeRoot();
+    const scene = createScene(f.root);
+    scene.apply(model(lit(), T0), { labelSuffix: "3 distractions" });
+    f.log.length = 0;
+    scene.apply(model(lit(), T0));
+    expect(f.attributes.get("aria-label")).toBe(STRINGS.scene.steady);
+    scene.apply(model(lit(), T0));
+    expect(labelWrites(f.log)).toBe(1);
+  });
+
+  it("the suffix changes nothing but the label", () => {
+    const a = fakeRoot();
+    const b = fakeRoot();
+    createScene(a.root).apply(model(lit(), T0 + 5 * MIN));
+    createScene(b.root).apply(model(lit(), T0 + 5 * MIN), { labelSuffix: "4 distractions" });
+    a.attributes.delete("aria-label");
+    b.attributes.delete("aria-label");
+    expect(b.attributes).toEqual(a.attributes);
+    expect(b.properties).toEqual(a.properties);
+  });
+});
+
 describe("render.ts keeps no logic of its own (R11.6)", () => {
   const code = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "render.ts"), "utf8")
     .replace(/\/\*[\s\S]*?\*\//g, "")
@@ -199,9 +266,9 @@ describe("render.ts keeps no logic of its own (R11.6)", () => {
   });
 
   it("reads the flame mode only to choose the accessible name (compare, remember, look up the string)", () => {
-    expect(code.match(/model\.flameMode/g)?.length).toBe(3);
-    const announce = code.slice(code.indexOf("announced !== model.flameMode"));
-    expect(announce.match(/model\.flameMode/g)?.length).toBe(3);
+    // One read: the string lookup. The label is then compared and remembered as text (R10.1).
+    expect(code.match(/model\.flameMode/g)?.length).toBe(1);
+    expect(code).toMatch(/STRINGS\.scene\[model\.flameMode\]/);
   });
 
   it("imports nothing from the engine", () => {

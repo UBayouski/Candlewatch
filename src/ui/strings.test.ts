@@ -129,7 +129,8 @@ describe("the strings file", () => {
       .filter((p) => word.test(readFileSync(p, "utf8")))
       .map((p) => relative(SRC_DIR, p));
     expect(hits).toEqual([]);
-  });
+    // It reads every file under src/: quick alone (about 350 ms) but slow while dozens of test files run at once, and the number of files grows.
+  }, 30_000);
 
   it("fills its templates with the placeholders they name", () => {
     expect(fill(STRINGS.status.pauseLeft, { time: "09:12" })).toBe("Pause left 09:12");

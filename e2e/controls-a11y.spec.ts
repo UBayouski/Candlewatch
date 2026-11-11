@@ -177,7 +177,9 @@ test.describe("E4: focus", () => {
           const running = fixture.name === "lit-start" || fixture.name === "paused";
           expect(stops.map((s) => s.label).slice(0, running ? 2 : 1).length).toBe(running ? 2 : 1);
           if (running) expect(stops.slice(0, 2).map((s) => s.label)).toEqual(["pause", "snuff"]);
-          else expect(stops.slice(1).map((s) => s.label)).toEqual(["intent", "light", "settings-button"]);
+          else expect(stops.slice(1).map((s) => s.label)).toEqual(["intent", "light", "door", "settings-button"]);
+          // No Door stop while a candle burns or rests (ghosts-and-graveyard R3.5).
+          if (running) expect(stops.map((s) => s.label)).not.toContain("door");
         } finally {
           await app.close();
         }
@@ -370,13 +372,17 @@ test.describe("E6: the accessibility tree and the live log", () => {
     });
   }
 
-  test("the scene's label never contains a digit", async ({ browser }) => {
+  test("the scene's label never contains a time", async ({ browser }) => {
+    // A time is clock digits ("12:31") or a number with a unit of time ("12 minutes"). The distraction count ("0 distractions") is not a time.
+    const TIME = /\d+\s*:\s*\d+|\d+\s*(?:hours?|minutes?|mins?|seconds?|secs?)\b/i;
+    for (const sample of ["12:31", "00:00", "Candle, 12:31 left", "12 minutes", "1 minute", "59 seconds", "2 hours", "12 min"]) expect(sample).toMatch(TIME);
+    for (const sample of ["0 distractions", "1 distraction", "21 distractions", "The flame is steady 3 distractions."]) expect(sample).not.toMatch(TIME);
     for (const fixture of [FIXTURES.idle, FIXTURES.litStart, FIXTURES.litLastMinute, FIXTURES.paused, FIXTURES.burnedOut, FIXTURES.snuffed]) {
       const app = await openApp(browser, { fixture });
       try {
         const label = await app.page.locator("#scene").getAttribute("aria-label");
         expect(label, fixture.name).not.toBeNull();
-        expect(label, fixture.name).not.toMatch(/\d/);
+        expect(label, fixture.name).not.toMatch(TIME);
       } finally {
         await app.close();
       }

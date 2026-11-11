@@ -1,0 +1,360 @@
+/* The graveyard view, the Door and the details card (ghosts-and-graveyard design 4.2, 4.3, Section 1, L1 to L11, D8; R3.9, R4, R6.19).
+   Nothing here animates or fades: the view appears and disappears at once in every mode, so reduced motion needs no extra rule (R4.15).
+   Sizes are `calc(N * var(--u))` with N in room units from Section 1; --u (px per unit), --ox and --oy come from the stage box and are
+   written by script with style.setProperty. Positions are --x and --y in room units (and --w --h for the panel). No style attribute. */
+
+/* The hidden attribute always wins over a display set by a class. */
+[hidden] {
+  display: none !important;
+}
+
+#ui .graveyard {
+  /* Tokens. Ivory on the panel #080b12 is 15.83:1, on the stone face #1b2030 13.0:1 (L11). */
+  --g-text: #efe6cf;
+  --g-text-subtle: #cfc2a2; /* the wax shade: 12:1 on the panel */
+  --g-panel: #080b12; /* the zone's darkest, opaque (D8) */
+  --g-face: #1b2030; /* stone and door face */
+  --g-amber: #e6c27a;
+  --g-warm: #3a2a1c; /* the wall's low brown */
+  --g-focus: #efe6cf;
+  --g-line: max(1px, calc(2 * var(--u, 0.6px)));
+
+  position: fixed;
+  left: var(--ox, 0px);
+  top: var(--oy, 0px);
+  width: calc(600 * var(--u, 0.6px));
+  height: calc(1000 * var(--u, 0.6px));
+  margin: 0;
+  padding: 0;
+  overflow: hidden; /* no scroll bar and no overflow (R4.10) */
+  pointer-events: none;
+  color: var(--g-text);
+  font-family: "Alegreya Sans", sans-serif;
+  font-size: calc(20 * var(--u, 0.6px));
+  line-height: calc(22 * var(--u, 0.6px));
+}
+
+/* Every placed element sits at (--x, --y) room units inside the section. The wrapper `.view` and the `.day` rows have no box. */
+#ui .graveyard .door,
+#ui .graveyard .back,
+#ui .graveyard .panel,
+#ui .graveyard .title,
+#ui .graveyard .label,
+#ui .graveyard .item,
+#ui .graveyard .day-label,
+#ui .graveyard .more,
+#ui .graveyard .count,
+#ui .graveyard .empty,
+#ui .graveyard .card {
+  position: absolute;
+  left: calc(var(--x, 0) * var(--u, 0.6px));
+  top: calc(var(--y, 0) * var(--u, 0.6px));
+  box-sizing: border-box;
+  margin: 0;
+}
+
+/* --- the panel: opaque, so the candle and the ghosts behind it cannot spoil the text contrast (D8) --- */
+#ui .graveyard .panel {
+  width: calc(var(--w, 0) * var(--u, 0.6px));
+  height: calc(var(--h, 0) * var(--u, 0.6px));
+  background: var(--g-panel);
+  pointer-events: auto;
+}
+
+#ui .graveyard .title {
+  width: calc(560 * var(--u, 0.6px));
+  height: calc(28 * var(--u, 0.6px));
+  font-family: "Cormorant Garamond", serif;
+  font-size: calc(22 * var(--u, 0.6px));
+  font-weight: 700;
+  line-height: calc(28 * var(--u, 0.6px));
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* --- labels, count lines, empty-state lines: text only, not focusable --- */
+#ui .graveyard .label,
+#ui .graveyard .count,
+#ui .graveyard .empty {
+  width: calc(560 * var(--u, 0.6px));
+  height: calc(22 * var(--u, 0.6px));
+  color: var(--g-text-subtle);
+  font-size: calc(20 * var(--u, 0.6px));
+  line-height: calc(22 * var(--u, 0.6px));
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+#ui .graveyard .label {
+  font-weight: 700;
+}
+
+/* --- the groups and day rows have no box: their children are placed against the section --- */
+#ui .graveyard .group,
+#ui .graveyard .day,
+#ui .graveyard .view {
+  display: block;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+/* --- items: native buttons --- */
+/* The graveyard sits inside #ui, so the interface's `#ui button` rules (size, padding, border, background, hover) reach these buttons.
+   The reset clears them; the rules below restyle. */
+#ui .graveyard button {
+  all: unset;
+  box-sizing: border-box;
+  pointer-events: auto;
+  color: var(--g-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+
+/* Stone: 100 by 90 units (60 by 54 px at 360 x 640), an arched top; the Carved_Date and the intent on the face (L7). */
+#ui .graveyard .stone {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  width: calc(100 * var(--u, 0.6px));
+  height: calc(90 * var(--u, 0.6px));
+  padding: calc(16 * var(--u, 0.6px)) calc(8 * var(--u, 0.6px)) calc(6 * var(--u, 0.6px));
+  background: var(--g-face);
+  border: var(--g-line) solid var(--g-text);
+  border-radius: calc(44 * var(--u, 0.6px)) calc(44 * var(--u, 0.6px)) calc(6 * var(--u, 0.6px)) calc(6 * var(--u, 0.6px));
+  text-align: center;
+}
+
+#ui .graveyard .stone-date,
+#ui .graveyard .stone-intent {
+  display: block;
+  min-width: 0;
+  font-size: calc(20 * var(--u, 0.6px));
+  line-height: calc(22 * var(--u, 0.6px));
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis; /* the full intent stays in the DOM and in the name (R4.3) */
+}
+
+#ui .graveyard .stone-date {
+  font-weight: 700;
+}
+
+/* Stub: 74 by 74 units (44.4 px), a candle stub drawn as an outline with its wick; no text (L7, L11). */
+#ui .graveyard .stub {
+  width: calc(74 * var(--u, 0.6px));
+  height: calc(74 * var(--u, 0.6px));
+  background: transparent;
+  border: var(--g-line) solid var(--g-text);
+  border-radius: calc(12 * var(--u, 0.6px)) calc(12 * var(--u, 0.6px)) calc(4 * var(--u, 0.6px)) calc(4 * var(--u, 0.6px));
+}
+
+#ui .graveyard .stub::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: calc(10 * var(--u, 0.6px));
+  width: max(1px, calc(3 * var(--u, 0.6px)));
+  height: calc(16 * var(--u, 0.6px));
+  background: var(--g-text);
+  transform: translateX(-50%);
+}
+
+/* The shelf row: the date label and the "+n more" text. */
+#ui .graveyard .day-label,
+#ui .graveyard .more {
+  display: flex;
+  align-items: center;
+  height: calc(74 * var(--u, 0.6px));
+  font-size: calc(20 * var(--u, 0.6px));
+  line-height: calc(22 * var(--u, 0.6px));
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+#ui .graveyard .day-label {
+  width: calc(80 * var(--u, 0.6px));
+  font-weight: 700;
+}
+
+#ui .graveyard .more {
+  width: calc(100 * var(--u, 0.6px));
+  color: var(--g-text-subtle);
+}
+
+/* --- the description: read aloud, never seen (R7.3, R7.4) --- */
+#ui .graveyard .desc {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* --- the details card: 520 by 240 units, opaque, 1 unit ivory border; the pointer passes through it (L9) --- */
+#ui .graveyard .card {
+  z-index: 1;
+  width: calc(520 * var(--u, 0.6px));
+  height: calc(240 * var(--u, 0.6px));
+  padding: calc(12 * var(--u, 0.6px));
+  background: var(--g-panel);
+  border: max(1px, calc(1 * var(--u, 0.6px))) solid var(--g-text);
+  color: var(--g-text);
+  font-size: calc(20 * var(--u, 0.6px));
+  line-height: calc(26 * var(--u, 0.6px));
+  overflow: hidden;
+  pointer-events: none;
+}
+
+#ui .graveyard .card-line {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+/* --- the Door and the return control: 80 by 85 units (48 by 51 px), the same rectangle (L1, R3.9, R3.14) --- */
+#ui .graveyard .door,
+#ui .graveyard .back {
+  width: calc(80 * var(--u, 0.6px));
+  height: calc(85 * var(--u, 0.6px));
+}
+
+/* The Door a hand can open: a lit doorway in an arched frame and an amber handle. It shows "no candle burns". */
+#ui .graveyard button.door {
+  background: var(--g-face);
+  border: var(--g-line) solid var(--g-text);
+  border-radius: calc(40 * var(--u, 0.6px)) calc(40 * var(--u, 0.6px)) calc(4 * var(--u, 0.6px)) calc(4 * var(--u, 0.6px));
+}
+
+#ui .graveyard button.door::before {
+  content: "";
+  position: absolute;
+  inset: calc(10 * var(--u, 0.6px)) calc(10 * var(--u, 0.6px)) 0;
+  background: var(--g-warm);
+  border-radius: calc(30 * var(--u, 0.6px)) calc(30 * var(--u, 0.6px)) 0 0;
+}
+
+#ui .graveyard button.door::after {
+  content: "";
+  position: absolute;
+  right: calc(16 * var(--u, 0.6px));
+  top: calc(48 * var(--u, 0.6px));
+  width: calc(10 * var(--u, 0.6px));
+  height: calc(10 * var(--u, 0.6px));
+  background: var(--g-amber);
+  border-radius: 50%;
+}
+
+/* The shut door: dark, barred across, no handle, not focusable. It shows "a focus session is running". */
+#ui .graveyard .door-shut {
+  background: #05070d;
+  border: var(--g-line) solid var(--g-text-subtle);
+  border-radius: calc(40 * var(--u, 0.6px)) calc(40 * var(--u, 0.6px)) calc(4 * var(--u, 0.6px)) calc(4 * var(--u, 0.6px));
+}
+
+#ui .graveyard .door-shut::after {
+  content: "";
+  position: absolute;
+  left: calc(-1 * var(--g-line));
+  right: calc(-1 * var(--g-line));
+  top: calc(40 * var(--u, 0.6px));
+  height: calc(8 * var(--u, 0.6px));
+  background: var(--g-text-subtle);
+}
+
+/* The return control: the same place as the Door; a plain frame with a left arrow. */
+#ui .graveyard .back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--g-face);
+  border: var(--g-line) solid var(--g-text);
+  border-radius: calc(10 * var(--u, 0.6px));
+}
+
+#ui .graveyard .back-icon {
+  width: calc(34 * var(--u, 0.6px));
+  height: calc(34 * var(--u, 0.6px));
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* --- hover is for pointers that can hover; nothing depends on it (the card carries the meaning) --- */
+@media (hover: hover) {
+  #ui .graveyard .item:hover,
+  #ui .graveyard button.door:hover,
+  #ui .graveyard .back:hover {
+    border-color: var(--g-amber);
+  }
+}
+
+/* --- the focus ring: the controls' ring, 3 px ivory with a 3 px offset, always drawn (R6.19) --- */
+#ui .graveyard :focus-visible {
+  outline: 3px solid var(--g-focus);
+  outline-offset: 3px;
+}
+
+/* --- forced colours and more contrast: the system's colours, the borders and the ring still show --- */
+@media (forced-colors: active) {
+  #ui .graveyard .panel,
+  #ui .graveyard .card,
+  #ui .graveyard .stone,
+  #ui .graveyard .stub,
+  #ui .graveyard button.door,
+  #ui .graveyard .door-shut,
+  #ui .graveyard .back {
+    background: Canvas;
+    border-color: CanvasText;
+    color: CanvasText;
+  }
+
+  #ui .graveyard .title,
+  #ui .graveyard .label,
+  #ui .graveyard .count,
+  #ui .graveyard .empty,
+  #ui .graveyard .day-label,
+  #ui .graveyard .more {
+    color: CanvasText;
+  }
+
+  #ui .graveyard .stub::before,
+  #ui .graveyard button.door::after,
+  #ui .graveyard .door-shut::after {
+    background: CanvasText;
+  }
+
+  #ui .graveyard button.door::before {
+    background: Canvas;
+    border: 1px solid CanvasText;
+  }
+
+  #ui .graveyard :focus-visible {
+    outline-color: Highlight;
+  }
+}
+
+@media (prefers-contrast: more) {
+  #ui .graveyard {
+    --g-line: max(2px, calc(3 * var(--u, 0.6px)));
+    --g-text-subtle: #efe6cf;
+  }
+
+  #ui .graveyard .stone,
+  #ui .graveyard .stub,
+  #ui .graveyard button.door,
+  #ui .graveyard .back,
+  #ui .graveyard .card {
+    border-color: #ffffff;
+  }
+}

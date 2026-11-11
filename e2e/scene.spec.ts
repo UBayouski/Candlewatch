@@ -1,6 +1,7 @@
 // The candle scene in a real browser (candle-scene design 11.3, requirement R13.7).
 // Each state is reached the way a real visit reaches it: a stored session and a frozen clock, with no hook in the shipped code.
 import { expect, test } from "@playwright/test";
+import { countWords } from "../src/ghosts/label";
 import { STRINGS } from "../src/strings";
 import { FIXTURES, STATES, VIEWPORTS, boxOf, colourAt, maxPixelDistance, openScene, paletteColour, readScene, stopColour } from "./scene-fixtures";
 import type { Box, Fixture } from "./scene-fixtures";
@@ -39,7 +40,9 @@ test.describe("each state sets the custom properties and attributes it should", 
       try {
         const r = await readScene(scene.page);
         expect(r.role).toBe("img");
-        expect(r.ariaLabel).toBe(STRINGS.scene[row.flame]);
+        // The flame's name, then the engine's distraction count in words (ghosts-and-graveyard R10.1); no fixture here has a distraction.
+        expect(r.ariaLabel).toBe(`${STRINGS.scene[row.flame]} ${countWords(0)}.`);
+        expect(r.ariaLabel).toMatch(/ 0 distractions\.$/);
         expect(r.flame).toBe(row.flame);
         expect(r.phase).toBe(row.phase);
         expect(r.settled).toBe("true");

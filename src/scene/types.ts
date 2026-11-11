@@ -1,5 +1,10 @@
 import type { State } from "../engine";
 
+/** Optional caller content for the accessible name (R10.1, CR-S1). A plain string; the scene knows nothing about its meaning. */
+export interface SceneExtra {
+  readonly labelSuffix: string;
+}
+
 /** The five flames (R5.1). */
 export type FlameMode = "unlit" | "steady" | "paused" | "guttering" | "smoke";
 

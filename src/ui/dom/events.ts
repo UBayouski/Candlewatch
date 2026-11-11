@@ -19,7 +19,7 @@ export interface EventDeps {
   readonly now: () => number;
   readonly phase: () => State["phase"];
   readonly overlay: () => UiState["overlay"];
-  /** Which view is shown (always the room until the graveyard view is wired). */
+  /** Which view is shown: the room, or the graveyard (ghosts-and-graveyard, wired in main.ts). */
   readonly view: () => KeyContext["view"];
   /** Runs one UI action at the moment `now` (the state machine, the engine events, the effects). */
   readonly handle: (action: UiAction, now: number) => void;

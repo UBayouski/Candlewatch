@@ -1,6 +1,6 @@
 import { STRINGS } from "../strings";
 import { ROOM_SVG } from "./room";
-import type { SceneModel } from "./types";
+import type { SceneExtra, SceneModel } from "./types";
 
 /** What the renderer needs from its root element. A real `HTMLElement` satisfies it. */
 export interface SceneRoot {
@@ -11,7 +11,8 @@ export interface SceneRoot {
 }
 
 export interface Scene {
-  apply(model: SceneModel): void;
+  /** `extra.labelSuffix` is appended to the label (R10.1, CR-S1); without `extra` the label is the plain one. */
+  apply(model: SceneModel, extra?: SceneExtra): void;
 }
 
 /** Model field -> CSS custom property (design 6.2). A boolean becomes "1" or "0". */
@@ -67,7 +68,7 @@ export function createScene(root: SceneRoot): Scene {
   };
 
   return {
-    apply(model: SceneModel): void {
+    apply(model: SceneModel, extra?: SceneExtra): void {
       for (const [field, name] of PROPERTIES) {
         const value = propertyText(model[field]);
         write(name, value, () => {
@@ -88,10 +89,12 @@ export function createScene(root: SceneRoot): Scene {
         root.setAttribute("data-settled", settled);
       });
 
-      // The accessible name changes only with the flame mode, and never contains the time (R12).
-      if (announced !== model.flameMode) {
-        announced = model.flameMode;
-        root.setAttribute("aria-label", STRINGS.scene[model.flameMode]);
+      // The accessible name changes only with the flame mode or the suffix, and never contains the time (R12, R10.1, R10.10).
+      const base = STRINGS.scene[model.flameMode];
+      const label = extra === undefined ? base : `${base} ${extra.labelSuffix}.`;
+      if (announced !== label) {
+        announced = label;
+        root.setAttribute("aria-label", label);
       }
     },
   };
