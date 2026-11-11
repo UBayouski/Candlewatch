@@ -39,7 +39,7 @@ import type { CardInput, CardState } from "./card";
 import type { DayKeyFn } from "./days";
 import { navigate, NO_MEMORY, remember, tabStops } from "./focus";
 import type { FocusMemory, GroupId } from "./focus";
-import { COUNT_LINE_Y, DOOR_RECT, EMPTY_LINE_Y, PANEL_RECT, placeCard } from "./geometry";
+import { COUNT_LINE_Y, DOOR_RECT, EMPTY_LINE_Y, LABEL_Y, PANEL_FADE, PANEL_RECT, placeCard } from "./geometry";
 import type { Rect } from "./geometry";
 import { graveKeyAction } from "./keys";
 import type { GraveKeyContext } from "./keys";
@@ -76,9 +76,8 @@ export interface Graveyard {
   focusDoor(): void;
 }
 
-// Header and group labels, in room units (L7). Everything else comes from geometry.ts.
-const TITLE_RECT: Rect = { x: 20, y: 215, w: 560, h: 28 };
-const LABEL_Y = { stones: 247, shelf: 496 } as const;
+// The backdrop: the opaque core and its fading margin above and to the sides (D18).
+const BACKDROP_RECT: Rect = { x: PANEL_RECT.x - PANEL_FADE, y: PANEL_RECT.y - PANEL_FADE, w: PANEL_RECT.w + 2 * PANEL_FADE, h: PANEL_RECT.h + PANEL_FADE };
 const LINE = { x: 20, w: 560, h: 22 } as const;
 
 const IDS = {
@@ -150,9 +149,9 @@ export function createGraveyard(root: HTMLElement, hooks: GraveyardHooks): Grave
   // The wrapper has no box of its own: its children sit at room units relative to the section (L6).
   const wrapper = make(doc, "div", { class: "view" });
   const panel = make(doc, "div", { class: "panel", "aria-hidden": "true" });
-  place(panel, PANEL_RECT, true);
+  place(panel, BACKDROP_RECT, true);
+  // The view's heading names it for a screen reader (R7.9) and is not seen: the visible "Graveyard" label would repeat it (D19).
   const title = make(doc, "h2", { id: IDS.title, class: "title" }, STRINGS.graveyard.title);
-  place(title, TITLE_RECT);
 
   const stonesGroup = make(doc, "div", { id: IDS.stones, class: "group stones", role: "group", "aria-label": STRINGS.graveyard.graveyardLabel });
   const shelfGroup = make(doc, "div", { id: IDS.shelf, class: "group shelf", role: "group", "aria-label": STRINGS.graveyard.shelfLabel });
@@ -193,6 +192,8 @@ export function createGraveyard(root: HTMLElement, hooks: GraveyardHooks): Grave
   let builtHistory: readonly HistoryEntry[] | null = null;
   let builtDayKeyOf: DayKeyFn | null = null;
   let cardShownId: string | null = null;
+  /** CSS px per room unit, from the last `apply` (the card is measured in px and placed in units). */
+  let scale = 1;
   const items = new Map<string, ItemRef>();
   const written = new Map<string, string>();
 
@@ -221,7 +222,13 @@ export function createGraveyard(root: HTMLElement, hooks: GraveyardHooks): Grave
     if (cardShownId !== id) {
       cardShownId = id;
       card.replaceChildren(...ref.lines.map((line) => make(doc, "span", { class: "card-line" }, line)));
-      place(card, placeCard(ref.rect));
+      setHidden(card, false);
+      // The card is sized by its content (D16): measure it, in units, and place it beside its item, off the other Group's label
+      // when one side allows.
+      const box = card.getBoundingClientRect();
+      const size = { w: box.width / scale, h: box.height / scale };
+      const avoid: Rect = { ...LINE, y: ref.group === "graveyard" ? LABEL_Y.shelf : LABEL_Y.stones };
+      place(card, placeCard(ref.rect, size, avoid));
     }
     setHidden(card, false);
   };
@@ -294,6 +301,8 @@ export function createGraveyard(root: HTMLElement, hooks: GraveyardHooks): Grave
       day.append(line("day-label", row.label, row.labelRect));
       for (const stub of row.stubs) {
         const { button, desc } = buildItem(stub, "shelf", "stub");
+        // A burned-down candle: a short wax body and its wick, standing on the day's shelf (D15). Shapes only; the name is the label.
+        button.append(make(doc, "span", { class: "stub-wax" }), make(doc, "span", { class: "stub-wick" }));
         day.append(button, desc);
       }
       if (row.more !== null) day.append(line("more", row.more.text, row.more.rect));
@@ -392,6 +401,10 @@ export function createGraveyard(root: HTMLElement, hooks: GraveyardHooks): Grave
       const win = doc.defaultView;
       const vp = input.viewport ?? { w: win?.innerWidth ?? 600, h: win?.innerHeight ?? 1000 };
       const stage = stageBox(vp.w, vp.h);
+      if (stage.scale !== scale) {
+        scale = stage.scale;
+        cardShownId = null; // a new scale: the next shown card is measured and placed again
+      }
       writeVar("--u", `${stage.scale}px`);
       writeVar("--ox", `${stage.ox}px`);
       writeVar("--oy", `${stage.oy}px`);

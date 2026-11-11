@@ -67,8 +67,8 @@ const LIVE_RECORDER = `
 
 /**
  * Opens the page the way a visitor would, with the clock frozen: stored state if a fixture is given, the viewport, reduced
- * motion and touch as asked. The page loads 5 s before `now`, the clock is paused 100 ms before it and run 140 ms, so the last
- * frame is drawn at or after `now` (as `openScene` does).
+ * motion and touch as asked. The page loads with the clock paused exactly 5 s before `now`, then the clock is run 5040 ms, so the
+ * last frame is drawn 40 ms after `now`, whatever the load took (as `openScene` does).
  */
 export async function openApp(browser: Browser, options: AppOptions = {}): Promise<App> {
   const fixture = options.fixture ?? null;
@@ -104,10 +104,13 @@ export async function openApp(browser: Browser, options: AppOptions = {}): Promi
   if (options.settings !== undefined) {
     await page.addInitScript(({ key, text }) => localStorage.setItem(key, text), { key: SETTINGS_KEY, text: options.settings });
   }
-  await page.clock.install({ time: now - 5000 });
+  // The clock starts paused at the load instant (pauseAt is the first clock call, so no wall time is counted between installing and pausing):
+  // the page loads at exactly that instant however long the load takes, and the frames keep the 16 ms grid from it. Nothing then
+  // depends on the machine's speed (the old `install` let the clock run during the load and failed when the load took over 4.9 s).
+  await page.clock.pauseAt(now - 5000);
   await page.goto("/");
-  await page.clock.pauseAt(now - 100);
-  await page.clock.runFor(140);
+  // Run, not jump: every timer and frame of the 5 s after the load fires at its own instant, as when the clock ran during the load.
+  await page.clock.runFor(5040);
   await expect(page.locator("#scene")).toHaveAttribute("data-settled", "true");
   // The web fonts load after the page does; every picture and every measurement is taken with both families in place.
   await fontsLoaded(page);

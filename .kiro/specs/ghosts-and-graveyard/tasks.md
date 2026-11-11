@@ -384,62 +384,72 @@ Conventions for every task:
     - Files: `e2e/scene.spec.ts`, `e2e/smoke.spec.ts`, `e2e/live.spec.ts` only if needed.
     - _Requirements: R11.14_
 
-- [ ] 20. E1 and E7: the Door and the first view
-  - [ ] 20.1 Write E1 and E7 in `e2e/graveyard.spec.ts`
+- [x] 20. E1 and E7: the Door and the first view
+  - [x] 20.1 Write E1 and E7 in `e2e/graveyard.spec.ts`
     - **E1**: during `lit` and `paused` the Door button's `hidden` flag is set and the shut door's is not (the DOM check for Property 4), Tab never reaches the Door (walk the whole Tab order) and `g` does nothing; in `idle`, `burned-out` and `snuffed` the flags are the other way round, in the frame the phase changes (run the clock past the end and read the flags before and after); after burn-out the Door is a button, `g` opens the view and the Shelf shows the new Stub.
     - **E7**: a reload with a stored `lit` session opens in the Room; a view opened from `burned-out` returns to the Room when a new session is lit (phase change); the view is never stored.
+    - Result: 9 tests (E1: lit and paused shut, Tab walk without the Door, `g` and `G` from the body and every stop change nothing; idle, burned-out and snuffed: the Door between Light and Settings, click opens with one announcement, `g` leaves to the Door; the burn-out read frame by frame, then the new Stub in the Shelf. E7: a stored lit session opens in the room; opening the view writes nothing to storage and a reload comes back to the room). Finding: "lit while the view is open" cannot be reached from the page, because the view hides Light and takes the room keys; the test checks that the way is closed (Light hidden and not in the Tab order, Enter, Space and `t` leave the phase alone) and the forced return stays covered by Property 5.
     - Files: `e2e/graveyard.spec.ts`.
     - _Requirements: R3.1 to R3.6, R3.10 to R3.12, R11.7, R11.8_
 
-- [ ] 21. E2: items by keyboard and cards by tap
-  - [ ] 21.1 Write E2 in `e2e/graveyard.spec.ts`
+- [x] 21. E2: items by keyboard and cards by tap
+  - [x] 21.1 Write E2 in `e2e/graveyard.spec.ts`
     - Every drawn Item is reachable by keyboard alone (Tab, then arrows, Home, End) and each focus shows its card; every Details_Card is reachable by tap alone (`hasTouch`, tap, tap again hides, tap elsewhere hides); the text of each card equals the values of the stored history (planned length, distractions, time away, date, intent or the placeholder); hover shows a card without moving focus; Escape hides the card and keeps focus, a second Escape leaves the view and focuses the Door; the room keys (Enter, Space, `t`) do nothing in the view; Enter on an item shows its card only.
+    - Result: 7 tests on a small (4 entries, 2 days) and a medium history (14 entries, 3 days): every drawn Item reached by keys alone (a search over Tab, the arrows, Home and End, each key checked to stay in its Group), each card equal to the stored entry (lines built from the stored values, not from `src/graveyard`); every card by tap alone on a touch phone (tap shows, second tap hides, tap on the panel hides); hover shows without moving focus and falls back to the focused card; the Escape order (card open on a focused Item: the first Escape hides it and stays, the second leaves and focuses the Door, one announcement); Enter on an Item shows its card only, and Enter, Space, `t` change nothing. Mutation checks: Escape always leaving, the tap guard never dropping the focus, and the Door shown while a candle burns each fail the matching tests.
     - Files: `e2e/graveyard.spec.ts`.
     - _Requirements: R5.3 to R5.15, R6, R11.5, R11.6_
 
-- [ ] 22. E3: layout with a small and a large history
-  - [ ] 22.1 Write E3 in `e2e/graveyard-layout.spec.ts`
+- [x] 22. E3: layout with a small and a large history
+  - [x] 22.1 Write E3 in `e2e/graveyard-layout.spec.ts`
     - For `smallHistory` and `largeHistory` at 360 x 640, 768 x 1024, 1280 x 800 and 1920 x 1080: no scroll in either direction; no two items, Count_Lines, empty lines, "+n more", card and return control overlap; everything lies inside the viewport and inside the stage box; item rectangles equal the `geometry.ts` values scaled by `stageBox` (within 1 px); hit sizes at least 44 px at 360 x 640; the Count_Lines read the exact numbers (the large history: 190 hidden snuffed or the exact counts computed from the fixture, hidden days, "+n more"); the Floor_Band and the visible controls (Settings) do not overlap the view; an empty history shows both empty-state lines and no Tab stop in the Groups.
+    - Result: 9 tests: the small and the large history at the four viewports (no scroll, with and without a card; Item, return-control and panel rectangles equal to the geometry scaled by `stageBox` within 1 px; no two static boxes overlap; all inside the viewport and the stage box and above the Floor_Band; Settings clear of the view; hit sizes at least 44 px at 360 x 640; the Count_Lines and "+n more" equal to the counts computed from the stored history with the browser's calendar; each Item's card inside the panel and clear of its own Item, the return control and Settings), and the empty history (both empty lines, no Item, the return control and Settings the only stops). Mutation check: a stone drawn 120 units wide in the CSS fails 8 of the 9.
     - Files: `e2e/graveyard-layout.spec.ts`.
     - _Requirements: R4.9 to R4.12, R8.8 to R8.11, R11.9_
 
-- [ ] 23. E4: ghosts in the room
-  - [ ] 23.1 Write E4 in `e2e/ghosts.spec.ts`
+- [x] 23. E4: ghosts in the room
+  - [x] 23.1 Write E4 in `e2e/ghosts.spec.ts`
     - For 0, 1, 12 and 21 distractions: the right number of `.ghost` groups, the Overflow_Mark `+9` only at 21, the scene's `aria-label` ends with the exact count in words, and the bounding boxes of all ghosts and the mark do not intersect the candle column (x 160..440), the floor band, each other, `DOOR_RECT` or the visible setup controls in `burned-out` and `snuffed`; each ghost keeps its slot when a 22nd distraction is added (read positions before and after) and the oldest fades out; sizes grow with time away; in `idle` nothing is drawn; ghosts stay in `burned-out` and `snuffed`.
+    - Result: 15 tests: 0, 1, 12 and 21 stored distractions in lit, burned-out and snuffed (the count, the newest G by index, each size equal to `ghostSize` of its span, unique slots, the mark `+9` only at 21, the label's count, no overlap with the candle column, the Floor_Band, the Door, each other or, in the ended phases, the visible setup controls); idle draws nothing; live hide and show (each distraction adds a ghost, the spans are exact, sizes grow with time away, a hide while paused adds nothing); live from 12 to 22 (every ghost keeps its slot, past G only the oldest starts its fade, the new ghost takes its slot, the mark counts up). Headless Chromium never hides a page by itself (checked: another tab in front or a minimised window leave `visibilityState` visible), so the page's own `visibilitychange` listener is driven with the state overridden, as in `controls.spec.ts`. A test bug found and fixed: the first `distract` helper redrew after the hide, so each span came out 48 ms long. Mutation checks: no fade (the oldest dropped at once) and a label capped at G fail the matching tests.
     - Files: `e2e/ghosts.spec.ts`.
     - _Requirements: R9, R10.1, R10.2, R11.10_
 
-- [ ] 24. E5: reduced motion and ghosts off
-  - [ ] 24.1 Write E5 in `e2e/ghosts.spec.ts`
+- [x] 24. E5: reduced motion and ghosts off
+  - [x] 24.1 Write E5 in `e2e/ghosts.spec.ts`
     - With `prefers-reduced-motion: reduce`: `getAnimations()` is empty on the ghost layer, a new ghost appears and an old one leaves instantly, the view opens and closes with no transition, and the still version shows the same count, sizes and Overflow_Mark as the moving one. With motion allowed the drift stays inside each slot's cell (sample positions over several seconds of clock). With the setting "ghosts" off: no ghost and no mark, the scene label still gives the count, and turning the setting on and off sends no engine event (the stored session is byte-equal before and after). The ghost layer draws nothing while the graveyard view is open.
+    - Result: 7 tests: reduced motion (no animation on the layer, a new ghost fully opaque when inserted, the oldest removed with no fade); the still version equals the moving one (slots, indexes, sizes, mark, label) for 21 distractions; with motion each drift animation is paused and set to 25 points of its full cycle (the drift runs on the compositor's clock, not `page.clock`), and every ghost stays inside its own cell and clear of the candle and the floor; ghosts off (no ghost, no mark, the label keeps the count, the stored session byte-equal after off and on); off during a session (a live distraction still counted, drawn when the setting is back on); the layer draws nothing while the view is open, and the view opens and closes with no animation, with motion and reduced.
     - Files: `e2e/ghosts.spec.ts`.
     - _Requirements: R10.3 to R10.9, R4.15_
 
-- [ ] 25. E6: accessibility, focus indicator and contrast
-  - [ ] 25.1 `ariaSnapshot` of the Graveyard_View
+- [x] 25. E6: accessibility, focus indicator and contrast
+  - [x] 25.1 `ariaSnapshot` of the Graveyard_View
     - In `e2e/graveyard-a11y.spec.ts` compare `locator.ariaSnapshot()` of the view (small and large history, empty history) with hand-written snapshots: the heading, the two `group` roles with names, each Item as a `button` with its name, each description present in the tree whether or not a card is shown, the Count_Lines as text, the return button; no `listbox`, `option` or `grid` role; the Door as a button only in usable phases and absent while shut; the live log gets exactly one line on open and one on leave; the scene label gives the count in every case of R10.1 (0, 1, 3, 14, ghosts off, count over G).
+    - Result: 15 tests: the small history against a hand-written snapshot with `/children: deep-equal` (dates from the browser's calendar), unchanged with the card shown and hidden, each Item's `aria-describedby` present; the large history (10 stone buttons and descriptions, 3 day labels, both Count_Lines as text, no `listbox`, `option`, `grid`, `gridcell` or `row`); the empty history (exact); the Door a button in idle, burned-out and snuffed and absent from the tree in lit and paused; one live line on open and one on leave; the scene label exact for 0, 1, 3, 14 (over G), 3 with ghosts off and 21 with ghosts off.
     - Files: `e2e/graveyard-a11y.spec.ts`.
     - _Requirements: R7.1 to R7.11, R10.1, R11.15_
 
-  - [ ] 25.2 Focus indicator and text contrast
+  - [x] 25.2 Focus indicator and text contrast
     - In `e2e/graveyard-a11y.spec.ts`: the computed focus ring (3 px, ivory, offset) on an Item, the Door and the return control, plus a pixel check of the ring against its surroundings at least 3:1; measure the contrast of Item text, Count_Lines, empty-state lines, Details_Card text and the Overflow_Mark from computed colours against the real backgrounds and compare with the values asserted by `contrast.test.ts`.
+    - Result: 6 tests. The ring (3 px, solid, ivory, 3 px offset, `:focus-visible`) on the Door, a Stone, a Stub and the return control at 1280 x 800 and 360 x 640, read pixel by pixel below each: 15.83 to 16.10:1 against its gap. A first version averaged 3 x 3 patches at half-pixel offsets that straddled the ring's edge and read 2.86:1 on the Door; the single-pixel read showed the ring pure ivory, so the sampling was wrong, not the ring. Text from computed colours against pixels of the real backgrounds: stone text 13.03 (face `#1b2030`), Count_Line 11.15, day label 15.83, card 15.83 (opaque `#080b12`), empty line 11.15; the Overflow_Mark ivory and at worst 14.14 (lit), 7.81 (burned-out, the dawn) and 16.20 (snuffed) against the room around it.
     - Files: `e2e/graveyard-a11y.spec.ts`.
     - _Requirements: R4.14, R6.19, R9.14, R11.16, R11.17_
 
-- [ ] 26. Screenshots
-  - [ ] 26.1 Add the new shots to `e2e/screenshots.spec.ts`
+- [x] 26. Screenshots
+  - [x] 26.1 Add the new shots to `e2e/screenshots.spec.ts`
     - Add, with `animations: "disabled"` and the opt-in `CANDLEWATCH_SHOTS=1` rule of `controls-and-access` (without it the spec writes under `test-results/` and never into `docs/screenshots/`): `ghosts-0-desktop.png`, `ghosts-1-desktop.png`, `ghosts-g-desktop.png`, `ghosts-g-plus-9-desktop.png`, the same four at phone size (`-phone`), and `ghosts-g-plus-9-desktop-reduced.png` (9 files); `graveyard-small-desktop.png`, `graveyard-large-desktop.png`, `graveyard-card-keyboard-desktop.png`, `graveyard-card-touch-phone.png`, each at desktop and phone, and `graveyard-large-desktop-reduced.png` (9 files). Names follow `<screen>-<state>-<size>[-reduced].png`. The tests do not compare pixels. The 21 existing `candle-*` shots keep their names.
+    - Result: 18 shots and a count test (39 files in the spec); each shot checks what it must show before it is taken (the ghost count and mark, the view, the card), and G + 9 checks no ghost or mark over the candle column or the Floor_Band. A test bug found and fixed on the first run: `ghosts-g-plus-9-*` matched the `g` count by prefix.
     - Files: `e2e/screenshots.spec.ts`.
     - _Requirements: R11.10 to R11.13_
 
-  - [ ] 26.2 Retake all 41 existing screenshots (21 `candle-*` and 20 `controls-*`), then look at each
+  - [x] 26.2 Retake all 41 existing screenshots (21 `candle-*` and 20 `controls-*`), then look at each
     - The Door is drawn in every Room phase (usable or shut), so every existing room screenshot changes (CR-E, R11.14): not only the `candle-*` ones but the `controls-*` ones too, which show the same room. Run `$env:CANDLEWATCH_SHOTS = "1"; npx playwright test e2e/screenshots.spec.ts e2e/controls-screenshots.spec.ts`, then clear the variable.
     - Affected files (41 in `docs/screenshots/`): the 21 `candle-<state>-<desktop|phone|desktop-reduced>.png` (states idle, lit-start, lit-half, lit-last-minute, paused, burned-out, snuffed) and the 20 `controls-*`: `controls-focus-light-desktop`, `-phone`; `controls-focus-pause-desktop`, `-phone`; `controls-idle-returning-desktop`, `-desktop-reduced`, `-phone`; `controls-invalid-length-desktop`, `-phone`, `controls-invalid-length-dawn-desktop`; `controls-lit-intent-desktop`, `-phone`; `controls-settings-desktop`, `-desktop-reduced`, `-phone`, `controls-settings-off-desktop`, `-phone`; `controls-snuff-dialog-desktop`, `-desktop-reduced`, `-phone`.
     - **Look at every one of the 41 PNGs** (open each file with the image reader). For each, record in `KIRO_USAGE.md`: it shows the state in its name; the Door is a shut door in `lit` and `paused` shots (including `controls-lit-intent-*`, `controls-focus-pause-*` and `controls-snuff-dialog-*`) and a usable door in `idle`, `burned-out` and `snuffed` shots (including `controls-idle-returning-*`, `controls-focus-light-*`, `controls-settings-*`, `controls-invalid-length-*`); the Door sits in the left band, clear of the candle, the window, the controls, the settings panel, the snuff dialog and the floor band; ghosts (if any are stored in the fixture) are in the bands only; nothing else changed. If a shot is wrong, fix the cause (CSS, layout, wiring) and retake every affected shot; do not edit PNGs.
+    - Result: all 41 retaken in one run with `CANDLEWATCH_SHOTS=1` and each opened. The Door is the usable door (lit doorway, amber handle) in every idle, burned-out and snuffed shot and the barred shut door in every lit and paused shot (including `controls-lit-intent-*`, `controls-focus-pause-*` and `controls-snuff-dialog-*`); it sits left of the candle above the floor band, clear of the candle, the window, the controls, the settings panel and the snuff dialog. No fixture stores a distraction, so no ghost shows. Nothing else changed.
     - Files: `docs/screenshots/candle-*.png` (21 files), `docs/screenshots/controls-*.png` (20 files).
-    - _Requirements: R11.14_  - [ ] 26.3 Take the new `ghosts-*` and `graveyard-*` screenshots, then look at each
+    - _Requirements: R11.14_  - [x] 26.3Take the new `ghosts-*` and `graveyard-*` screenshots, then look at each
     - Take the 18 new shots of 26.1.
     - **Look at every one of the 18 PNGs.** For each, record in `KIRO_USAGE.md`: it shows the screen in its name; `ghosts-0` has no ghost and no mark; `ghosts-1` has one; `ghosts-g` has 12 and no mark; `ghosts-g-plus-9` has 12 and the mark `+9`, clear of the candle and the floor band; the graveyard shots show stones, shelves and Count_Lines readable and inside the frame with no overlap; the keyboard shot shows the focus ring and the card for the focused Item; the touch shot shows a card opened by tap and does not cover its Item; the reduced-motion shots show the same information as the normal ones; text is readable at its size. If a shot is wrong, fix the cause and retake every affected shot.
+    - Result: the first take showed two faults, reported and decided: the browser's blue tap highlight on a tapped Stub (fixed for every control by D20) and the first Stone's focus ring over the "Graveyard" label (fixed by D14). The view was then redrawn (D14 to D19) and every screenshot retaken with `CANDLEWATCH_SHOTS=1`; a hash before and after each take shows the 9 `graveyard-*` changed. `candle-snuffed-desktop`, `controls-settings-off-desktop` and `controls-invalid-length-dawn-desktop` also differ in bytes from one take to the next of the same code (three takes of the same commit gave three hashes); opened, they show no change. Each `graveyard-*` opened and recorded in `KIRO_USAGE.md`.
     - Files: `docs/screenshots/ghosts-*.png` (9 files), `docs/screenshots/graveyard-*.png` (9 files).
     - _Requirements: R11.10 to R11.13_
 

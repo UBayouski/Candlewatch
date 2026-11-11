@@ -28,23 +28,46 @@ function contrast(a: string, b: string): number {
   return (hi + 0.05) / (lo + 0.05);
 }
 
+const graveyardCss = readFileSync(join(SRC, "graveyard", "graveyard.css"), "utf8");
+
 const IVORY = "#efe6cf";
-const FACE = "#1b2030"; // stone and door face
-const PANEL = "#080b12"; // view panel and details card
+const FACE = "#1b2030"; // the Door's face in the room
+const STONE = "#14192a"; // the stone: scene --wall-top (D15)
+const PANEL = "#080b12"; // the backdrop's core: scene --zone-bg-darkest
+const WARM = "#1a130d"; // the card and the return control: interface --ui-bg (D16, D17)
+const SUBTLE = "#cfc2a2"; // Count_Lines, empty lines, "+n more": scene --wax-shade
 const ROOM_BRIGHTEST = "#566683";
 const ROOM_DARKEST = "#05070d";
 
-describe("ivory text contrast from the hex values (R4.14, R9.14, L11)", () => {
-  it("on the stone and door face #1b2030 is 13.0 and at least 4.5", () => {
+describe("ivory text contrast from the hex values (R4.14, R9.14, L11 as amended by D15 to D17)", () => {
+  it("on the Door's face #1b2030 is 13.0 and at least 4.5", () => {
     const c = contrast(IVORY, FACE);
     expect(c).toBeGreaterThanOrEqual(4.5);
     expect(c).toBeCloseTo(13.0, 1);
   });
 
-  it("on the panel and card #080b12 is 15.83 and at least 4.5", () => {
+  it("on the stone #14192a is 14.05 and at least 4.5", () => {
+    const c = contrast(IVORY, STONE);
+    expect(c).toBeGreaterThanOrEqual(4.5);
+    expect(c).toBeCloseTo(14.05, 2);
+  });
+
+  it("on the backdrop's core #080b12 is 15.83 and at least 4.5", () => {
     const c = contrast(IVORY, PANEL);
     expect(c).toBeGreaterThanOrEqual(4.5);
     expect(c).toBeCloseTo(15.83, 2);
+  });
+
+  it("on the card's and the return control's warm fill #1a130d is 14.78 and at least 4.5", () => {
+    const c = contrast(IVORY, WARM);
+    expect(c).toBeGreaterThanOrEqual(4.5);
+    expect(c).toBeCloseTo(14.78, 2);
+  });
+
+  it("the wax shade of the count lines on the core is 11.15 and at least 4.5", () => {
+    const c = contrast(SUBTLE, PANEL);
+    expect(c).toBeGreaterThanOrEqual(4.5);
+    expect(c).toBeCloseTo(11.15, 2);
   });
 
   it("on the room's brightest stop #566683 is 4.66 and at least 4.5", () => {
@@ -60,6 +83,46 @@ describe("ivory text contrast from the hex values (R4.14, R9.14, L11)", () => {
   });
 });
 
+describe("the graveyard's colours are the scene's and the interface's own (D15 to D18)", () => {
+  // Each token of graveyard.css that copies a colour of another sheet, and the sheet and name it copies.
+  const COPIES: readonly [string, string, string][] = [
+    ["--g-text", "scene", "--wax-ivory"],
+    ["--g-text-subtle", "scene", "--wax-shade"],
+    ["--g-panel", "scene", "--zone-bg-darkest"],
+    ["--g-stone", "scene", "--wall-top"],
+    ["--g-stone-edge", "scene", "--smoke-colour"],
+    ["--g-ground", "scene", "--dawn-warm"],
+    ["--g-wax", "scene", "--wax-ivory"],
+    ["--g-wax-shade", "scene", "--wax-shade"],
+    ["--g-wick", "scene", "--smoke-colour"],
+    ["--g-ui-bg", "ui", "--ui-bg"],
+    ["--g-ui-border", "ui", "--ui-border"],
+  ];
+  it.each(COPIES)("%s equals %s.css %s", (mine, sheet, theirs) => {
+    expect(token(graveyardCss, mine)).toBe(token(sheet === "scene" ? sceneCss : uiCss, theirs));
+  });
+
+  it("the figures above are computed from those same tokens", () => {
+    expect(token(graveyardCss, "--g-stone")).toBe(STONE);
+    expect(token(graveyardCss, "--g-panel")).toBe(PANEL);
+    expect(token(graveyardCss, "--g-ui-bg")).toBe(WARM);
+    expect(token(graveyardCss, "--g-text-subtle")).toBe(SUBTLE);
+    expect(token(graveyardCss, "--g-text")).toBe(IVORY);
+  });
+
+  it("outlines and shapes on the core and the stone are at least 3:1: stone edge, wax, the card's amber border", () => {
+    expect(contrast(token(graveyardCss, "--g-stone-edge"), PANEL)).toBeGreaterThanOrEqual(3);
+    expect(contrast(token(graveyardCss, "--g-stone-edge"), STONE)).toBeGreaterThanOrEqual(3);
+    expect(contrast(token(graveyardCss, "--g-wax"), PANEL)).toBeGreaterThanOrEqual(3);
+    expect(contrast(token(graveyardCss, "--g-wax-shade"), PANEL)).toBeGreaterThanOrEqual(3);
+    expect(contrast(token(graveyardCss, "--g-ui-border"), PANEL)).toBeGreaterThanOrEqual(3);
+    expect(contrast(token(graveyardCss, "--g-ui-border"), WARM)).toBeGreaterThanOrEqual(3);
+  });
+
+  it("the ground and the shelf board carry no state of their own, and are 2.38:1 on the core (D15)", () => {
+    expect(contrast(token(graveyardCss, "--g-ground"), PANEL)).toBeCloseTo(2.38, 2);
+  });
+});
 describe("the palette the figures stand on is the real one (L11)", () => {
   it("scene.css still holds the room stops the design names", () => {
     expect(token(sceneCss, "--room-bg-brightest")).toBe(ROOM_BRIGHTEST);
@@ -80,8 +143,9 @@ describe("the palette the figures stand on is the real one (L11)", () => {
 });
 
 describe("non-text outlines and focus rings (L11, R6.19)", () => {
-  // L11 names the ivory outline: on the face, on the room (both stops) and as the focus ring.
+  // L11 names the ivory outline: on the face, on the room (both stops), on the backdrop and as the focus ring.
   it.each([
+    ["the backdrop core #080b12", PANEL],
     ["the face #1b2030", FACE],
     ["the room's brightest stop", ROOM_BRIGHTEST],
     ["the room's darkest stop", ROOM_DARKEST],

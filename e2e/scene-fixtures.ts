@@ -68,7 +68,7 @@ export interface OpenScene {
 
 /**
  * Opens the page with the fixture stored and the clock frozen at the fixture's `now` (design 11.2).
- * The page loads 5 s before `now`, then the clock is run to 40 ms after `now`: animation frames are 16 ms apart, so this
+ * The page loads with the clock paused exactly 5 s before `now`, then the clock is run to 40 ms after `now`: animation frames are 16 ms apart, so this
  * guarantees the last frame is drawn at or after `now`, never before an exact quarter mark. The flicker is a pure function
  * of the frozen time, so the same fixture draws the same pixels every time. Waits until the scene has painted twice.
  */
@@ -94,10 +94,13 @@ export async function openScene(browser: Browser, fixture: Fixture, options: Ope
       },
     );
   }
-  await page.clock.install({ time: fixture.now - 5000 });
+  // The clock starts paused at the load instant (pauseAt is the first clock call, so no wall time is counted between installing and pausing):
+  // the page loads at exactly that instant however long the load takes, and the frames keep the 16 ms grid from it. Nothing then
+  // depends on the machine's speed (the old `install` let the clock run during the load and failed when the load took over 4.9 s).
+  await page.clock.pauseAt(fixture.now - 5000);
   await page.goto("/");
-  await page.clock.pauseAt(fixture.now - 100);
-  await page.clock.runFor(140);
+  // Run, not jump: every timer and frame of the 5 s after the load fires at its own instant, as when the clock ran during the load.
+  await page.clock.runFor(5040);
   await expect(page.locator("#scene")).toHaveAttribute("data-settled", "true");
   // The web fonts load after the page does; every picture and every measurement is taken with both families in place.
   await fontsLoaded(page);

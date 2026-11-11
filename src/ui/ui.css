@@ -184,6 +184,8 @@
   border-radius: 10px;
   font: inherit;
   line-height: 20px;
+  /* A tap leaves the styled colours alone: no browser tap highlight on any button or field of the interface (ghosts-and-graveyard D20). */
+  -webkit-tap-highlight-color: transparent;
 }
 
 #ui button {

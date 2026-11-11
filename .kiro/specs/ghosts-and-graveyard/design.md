@@ -98,7 +98,7 @@ Row y is cell top = 215 + 95*r, and the box top is cell top + 10. Cells tile wit
 - Argument 3: at 360 px wide the stage is the viewport width (600 * 0.6 = 360), so nothing is lost on the phone. At 1280x800 the stage is 480 px wide with the backdrop around it, so the view is larger in px (s = 0.8) and fits, since the stage fits (checked in 1.3 below).
 - The view is HTML positioned on the stage box, with the stage scale as a CSS variable (px per unit). The view cannot scroll.
 
-**Decision L7: the grid.** Each item has a hit size of at least 44 CSS px at s = 0.6, which is 73.3 units, plus a gap of 10 units (6 px). All y values are in units.
+**Decision L7: the grid.** (Amended by D14 and D19: the table below is the first version; the amended table, with the 14-unit text gap, Stones 80 high and no visible header, is in D14.) Each item has a hit size of at least 44 CSS px at s = 0.6, which is 73.3 units, plus a gap of 10 units (6 px). All y values are in units.
 
 | Element | x (units) | y (units) | Size (units) | Size at 360x640 |
 |---|---|---|---|---|
@@ -121,7 +121,7 @@ Row y is cell top = 215 + 95*r, and the box top is cell top + 10. Cells tile wit
 - Header, labels, count lines and empty lines are not focusable and need no hit size. The empty-state line sits where the first row of items would be, so nothing shifts.
 - Top: the view starts at y = 215, and the setup controls are hidden while the view is open (CR-V1), with their clearance asserted by `controls-and-access` P10 after CR5 (R4.12). Bottom: the last element ends at 789, above the back-door control at 805 (16 units apart) and above the floor band at 900.
 
-**Decision L8: S = 10, D = 3, K = 4.** These are the largest values that fit under the grid (R8.6), with one fixed set across viewports (R8.7).
+**Decision L8: S = 10, D = 3, K = 4.** (The values stand; the stack below is the first version, amended by D14: it now ends at 779.) These are the largest values that fit under the grid (R8.6), with one fixed set across viewports (R8.7).
 
 - Available height, y 215..795 (the back-door control starts at 805, with 10 units gap), is 580 units, of which the header, two labels, two count lines and one 8-unit gap take 28 + 4 + 22 + 4 + 22 + 3 + 22 + 8 + 22 + 4 + 22 + 3 + 22 = 186 (the internal gaps are the ones shown in L7). That leaves 580 - 186 = 394 units for item rows. The L7 stack shows the actual fit: it ends at 789 <= 795.
 - Stones per row: n stones need 100n + 10(n - 1) = 110n - 10 units. The width available is 560 (x 20..580). 110n - 10 <= 560 gives n <= 5.18, so 5 per row. Rows r: 100r - 10 units tall (90 plus gaps of 10).
@@ -134,14 +134,14 @@ Row y is cell top = 215 + 95*r, and the box top is cell top + 10. Cells tile wit
 
 ### 1.4 The details card (L9, L10)
 
-**Decision L9: the Details_Card is 520 by 240 units.**
+**Decision L9: the Details_Card is 520 by 240 units.** (Amended by D16: the card fits its content, at most 520 by 232, in the interface's dialog look.)
 
 - At 360x640 this is 312 by 144 px. Padding is 12 units per side, so the text width is 520 - 24 = 496 units (297.6 px).
 - Text is font 20 units (12 px), line height 26 units (about 1.3). Average glyph 0.55 * 20 = 11 units gives about 45 characters per line. A wide-glyph worst case ("W", 0.9 * 20 = 18 units) gives 496 / 18 = 27 characters per line.
 - Worst case for the intent: 80 code points / 27 = 2.96, so 3 lines (4 lines for safety, after wrapping at word breaks). Then 4 lines of intent + 4 lines (date, planned length, distractions, time away) = 8 lines * 26 = 208 units. Plus 2 * 12 padding = 232, rounded up to 240 units.
 - Background `#080b12` (the zone's darkest), 1 unit ivory border, opaque. The card has `pointer-events: none`, so hover on a card does not remove the card.
 
-**Decision L10: placement rule.** Let the Item have top `t` and bottom `b` (units). The gap between card and Item is 8 units.
+**Decision L10: placement rule.** (Amended by D16: the card's measured size, and a side that keeps off the other Group's label where one fits; the L10 side stays the first choice.) Let the Item have top `t` and bottom `b` (units). The gap between card and Item is 8 units.
 
 1. If t - 8 - 240 >= 215 (that is, t >= 463), put the card above: card y = t - 248..t - 8.
 2. Else if b + 8 + 240 <= 895 (that is, b <= 647), put the card below: card y = b + 8..b + 248.
@@ -163,7 +163,7 @@ Every stone has b <= 463 <= 647, and every shelf item has t >= 522 >= 463, so on
 
 ### 1.5 Hit sizes and contrast (L11)
 
-**Decision L11: every new element meets the minimum hit size of 44 CSS px at s = 0.6 and the contrast of the scene (4.5:1).**
+**Decision L11: every new element meets the minimum hit size of 44 CSS px at s = 0.6 and the contrast of the scene (4.5:1).** (Amended by D15 to D18: Stone text is ivory on `#14192a` at 14.05, the card and the return control ivory on `#1a130d` at 14.78, all view text on the backdrop core `#080b12` at 15.83 (Count_Lines and empty lines in the wax shade at 11.15), and the Stub is drawn in the wax colours, 11.15 or more on the core.)
 
 Contrast values: ivory `#efe6cf` has relative luminance about 0.795 (from 16.20 on `#05070d`, whose luminance is 0.00213: (0.795 + 0.05) / (0.00213 + 0.05) = 16.2). The stone and door face `#1b2030` has luminance about 0.0149 (R 0.0110, G 0.0146, B 0.0296 linearised), so ivory on it is (0.795 + 0.05) / (0.0149 + 0.05) = 13.0.
 
@@ -362,6 +362,8 @@ export function moreText(hiddenStubs: number): string | null;  // "+3 more", or 
 - Every function is total and returns the same text for equal inputs.
 
 ### 3.4 `geometry.ts`: positions in room units (Section 1, L1, L6 to L10)
+
+(Amended by D14, D16 and D18: the numbers are those of the D14 table, `placeCard(item, size, avoid)` takes the card's measured size and the label to avoid, and `PANEL_RECT` is the backdrop's core with `PANEL_FADE`; the code block below is the first version.)
 
 ```ts
 export interface Rect { readonly x: number; readonly y: number; readonly w: number; readonly h: number }
@@ -636,7 +638,7 @@ The pure parts above decide; these files only build elements once, apply a model
 
 ### 4.3 The graveyard view (`graveyard/view-dom.ts`)
 
-- The root is a `<section class="graveyard">` placed over the stage box: left = `ox`, top = `oy`, width = `600 s`, height = `1000 s`, with the CSS custom property `--u` set to the scale `s` on resize from `stageBox(vw, vh)`. All sizes in CSS are `calc(N * var(--u))` with N from Section 1 (Decision L6). The panel `PANEL_RECT` has the opaque background `#080b12` (Decision D8). The view has no scroll bar and no overflow (R4.10).
+- The root is a `<section class="graveyard">` placed over the stage box: left = `ox`, top = `oy`, width = `600 s`, height = `1000 s`, with the CSS custom property `--u` set to the scale `s` on resize from `stageBox(vw, vh)`. All sizes in CSS are `calc(N * var(--u))` with N from Section 1 (Decision L6). The backdrop's core `PANEL_RECT` has the opaque background `#080b12` (Decision D8), and a 60-unit margin above and to each side fades into the room (D18). The view has no scroll bar (R4.10). The heading is visually hidden (D19); Stones, Stubs, the card and the return control are drawn as D15 to D17 say.
 - Contents, top to bottom (L7): `<h2>` with `STRINGS.graveyard.title`; a `role="group"` Graveyard with an `aria-label`; its Stones (`<button>` elements) and its Count_Line; a `role="group"` Shelf; per Day_Shelf a date label, its Stub buttons and a "+n more" text; the Shelf's Count_Line; the Details_Card; the return `<button>` at `DOOR_RECT`.
 - DOM order is the Tab order: Graveyard group, Shelf group, return button, and then the controls-and-access Settings button, which stays in the zone (R6.1). The Settings opener remains, and the setup controls are hidden while the view is open (R3.13).
 - **Items.** Each Stone and Stub is a `<button type="button">` with `id`, `tabindex` from `tabStops` ("0" for the one stop, "-1" for the rest), `aria-label = itemName(item)` and `aria-describedby` pointing to its description `<span>` (section 5). A Stone's face holds the date and the intent, both with `textContent`, the intent clipped by CSS `text-overflow: ellipsis`. A Stub has no text. Both have a 3 px ivory focus ring from the controls' focus rule (R6.19).
@@ -651,7 +653,7 @@ The pure parts above decide; these files only build elements once, apply a model
   - `keydown` on the document: builds a `GraveKeyContext`, calls `graveKeyAction`, then `cardStep(escape)` for `hide-card`, `navigate` and `element.focus()` for `nav`, `viewStep` for `open` and `leave`. A key with an action is `preventDefault`ed; a key with no action is left to the browser.
 - **Focus moves (CR3).** `focusFirst()` focuses the Graveyard's Remembered_Item, else the Shelf's, else the return button. `focusDoor()` focuses the Door button. Both run after the DOM has been updated in the same frame.
 - **Motion.** The view appears and disappears with no transition in every mode, so reduced motion needs no extra rule (R4.15). The ghost layer is the only element that fades.
-- **Hit and contrast.** Items, the Door and the return button have the sizes of L7 and L11. Text is ivory on `#1b2030` (Stones) or `#080b12` (the panel and the card) (R4.13, R4.14).
+- **Hit and contrast.** Items, the Door and the return button have the sizes of L7 and L11. Text is ivory on `#14192a` (Stones), `#080b12` (the backdrop) or `#1a130d` (the card) (R4.13, R4.14; D15, D16).
 
 ### 4.4 Local day keys (`graveyard/day-key.ts`)
 
@@ -993,12 +995,31 @@ Reflection on the prework: the requirements' P1 and P3 both concern grouping, bu
 - **D2. S, D, K (R8.6).** S = 10, D = 3, K = 4, derived in L8 from the 600 by 1000 stage at the smallest supported scale (0.6), the 44 px hit size and the contrast floor.
 - **D3. G (R9.7, R9.8).** G = 12: six slots in each edge band, derived in L4.
 - **D4. Stub order inside a day (R2.7).** Newest first, left to right. All the orders in the view are newest first (Stones, Day_Shelves, Stubs), so "the newest Item" is always the first one, the hidden ones are always the oldest, and "+n more" at the end of a row hides the oldest stubs of the day.
-- **D5. Minimum hit size (R4.13).** 44 CSS px at the smallest scale, which is 73.3 room units. Stones are 100 by 90 units, Stubs 74 by 74, the Door and the return control 80 by 85 (L1, L7, L11).
+- **D5. Minimum hit size (R4.13).** 44 CSS px at the smallest scale, which is 73.3 room units. Stones are 100 by 80 units (90 before D14), Stubs 74 by 74, the Door and the return control 80 by 85 (L1, L7, L11).
 - **D6. Ghost slot assignment (R9.11, R9.12).** `slot = index mod G`, where `index` is the position in `ghostSpansMs`. Slot 0 is the first slot (left band, top row), and the slots alternate left and right going down. The new ghost reuses the slot of the oldest drawn ghost without any rule other than the arithmetic.
 - **D7. The Door's key is `g`.** It is not used by the Room map (Enter, Space, Escape, `t`, arrows in the chooser), it is a letter of "graveyard", and it is ignored while a text field has focus. The wording of the key hint is not added to the status line in this spec.
-- **D8. The Graveyard_View has its own opaque panel.** The candle column is ivory, and ivory text on it would fail the contrast rule. The panel `x 0..600, y 205..800` with `#080b12` hides the room's candle and ghosts while the view is open, which gives the text the card's contrast (15.83) and makes the contrast figures of L11 a floor. The panel is the view's background, not decoration: it shows that the user has left the room.
+- **D8. The Graveyard_View has its own opaque panel.** (Amended by D18: the opaque core is y 205..900, with a fading margin.) The candle column is ivory, and ivory text on it would fail the contrast rule. The panel `x 0..600, y 205..800` with `#080b12` hides the room's candle and ghosts while the view is open, which gives the text the card's contrast (15.83) and makes the contrast figures of L11 a floor. The panel is the view's background, not decoration: it shows that the user has left the room.
 - **D9. Layers.** The ghost layer is a separate SVG above the scene, with the scene's own scaling rule. The scene SVG and its model are untouched (R10.11).
 - **D10. The label suffix goes through the scene's `apply` (CR-S1).** One optional argument keeps the scene's label rule in one place and avoids a second writer of `aria-label`. The count is the label's only new content.
 - **D11. Tap and focus.** A touch tap focuses a button in most browsers. The DOM layer drops the focus event that follows a touch `pointerdown` on an item, so a tap shows the card once and a second tap hides it (R5.6, R5.7). Keyboard focus and mouse hover are unaffected.
 - **D12. Costume review.** To be recorded by the final task: the findings of the Costume_Reviewer on the ghosts, the graveyard and the shelf (R11.18).
 - **D13. Enter on an item shows its card; the key map knows the view (R3.13, R6.16, R6.17).** Enter on a focused Stone or Stub opens that item's Details_Card and does nothing else; Enter elsewhere in the Graveyard_View does nothing. Instead of trusting the dispatcher to route keys, `KeyContext` gets `view: "room" | "graveyard"` and `keyAction` returns no room action in the graveyard (CR1), so no room action can be reached from there.
+- **D14. The focus ring clears all text (R6.19, R4.11).** The ring is 6 px outside an item (3 px offset, 3 px wide) and must keep 2 px from the text of every label, Count_Line, empty line, date label and "+n more". At the smallest scale (0.6) that is (6 + 2) / 0.6 = 13.33 units, so every item keeps 14 units (`TEXT_GAP`) from every text line; the larger scales need fewer units. The units came where they cost least: the visible header is gone (D19, 32 units), Stones are 80 high instead of 90 (48 px at 360 x 640, still above 44; the face holds the date and the intent in 12 + 22 + 22 = 56 units), the stubs and "+n more" move 4 and 8 units right inside the row's 560. S, D and K are unchanged. Amends L7 (the table below is the amended one), L8's stack (it now ends at 779, 26 units above the return control), D5 (Stones 100 by 80) and section 3.4. Checked by Property 17 and `graveyard-layout.spec.ts` with each item's rectangle grown by the ring, at the four viewports. Amended L7 table:
+
+  | Element | x (units) | y (units) | Size (units) |
+  |---|---|---|---|
+  | View heading "The graveyard" | not placed | read only (D19) | 1 px, visually hidden |
+  | Graveyard label | 20..580 | 215..237 | 22 high |
+  | Stone rows (x = 30 + 110 i) | 30..570 | 251..331, 341..421 | 100 by 80 each |
+  | Graveyard Count_Line, empty line | 20..580 | 435..457; 251..273 | 22 high |
+  | Shelf label | 20..580 | 465..487 | 22 high |
+  | Day_Shelf rows (date label 20..100, stubs x = 114 + 84 j, "+n more" 454..554) | 20..554 | 501..575, 585..659, 669..743 | 74 high |
+  | Shelf Count_Line, empty line | 20..580 | 757..779; 501..523 | 22 high |
+  | Return control (L1) | 20..100 | 805..890 | 80 by 85 |
+
+- **D15. Stones in the ground, Stubs as burned-down candles (R4.6, R4.7, R4.8).** A Stone keeps its arched shape, in the scene's own colours: the face is the night wall's `--wall-top` `#14192a` with a `--smoke-colour` `#8a93a6` edge, and it stands in a strip of ground (`--dawn-warm` `#5a4a52`) that reaches 5 units past each side, so stones side by side stand on one ground line and there is no ground without a stone. A Stub is a short wax body in the scene's wax colours (`--wax-shade` to `--wax-ivory` and back, as on the candle) with an ash-grey wick (`--smoke-colour`: a burned wick), standing on a board of the same `#5a4a52` that reaches 5 units past each side, so the stubs of a day stand on one shelf. A Stone is a wide arched slab with text; a Stub is a slender candle with a wick and no text: they differ in shape, not only in colour. The ground and the board are drawn by the Stone and the Stub themselves (pseudo-elements of the item), so they exist only where an item exists and carry no state of their own; at 2.38:1 on the core they are supporting graphics, not required to read the state, which the item's own shape carries (stone edge 6.38:1, wax 11.15:1 or more). The scene's own wick colour `#1b1510` is not used: on the dark backdrop it would not show. Amends the Stone and Stub rows of L7 and L11, and section 4.3's "Hit and contrast".
+- **D16. The Details_Card fits its content (R5.1, R5.10, R5.11).** The card is as wide as its longest line and as high as its lines, at most 520 by 232 units (the padding and eight lines of 26, L9's worst case); after the intent's line the four others sit in two columns, so the usual card is 128 units high instead of 240. It has the interface's dialog look: the warm fill `--ui-bg` `#1a130d`, a 2 px `--ui-border` amber border and a 12 px radius; ivory on it is 14.78:1. The DOM layer measures the shown card and `placeCard(item, size, avoid)` places it: two candidates 17 units from the item (above, below). The card has a 4 px rim in the backdrop's colour (`box-shadow`), which hides the sliver of a covered line that its 12 px rounded corners would leave showing (about 3.5 px); 17 units keep the item's 6 px focus ring and the 4 px rim apart at the smallest scale ((6 + 4) / 0.6 = 16.7), where L10's 8 units were 4.8 px at 360 x 640 and let the card cover the ring, the L10 side first, both inside `CARD_BOUNDS` (y 215..795, x 20..580); of those inside, the first that keeps off the other Group's label wins, else the L10 side. Every L10 side holds the largest card for every item, so a card is always placed and never covers its item. Where the space allows: a second-row Stone's card goes above it when it fits (at most 109 units high), and a first-row Stone's card stops above the Shelf label when it is at most 117 units high (the intent on one line gives 102); a Stub's card never reaches the Graveyard label. A taller card on a Stone still covers the Shelf label: there is no room on either side, and L10's assumption (a transient card may cover other labels) stays for that case. Amends L9 (size), L10 (rule) and section 3.4. Checked by Property 16 (any item, any measured size, with and without the label to avoid).
+- **D17. The return control looks like the interface's controls (R3.9).** The return control keeps its place (the Door's rectangle, L1) and takes the control look of Settings: the warm fill `#1a130d`, a 2 px amber border, a 10 px radius and the ivory arrow. Amends the "Door and back-door control" row of L11 for the return control only; the Door in the room is unchanged.
+- **D18. The backdrop melts into the room (R4.12, D8).** Chosen: the edges fade, rather than the view covering the whole room. The opaque core is the stage's width from y 205 down to the floor line (y 900), so no part of the candle shows below the view and all text stands on `#080b12` (15.83:1, unchanged). Above and to each side a 60-unit margin fades from the core into the room with a CSS mask, as the zone band's top edge fades into the wall, so the window and the room's walls still show around the view and it reads as part of the room. The core ends at the floor line, where the zone begins: at rest the zone is the same `#080b12`, so there is no edge; at dawn the line is the room's own floor line. Covering the whole viewport was rejected: it would hide the window and the room, and the view would read as another page. Amends D8 (the panel's rectangle `y 205..800` becomes the core `y 205..900` with its fading margin) and section 4.3. Checked by `graveyard-layout.spec.ts` (every text on the core, the backdrop's rectangle) and the contrast test (the core's colour by pixel).
+- **D19. One name for the view (R7.9, R7.5).** "The graveyard" above "Graveyard" read as the same word twice. The heading `h2` "The graveyard" stays, so a screen reader still gets a heading that names the view (R7.9), but it is visually hidden; the visible "Graveyard" and "Shelf" labels, bold ivory, carry the names on screen, and they equal the groups' accessible names (R7.5). The live announcement on opening is unchanged. Amends L7 (the header row) and section 4.3. No requirement changes.
+- **D20. No tap highlight (R4.14).** On a phone the browser painted a tapped button with its own translucent blue, a colour that is in no palette and shows no state. Every button and field of the interface (`#ui button`, `#ui input`) has `-webkit-tap-highlight-color: transparent`, and the graveyard's button reset repeats it, because its `all: unset` resets the interface rule (removing either one is caught by `graveyard.spec.ts`, which also checks a tapped Stone and Stub keep their pixels).

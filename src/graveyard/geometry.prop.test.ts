@@ -1,15 +1,21 @@
-// Property tests for the card placement (ghosts-and-graveyard design 3.4, decision L10).
+// Property tests for the card placement and the layout (ghosts-and-graveyard design 3.4, decisions L10, D14, D16).
 // Properties 16 and 17.
 import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { DRIFT_UNITS, GHOST_BOX, GHOST_SLOTS } from "../ghosts/slots";
-import { FLOOR_UNITS, KEEP_CLEAR_COLUMN_UNITS } from "../ui/layout";
+import { FLOOR_UNITS, KEEP_CLEAR_COLUMN_UNITS, stageBox } from "../ui/layout";
 import {
-  CARD_SIZE,
+  CARD_BOUNDS,
+  CARD_RIM_PX,
+  CARD_GAP,
+  CARD_MAX,
   COUNT_LINE_Y,
   DOOR_RECT,
   EMPTY_LINE_Y,
+  LABEL_Y,
   PANEL_RECT,
+  RING_CLEAR_PX,
+  RING_PX,
   dateLabelRect,
   moreRect,
   placeCard,
@@ -36,38 +42,72 @@ function intersects(a: Rect, b: Rect): boolean {
   return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 }
 
-/** All the Property 16 checks for one item (R5.10, R5.11, L10). */
-function checkItem(item: Rect): void {
-  const card = placeCard(item);
-  expect(card.w).toBe(CARD_SIZE.w);
-  expect(card.h).toBe(CARD_SIZE.h);
+/** Full-width text line, 22 high, at y (L7). */
+const textLine = (y: number): Rect => ({ x: 20, y, w: 560, h: 22 });
+
+/** The other Group's label, which a card keeps clear of where the space allows (D16). */
+const otherLabel = (item: Rect): Rect => textLine(item.y >= 463 ? LABEL_Y.stones : LABEL_Y.shelf);
+
+const insideBounds = (c: Rect): boolean => c.y >= CARD_BOUNDS.top && c.y + c.h <= CARD_BOUNDS.bottom && c.x >= CARD_BOUNDS.left && c.x + c.w <= CARD_BOUNDS.right;
+
+/** All the Property 16 checks for one item and one measured card size (R5.10, R5.11, L10 as amended by D16). */
+function checkItem(item: Rect, size: { w: number; h: number }, avoid: Rect | null): void {
+  const card = placeCard(item, size, avoid);
+  expect(card.w).toBe(Math.min(size.w, CARD_MAX.w));
+  expect(card.h).toBe(Math.min(size.h, CARD_MAX.h));
   expect(intersects(card, item)).toBe(false);
-  expect(gap(card, item)).toBeGreaterThanOrEqual(8);
-  expect(card.x).toBeGreaterThanOrEqual(20);
-  expect(card.x + card.w).toBeLessThanOrEqual(580);
-  expect(card.y).toBeGreaterThanOrEqual(215);
-  expect(card.y + card.h).toBeLessThanOrEqual(895);
-  // The L10 side: above when the item starts at 463 or lower, else below.
-  if (item.y >= 463) expect(card.y + card.h).toBe(item.y - 8);
-  else expect(card.y).toBe(item.y + item.h + 8);
+  expect(gap(card, item)).toBeGreaterThanOrEqual(CARD_GAP);
+  // The card and its rim never cover the item's focus ring, at the smallest scale (D16).
+  expect(gap(card, item) * 0.6).toBeGreaterThanOrEqual(RING_PX + CARD_RIM_PX);
+  expect(insideBounds(card), JSON.stringify(card)).toBe(true);
+  // One of the two sides, CARD_GAP from the item.
+  const above = card.y + card.h === item.y - CARD_GAP;
+  const below = card.y === item.y + item.h + CARD_GAP;
+  expect(above || below).toBe(true);
+  // When a side inside the bounds keeps clear of the other Group's label, the card is on such a side.
+  if (avoid !== null) {
+    const sides = [
+      { ...card, y: item.y - CARD_GAP - card.h },
+      { ...card, y: item.y + item.h + CARD_GAP },
+    ];
+    if (sides.some((c) => insideBounds(c) && !intersects(c, avoid))) expect(intersects(card, avoid)).toBe(false);
+  }
 }
 
+const arbSize = fc.record({ w: fc.integer({ min: 1, max: 700 }), h: fc.integer({ min: 1, max: 400 }) });
+
 describe("Feature: ghosts-and-graveyard, Property 16: The card never covers its item and stays on the stage", () => {
-  it("covers the whole finite domain: 10 stones and 12 stubs", () => {
+  it("covers the whole finite domain of items at the largest size, with and without a label to avoid", () => {
     expect(ITEMS).toHaveLength(22);
-    for (const item of ITEMS) checkItem(item);
+    for (const item of ITEMS) {
+      checkItem(item, CARD_MAX, null);
+      checkItem(item, CARD_MAX, otherLabel(item));
+    }
   });
 
-  it("holds for any generated item index", () => {
+  it("holds for any generated item and any measured card size", () => {
     fc.assert(
-      fc.property(fc.integer({ min: 0, max: ITEMS.length - 1 }), (index) => {
-        checkItem(ITEMS[index] ?? stoneRect(0));
+      fc.property(fc.integer({ min: 0, max: ITEMS.length - 1 }), arbSize, fc.boolean(), (index, size, avoidIt) => {
+        const item = ITEMS[index] ?? stoneRect(0);
+        checkItem(item, size, avoidIt ? otherLabel(item) : null);
       }),
       PROP_PARAMS,
     );
   });
-});
 
+  it("reaches both sides and both outcomes of the label rule often enough not to be luck", () => {
+    const sample = fc.sample(fc.tuple(fc.integer({ min: 0, max: ITEMS.length - 1 }), arbSize), { numRuns: 2000, seed: 16 });
+    let kept = 0;
+    let covered = 0;
+    for (const [index, size] of sample) {
+      const item = ITEMS[index] ?? stoneRect(0);
+      if (intersects(placeCard(item, size, otherLabel(item)), otherLabel(item))) covered++;
+      else kept++;
+    }
+    expect(kept).toBeGreaterThanOrEqual(200);
+    expect(covered).toBeGreaterThanOrEqual(200);
+  });
+});
 // --- Property 17 ------------------------------------------------------------------------------------------------------
 
 /** Limits S, D, K (L8): stones, day shelves, stubs per day. */
@@ -115,15 +155,11 @@ interface Named {
   readonly rect: Rect;
 }
 
-/** Full-width text line, 22 high, at y (L7). */
-const textLine = (y: number): Rect => ({ x: 20, y, w: 560, h: 22 });
-
 /** Every rectangle the view draws for a scenario (R4.10 to R4.12). Header and labels come from the L7 table. */
 function viewRects(s: Scenario): Named[] {
   const out: Named[] = [
-    { name: "header", rect: { x: 20, y: 215, w: 560, h: 28 } },
-    { name: "graveyard label", rect: textLine(247) },
-    { name: "shelf label", rect: textLine(496) },
+    { name: "graveyard label", rect: textLine(LABEL_Y.stones) },
+    { name: "shelf label", rect: textLine(LABEL_Y.shelf) },
     { name: "stones count line", rect: textLine(COUNT_LINE_Y.stones) },
     { name: "shelf count line", rect: textLine(COUNT_LINE_Y.shelf) },
   ];
@@ -152,9 +188,31 @@ function checkLayout(s: Scenario): void {
       if (a !== undefined && b !== undefined) expect(intersects(a.rect, b.rect), `${a.name} meets ${b.name}`).toBe(false);
     }
   }
-  // The return control shares the Door's rectangle (L1, R3.14): below the panel, so it must meet nothing.
+  // The return control shares the Door's rectangle (L1, R3.14): it must meet nothing.
   for (const a of all) expect(intersects(a.rect, DOOR_RECT), `${a.name} meets the return control`).toBe(false);
+  // The focus ring (D14): every item and the return control, grown by the ring's 6 px, keeps 2 px from every text line, at the
+  // scale of each of the four viewports.
+  const rings = [...all.filter((a) => /^(stone|stub) /.test(a.name)), { name: "return control", rect: DOOR_RECT }];
+  const texts = all.filter((a) => !/^(stone|stub) /.test(a.name));
+  for (const scale of SCALES) {
+    const grow = RING_PX / scale;
+    for (const r of rings) {
+      const ring: Rect = { x: r.rect.x - grow, y: r.rect.y - grow, w: r.rect.w + 2 * grow, h: r.rect.h + 2 * grow };
+      for (const t of texts) {
+        const clear = !intersects(ring, t.rect) && gap(ring, t.rect) * scale >= RING_CLEAR_PX - 1e-9;
+        expect(clear, `the ring of ${r.name} and ${t.name} at scale ${scale}`).toBe(true);
+      }
+    }
+  }
 }
+
+/** The stage scales of the four viewports of R4.10. */
+const SCALES: readonly number[] = [
+  [360, 640],
+  [768, 1024],
+  [1280, 800],
+  [1920, 1080],
+].map(([w, h]) => stageBox(w ?? 0, h ?? 0).scale);
 
 const cellOf = (k: number): Rect => {
   const slot = GHOST_SLOTS[k];

@@ -1,13 +1,23 @@
-// ghosts-and-graveyard R3.9, R4.10 to R4.13, R5.10, R5.11 (design 3.4, Section 1, L1, L7 to L10): the graveyard view's room-unit geometry.
+// ghosts-and-graveyard R3.9, R4.10 to R4.13, R5.10, R5.11, R6.19 (design 3.4, Section 1, L1, L7 to L10 as amended by D14, D16, D18,
+// D19): the graveyard view's room-unit geometry.
 import { describe, expect, it } from "vitest";
 import { DOOR_RECT as UI_DOOR_RECT, FLOOR_UNITS, GHOST_CELLS, KEEP_CLEAR_COLUMN_UNITS, KEEP_CLEAR_WINDOW_UNITS, stageBox } from "../ui/layout";
 import {
-  CARD_SIZE,
+  CARD_BOUNDS,
+  CARD_RIM_PX,
+  CARD_GAP,
+  CARD_MAX,
   COUNT_LINE_Y,
   DOOR_RECT,
   EMPTY_LINE_Y,
+  LABEL_Y,
+  MIN_SCALE,
+  PANEL_FADE,
   PANEL_RECT,
+  RING_CLEAR_PX,
+  RING_PX,
   STONES_PER_ROW,
+  TEXT_GAP,
   dateLabelRect,
   moreRect,
   placeCard,
@@ -24,69 +34,98 @@ const separation = (a: Rect, b: Rect): number => Math.max(a.x - right(b), b.x - 
 /** Smallest hit size in CSS px at the smallest scale, 360 x 640 (s = 0.6). */
 const PX = 0.6;
 const MIN_HIT_PX = 44;
+const line = (y: number): Rect => ({ x: 20, y, w: 560, h: 22 });
 
-describe("the constants of L1, L7 and L9", () => {
-  it("has the Door, the panel and the stone count of the design", () => {
+const STONES: readonly Rect[] = Array.from({ length: 10 }, (_, i) => stoneRect(i));
+const STUBS: readonly Rect[] = [0, 1, 2].flatMap((r) => [0, 1, 2, 3].map((j) => stubRect(r, j)));
+/** Every text line of the view at its fixed place: labels, count lines, empty lines, date labels, "+n more". */
+const TEXT: readonly [string, Rect][] = [
+  ["graveyard label", line(LABEL_Y.stones)],
+  ["shelf label", line(LABEL_Y.shelf)],
+  ["stones count", line(COUNT_LINE_Y.stones)],
+  ["shelf count", line(COUNT_LINE_Y.shelf)],
+  ...[0, 1, 2].flatMap((r): [string, Rect][] => [
+    [`date label ${r}`, dateLabelRect(r)],
+    [`more ${r}`, moreRect(r)],
+  ]),
+];
+
+describe("the constants of L1, L7 and L9 as amended by D14, D16, D18 and D19", () => {
+  it("has the Door, the backdrop core and its fade, and the stone count", () => {
     expect(DOOR_RECT).toEqual({ x: 20, y: 805, w: 80, h: 85 });
-    expect(PANEL_RECT).toEqual({ x: 0, y: 205, w: 600, h: 595 });
+    expect(PANEL_RECT).toEqual({ x: 0, y: 205, w: 600, h: 695 });
+    expect(bottom(PANEL_RECT)).toBe(FLOOR_UNITS);
+    expect(PANEL_FADE).toBe(60);
     expect(STONES_PER_ROW).toBe(5);
   });
 
-  it("has the count lines, empty lines and card size of the design", () => {
-    expect(COUNT_LINE_Y).toEqual({ stones: 466, shelf: 767 });
-    expect(EMPTY_LINE_Y).toEqual({ stones: 273, shelf: 522 });
-    expect(CARD_SIZE).toEqual({ w: 520, h: 240 });
+  it("has the labels, count lines, empty lines and card limits", () => {
+    expect(LABEL_Y).toEqual({ stones: 215, shelf: 465 });
+    expect(COUNT_LINE_Y).toEqual({ stones: 435, shelf: 757 });
+    expect(EMPTY_LINE_Y).toEqual({ stones: 251, shelf: 501 });
+    expect(CARD_MAX).toEqual({ w: 520, h: 232 });
+    expect(CARD_BOUNDS).toEqual({ top: 215, bottom: 795, left: 20, right: 580 });
+    expect(CARD_GAP).toBe(17);
   });
 
-  it("puts the stones at x 30 + 110 i, y 273 + 100 row, 100 by 90 (two rows of five)", () => {
+  it("derives the 14-unit text gap from the ring at the smallest scale", () => {
+    expect([RING_PX, RING_CLEAR_PX, MIN_SCALE]).toEqual([6, 2, 0.6]);
+    expect(TEXT_GAP).toBe(Math.ceil((RING_PX + RING_CLEAR_PX) / MIN_SCALE));
+  });
+
+  it("puts the stones at x 30 + 110 i, y 251 + 90 row, 100 by 80 (two rows of five)", () => {
     const xs = [30, 140, 250, 360, 470];
-    for (let i = 0; i < 10; i++) {
-      expect(stoneRect(i), `stone ${i}`).toEqual({ x: xs[i % 5], y: i < 5 ? 273 : 373, w: 100, h: 90 });
-    }
+    for (let i = 0; i < 10; i++) expect(stoneRect(i), `stone ${i}`).toEqual({ x: xs[i % 5], y: i < 5 ? 251 : 341, w: 100, h: 80 });
     expect(right(stoneRect(4))).toBe(570);
-    expect(bottom(stoneRect(9))).toBe(463);
+    expect(bottom(stoneRect(9))).toBe(421);
   });
 
-  it("puts the shelf rows at y 522, 606 and 690", () => {
-    expect([0, 1, 2].map(shelfRowY)).toEqual([522, 606, 690]);
-    expect(bottom(stubRect(2, 0))).toBe(764);
+  it("puts the shelf rows at y 501, 585 and 669", () => {
+    expect([0, 1, 2].map(shelfRowY)).toEqual([501, 585, 669]);
+    expect(bottom(stubRect(2, 0))).toBe(743);
   });
 
-  it("puts the date labels at x 20..100 and the stubs at x 110 + 84 j, 74 by 74", () => {
+  it("puts the date labels at x 20..100, the stubs at x 114 + 84 j (74 by 74) and +n more at 454..554", () => {
     for (let r = 0; r < 3; r++) {
-      const y = 522 + 84 * r;
+      const y = 501 + 84 * r;
       expect(dateLabelRect(r)).toEqual({ x: 20, y, w: 80, h: 74 });
-      [110, 194, 278, 362].forEach((x, j) => expect(stubRect(r, j), `stub ${r},${j}`).toEqual({ x, y, w: 74, h: 74 }));
-      expect(moreRect(r)).toEqual({ x: 446, y, w: 100, h: 74 });
+      [114, 198, 282, 366].forEach((x, j) => expect(stubRect(r, j), `stub ${r},${j}`).toEqual({ x, y, w: 74, h: 74 }));
+      expect(moreRect(r)).toEqual({ x: 454, y, w: 100, h: 74 });
     }
   });
 
-  it("fits a full shelf row (label, four stubs, gap, more) inside x 20..546", () => {
-    expect(right(stubRect(0, 3))).toBe(436);
-    expect(moreRect(0).x - right(stubRect(0, 3))).toBe(10);
-    expect(right(moreRect(0))).toBe(546);
-    expect(right(dateLabelRect(0)) + 10).toBe(stubRect(0, 0).x);
+  it("stacks the view: 14 units from every row to the text next to it, the last line ending at 779, above the return control", () => {
+    expect(stoneRect(0).y - bottom(line(LABEL_Y.stones))).toBe(14);
+    expect(COUNT_LINE_Y.stones - bottom(stoneRect(9))).toBe(14);
+    expect(LABEL_Y.shelf - bottom(line(COUNT_LINE_Y.stones))).toBe(8);
+    expect(shelfRowY(0) - bottom(line(LABEL_Y.shelf))).toBe(14);
+    expect(COUNT_LINE_Y.shelf - bottom(stubRect(2, 0))).toBe(14);
+    expect(bottom(line(COUNT_LINE_Y.shelf))).toBe(779);
+    expect(DOOR_RECT.y - bottom(line(COUNT_LINE_Y.shelf))).toBe(26);
   });
 
-  it("stacks the view above the Door: the last count line ends at 789 and the Door starts at 805", () => {
-    expect(COUNT_LINE_Y.stones).toBe(bottom(stoneRect(9)) + 3);
-    expect(COUNT_LINE_Y.shelf).toBe(bottom(stubRect(2, 0)) + 3);
-    expect(COUNT_LINE_Y.shelf + 22).toBe(789);
-    expect(COUNT_LINE_Y.shelf + 22).toBeLessThan(DOOR_RECT.y);
-  });
-
-  it("keeps every drawn item inside x 20..580 and inside the panel", () => {
-    const all: Rect[] = [];
-    for (let i = 0; i < 10; i++) all.push(stoneRect(i));
-    for (let r = 0; r < 3; r++) {
-      all.push(dateLabelRect(r), moreRect(r));
-      for (let j = 0; j < 4; j++) all.push(stubRect(r, j));
-    }
-    for (const r of all) {
+  it("keeps every drawn item and text line inside x 20..580 and inside the backdrop's core", () => {
+    for (const r of [...STONES, ...STUBS, ...TEXT.map(([, t]) => t)]) {
       expect(r.x).toBeGreaterThanOrEqual(20);
       expect(right(r)).toBeLessThanOrEqual(580);
       expect(r.y).toBeGreaterThanOrEqual(PANEL_RECT.y);
-      expect(bottom(r)).toBeLessThanOrEqual(bottom(PANEL_RECT));
+      expect(bottom(r)).toBeLessThanOrEqual(DOOR_RECT.y);
+    }
+  });
+});
+
+describe("the focus ring clears every text line (D14, R6.19)", () => {
+  it.each([
+    [360, 640],
+    [768, 1024],
+    [1280, 800],
+    [1920, 1080],
+  ])("at %i x %i, every item's ring, grown by 6 px, keeps at least 2 px from every text line", (vw, vh) => {
+    const { scale } = stageBox(vw, vh);
+    const grow = RING_PX / scale;
+    for (const item of [...STONES, ...STUBS, DOOR_RECT]) {
+      const ring: Rect = { x: item.x - grow, y: item.y - grow, w: item.w + 2 * grow, h: item.h + 2 * grow };
+      for (const [name, text] of TEXT) expect(separation(ring, text) * scale, `${JSON.stringify(item)} and ${name}`).toBeGreaterThanOrEqual(RING_CLEAR_PX - 1e-9);
     }
   });
 });
@@ -142,42 +181,56 @@ describe("the Door (R3.9, L1)", () => {
   });
 });
 
-describe("placeCard (L10, R5.10, R5.11)", () => {
-  it("puts the card below stone rows 1 and 2 at y 371 and 471", () => {
-    expect(placeCard(stoneRect(0)).y).toBe(371);
-    expect(placeCard(stoneRect(5)).y).toBe(471);
+describe("placeCard (L10 as amended by D16, R5.10, R5.11)", () => {
+  const SHELF_LABEL = line(LABEL_Y.shelf);
+  const STONES_LABEL = line(LABEL_Y.stones);
+  const FIVE_LINES = { w: 400, h: 128 }; // a card of 128 units
+
+  it("puts a stone's card below it, and a stub's card above it", () => {
+    expect(placeCard(stoneRect(0), FIVE_LINES).y).toBe(331 + 17);
+    expect(placeCard(stoneRect(5), FIVE_LINES).y).toBe(421 + 17);
+    expect(placeCard(stubRect(0, 0), FIVE_LINES).y).toBe(501 - 17 - 128);
+    expect(placeCard(stubRect(2, 0), FIVE_LINES).y).toBe(669 - 17 - 128);
   });
 
-  it("puts the card above shelf rows 1 to 3 at y 274, 358 and 442", () => {
-    expect([0, 1, 2].map((r) => placeCard(stubRect(r, 0)).y)).toEqual([274, 358, 442]);
+  it("sizes the card to its content, clamped to 520 by 232", () => {
+    expect(placeCard(stoneRect(0), { w: 300, h: 100 })).toMatchObject({ w: 300, h: 100 });
+    expect(placeCard(stoneRect(0), { w: 900, h: 400 })).toMatchObject({ w: 520, h: 232 });
   });
 
-  it("gives the card the size of L9", () => {
-    const c = placeCard(stoneRect(3));
-    expect([c.w, c.h]).toEqual([520, 240]);
+  it("keeps a second-row stone's card off the Shelf label when it fits above, and falls back to below when it does not", () => {
+    const short = { w: 300, h: 24 + 3 * 26 }; // 102: the intent on one line and two rows
+    const above = placeCard(stoneRect(5), short, SHELF_LABEL);
+    expect(above.y + above.h).toBe(341 - 17);
+    expect(separation(above, SHELF_LABEL)).toBeGreaterThan(0);
+    const tall = placeCard(stoneRect(5), { w: 300, h: 180 }, SHELF_LABEL);
+    expect(tall.y).toBe(421 + 17);
   });
 
-  it("takes the first branch at t = 463 and the second just below", () => {
-    expect(placeCard({ x: 100, y: 463, w: 50, h: 50 }).y).toBe(463 - 8 - 240);
-    expect(placeCard({ x: 100, y: 462, w: 50, h: 50 }).y).toBe(462 + 50 + 8);
+  it("keeps a first-row stone's short card below it and clear of the Shelf label", () => {
+    const c = placeCard(stoneRect(2), { w: 300, h: 102 }, SHELF_LABEL);
+    expect(c.y).toBe(348);
+    expect(bottom(c)).toBeLessThanOrEqual(LABEL_Y.shelf);
   });
 
-  it("centres the card on the item and clamps x to 20..60", () => {
-    expect(placeCard({ x: 30, y: 273, w: 100, h: 90 }).x).toBe(20);
-    expect(placeCard({ x: 470, y: 273, w: 100, h: 90 }).x).toBe(60);
-    // Item centre 300 gives 300 - 260 = 40, inside the range.
-    expect(placeCard({ x: 250, y: 273, w: 100, h: 90 }).x).toBe(40);
+  it("never puts a stub's card on the Graveyard label", () => {
+    for (const stub of STUBS) expect(separation(placeCard(stub, CARD_MAX, STONES_LABEL), STONES_LABEL)).toBeGreaterThan(0);
   });
 
-  it("is 8 units from the item and never touches it, for every stone and stub", () => {
-    const items: Rect[] = [];
-    for (let i = 0; i < 10; i++) items.push(stoneRect(i));
-    for (let r = 0; r < 3; r++) for (let j = 0; j < 4; j++) items.push(stubRect(r, j));
-    for (const item of items) {
-      const card = placeCard(item);
-      expect(separation(card, item)).toBeGreaterThanOrEqual(8);
-      expect(card.y).toBeGreaterThanOrEqual(215);
-      expect(bottom(card)).toBeLessThanOrEqual(895);
+  it("centres the card on the item and clamps x to 20..580 - w", () => {
+    expect(placeCard({ x: 30, y: 251, w: 100, h: 80 }, { w: 520, h: 128 }).x).toBe(20);
+    expect(placeCard({ x: 470, y: 251, w: 100, h: 80 }, { w: 520, h: 128 }).x).toBe(60);
+    expect(placeCard({ x: 250, y: 251, w: 100, h: 80 }, { w: 200, h: 128 }).x).toBe(200);
+  });
+
+  it("is 17 units from the item, its rim clear of the item's focus ring at every scale, and inside the bounds, for every item at the largest size", () => {
+    for (const item of [...STONES, ...STUBS]) {
+      const card = placeCard(item, CARD_MAX);
+      expect(separation(card, item)).toBeGreaterThanOrEqual(17);
+      expect(separation(card, item) * MIN_SCALE).toBeGreaterThanOrEqual(RING_PX + CARD_RIM_PX);
+      expect(card.y).toBeGreaterThanOrEqual(CARD_BOUNDS.top);
+      expect(bottom(card)).toBeLessThanOrEqual(CARD_BOUNDS.bottom);
+      expect(bottom(card)).toBeLessThan(DOOR_RECT.y);
     }
   });
 
@@ -186,20 +239,12 @@ describe("placeCard (L10, R5.10, R5.11)", () => {
     [1280, 800],
   ])("lies inside the %i x %i viewport for every stone and stub", (vw, vh) => {
     const { scale, ox, oy } = stageBox(vw, vh);
-    const items: Rect[] = [];
-    for (let i = 0; i < 10; i++) items.push(stoneRect(i));
-    for (let r = 0; r < 3; r++) for (let j = 0; j < 4; j++) items.push(stubRect(r, j));
-    for (const item of items) {
-      const c = placeCard(item);
+    for (const item of [...STONES, ...STUBS]) {
+      const c = placeCard(item, CARD_MAX);
       expect(ox + c.x * scale).toBeGreaterThanOrEqual(0);
       expect(ox + right(c) * scale).toBeLessThanOrEqual(vw);
       expect(oy + c.y * scale).toBeGreaterThanOrEqual(0);
       expect(oy + bottom(c) * scale).toBeLessThanOrEqual(vh);
     }
-  });
-
-  it("stays above the Door and below the top of the panel", () => {
-    for (let i = 0; i < 10; i++) expect(bottom(placeCard(stoneRect(i)))).toBeLessThan(DOOR_RECT.y);
-    for (let r = 0; r < 3; r++) expect(placeCard(stubRect(r, 0)).y).toBeGreaterThan(PANEL_RECT.y);
   });
 });

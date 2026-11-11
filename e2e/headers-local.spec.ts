@@ -85,10 +85,13 @@ test.describe("the real build under the Blueprint's headers", () => {
         history: serializeHistory(fixture.state.history),
       },
     );
-    await page.clock.install({ time: fixture.now - 5000 });
+    // The clock starts paused at the load instant (pauseAt is the first clock call, so no wall time is counted between installing and pausing):
+    // the page loads at exactly that instant however long the load takes, and the frames keep the 16 ms grid from it. Nothing then
+    // depends on the machine's speed (the old `install` let the clock run during the load and failed when the load took over 4.9 s).
+    await page.clock.pauseAt(fixture.now - 5000);
     await page.goto("/");
-    await page.clock.pauseAt(fixture.now - 100);
-    await page.clock.runFor(140);
+    // Run, not jump: every timer and frame of the 5 s after the load fires at its own instant, as when the clock ran during the load.
+    await page.clock.runFor(5040);
 
     const scene = page.locator("#scene");
     await expect(scene).toHaveAttribute("data-settled", "true");

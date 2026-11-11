@@ -3,11 +3,14 @@
 // through `addInitScript` by `openApp`: no hook in shipped code.
 import type { Browser, Page } from "@playwright/test";
 import type { HistoryEntry, Outcome, Session, State } from "../src/engine";
-import { MIN, T0, VIEWPORTS, openApp, rectOf } from "./controls-fixtures";
+import { stageBox } from "../src/ui/layout";
+import type { Stage } from "../src/ui/layout";
+import { MIN, T0, VIEWPORTS, openApp, rectOf, settle } from "./controls-fixtures";
 import type { App, Fixture, Rect } from "./controls-fixtures";
 
-export { focused } from "./controls-fixtures";
+export { focused, liveTexts, press, rawSession, settle, storedState } from "./controls-fixtures";
 export { rectOf };
+export type { Stage };
 export { MIN, T0, VIEWPORTS };
 export type { App, Fixture, Rect };
 
@@ -126,6 +129,8 @@ export const withDistractions = (n: number, phase: "lit" | "burned-out" | "snuff
 
 export interface GraveyardOptions {
   readonly fixture: Fixture;
+  /** The clock when the page is looked at, if not the fixture's `now`. */
+  readonly now?: number;
   readonly viewport?: { readonly width: number; readonly height: number };
   readonly reducedMotion?: boolean;
   /** Touch only (a phone): taps instead of hovers. */
@@ -168,3 +173,89 @@ export const scrolls = (page: Page): Promise<boolean> =>
 
 /** The current view: `room` or `graveyard` (the section's `data-view`). */
 export const viewOf = (page: Page): Promise<string | null> => page.locator("#graveyard").getAttribute("data-view");
+
+/** Opens the Graveyard_View with the Door's key and lets the page redraw. */
+export async function openView(page: Page): Promise<void> {
+  await page.keyboard.press("g");
+  await settle(page);
+}
+
+// --- visibility --------------------------------------------------------------
+
+/**
+ * Hides or shows the page through its real `visibilitychange` listener. Headless Chromium never hides a page by itself (another tab
+ * in front or a minimised window leaves `visibilityState` at "visible", checked when these tests were written), so the state is
+ * overridden on `document` and the event dispatched, as `controls.spec.ts` does. The shipped wiring and the engine do the rest.
+ */
+export async function setVisibility(page: Page, state: "hidden" | "visible", redraw = true): Promise<void> {
+  await page.evaluate((s) => {
+    Object.defineProperty(document, "visibilityState", { configurable: true, get: () => s });
+    document.dispatchEvent(new Event("visibilitychange"));
+  }, state);
+  if (redraw) await settle(page);
+}
+
+/** One distraction of exactly `awayMs`: hidden, the clock run, shown again, then the page redraws. */
+export async function distract(page: Page, awayMs: number): Promise<void> {
+  await setVisibility(page, "hidden", false);
+  await page.clock.runFor(awayMs);
+  await setVisibility(page, "visible");
+}
+
+// --- room units to page pixels -----------------------------------------------
+
+/** The stage of the page's viewport (the scene's own scaling rule). */
+export async function stageOf(page: Page): Promise<Stage> {
+  const { w, h } = await page.evaluate(() => ({ w: window.innerWidth, h: window.innerHeight }));
+  return stageBox(w, h);
+}
+
+/** A rectangle in room units as page pixels. */
+export const toPage = (r: Rect, s: Stage): Rect => ({ x: s.ox + r.x * s.scale, y: s.oy + r.y * s.scale, w: r.w * s.scale, h: r.h * s.scale });
+
+/** True when the rectangles overlap by more than `slack` px in both directions. */
+export const overlaps = (a: Rect, b: Rect, slack = 0): boolean => a.x < b.x + b.w - slack && b.x < a.x + a.w - slack && a.y < b.y + b.h - slack && b.y < a.y + a.h - slack;
+
+/** `inner` lies inside `outer`, within `slack` px. */
+export const inside = (inner: Rect, outer: Rect, slack = 0.5): boolean =>
+  inner.x >= outer.x - slack && inner.y >= outer.y - slack && inner.x + inner.w <= outer.x + outer.w + slack && inner.y + inner.h <= outer.y + outer.h + slack;
+
+// --- ghosts ------------------------------------------------------------------
+
+export interface GhostReading {
+  readonly slot: number;
+  readonly index: number;
+  /** The `scale(...)` of the group's transform: the ghost's size. */
+  readonly size: number;
+  readonly rect: Rect;
+}
+
+export interface GhostsReading {
+  readonly ghosts: readonly GhostReading[];
+  /** The groups fading out (class `leaving`). */
+  readonly leaving: number;
+  readonly mark: { readonly shown: boolean; readonly text: string; readonly rect: Rect | null };
+}
+
+/** Every ghost group of the layer (not the leaving ones), and the Overflow_Mark. */
+export const readGhosts = (page: Page): Promise<GhostsReading> =>
+  page.evaluate(() => {
+    const box = (el: Element) => {
+      const r = el.getBoundingClientRect();
+      return { x: r.x, y: r.y, w: r.width, h: r.height };
+    };
+    const all = [...document.querySelectorAll("#ghost-root .ghost")];
+    const ghosts = all
+      .filter((g) => !g.classList.contains("leaving"))
+      .map((g) => {
+        const m = /scale\(([^)]+)\)/.exec(g.getAttribute("transform") ?? "");
+        return { slot: Number(g.getAttribute("data-slot")), index: Number(g.getAttribute("data-index")), size: Number(m?.[1] ?? NaN), rect: box(g) };
+      });
+    const mark = document.querySelector("#ghost-root .overflow");
+    const shown = mark !== null && !mark.hasAttribute("hidden");
+    return {
+      ghosts,
+      leaving: all.length - ghosts.length,
+      mark: { shown, text: mark?.textContent ?? "", rect: shown && mark !== null ? box(mark) : null },
+    };
+  });
