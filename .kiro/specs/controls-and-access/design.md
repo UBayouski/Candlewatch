@@ -2,7 +2,7 @@
 
 Implements `requirements.md` (review answers applied). Read with `docs/BRIEF.md` sections 4, 5, 7, 11; `.kiro/steering/*`; and the finished specs, above all `candle-scene` design 5 (the stage and the zone) and 7.2 (the contrast handoff), `distraction-tracking` R11 (`watchVisibility`, `syncVisibility`) and `session-engine` (the events, `timeLeftMs`, `isBreak`, the pause limit).
 
-Status: **draft for review.** No tasks and no code are written yet. Decisions that this design makes beyond the requirements are in section 17.
+Status: **approved with two changes** (design review; both are applied here and recorded in section 17, D14 and D15): the Settings opener lives in the floor-band zone, so nothing persistent is ever in the light pool; and the Tab order equals the visual order in every layout. The tasks are in `tasks.md`. No code is written. Decisions that this design makes beyond the requirements are in section 17.
 
 ## 1. Overview
 
@@ -305,8 +305,8 @@ All inside a container `#ui` (`position: fixed; inset: 0`, above the scene, `poi
 │    ├─ div#time[role=timer]                           the time text
 │    ├─ p#status                                       the status line (also the aria-describedby of #custom)
 │    ├─ button#pause                                   hidden while idle/ended
-│    └─ button#snuff                                   hidden while idle/ended
-├─ button#settings-button[aria-haspopup=dialog]       top-right corner
+│    ├─ button#snuff                                   hidden while idle/ended
+│    └─ button#settings-button[aria-haspopup=dialog]   always; the rightmost zone control
 ├─ div#live[role=status]                               visually hidden
 ├─ dialog#snuff-dialog[aria-labelledby][aria-describedby]
 │    ├─ h2 · p · button#keep[autofocus] · button#confirm
@@ -428,7 +428,7 @@ floorY = Y(900)                           the floor line: candle base, clip line
 
 The **keep-clear column** is the union of the candle, the flame, the halo and the idle pool over every wax height: **x 160..440, y 260..900** (the halo's 180..420 and the idle pool's 160..440 are both inside it). The **keep-clear window** is **x 240..360, y 50..260**. These are the two rectangles of R8.3. In `layout.ts` they are constants, and a unit test reads `src/scene/constants.ts` (`WINDOW`, `CANDLE_H`, `FLOOR_Y`, `LIGHT_MIN`, `LIGHT_FULL_UNITS`) and the halo circle in `room.ts`' markup and fails if the scene moves them.
 
-The running light pool (radius up to 700 units) is **not** in the keep-clear column on purpose: it fills the whole stage at the start, so no control above the floor line could avoid it. R8.4 handles the pool separately: nothing in the zone can touch it, the setup controls are shown only when the pool is the small idle pool or none, and the one exception is the Settings corner button (6.4).
+The running light pool (radius up to 700 units) is **not** in the keep-clear column on purpose: it fills the whole stage at the start, so no control above the floor line could avoid it. That is why every persistent control that is shown while a session runs is below the floor line, which the pool never enters (6.4).
 
 ### 6.3 The placement function
 
@@ -436,15 +436,17 @@ The running light pool (radius up to 700 units) is **not** in the keep-clear col
 export interface Rect { readonly x: number; readonly y: number; readonly w: number; readonly h: number }
 export interface Placement {
   readonly mode: "compact" | "wide";
+  readonly variant: "top-row" | "left-region" | "column";   // where the setup controls go (below)
   readonly stage: { readonly scale: number; readonly ox: number; readonly oy: number };
   readonly floorY: number;
   readonly zone: Rect;                 // floor line to the bottom of the viewport, full width
-  readonly textArea: Rect;             // X(110)..X(490), floorY .. Y(1000) — the .zone-text-area marker
+  readonly textArea: Rect;             // X(110)..X(490), floorY .. Y(1000): the .zone-text-area marker
   readonly timeSize: number;           // px
-  readonly status: Rect;
+  readonly time: Rect;                 // the time text box, centred at X(300)
+  readonly statusRunning: Rect;        // the status line while Pause and Let it go dark are shown
+  readonly statusResting: Rect;        // in idle and the ended phases (wider; two lines when there is room)
   readonly setup: { readonly chooser: Rect; readonly cells: readonly [Rect, Rect, Rect, Rect]; readonly intent: Rect; readonly light: Rect };
-  readonly running: { readonly pause: Rect; readonly snuff: Rect; readonly labelled: boolean };
-  readonly settingsButton: Rect;
+  readonly zoneControls: { readonly pause: Rect; readonly snuff: Rect; readonly settings: Rect; readonly labelled: boolean };
   readonly snuffDialog: Rect;
   readonly settingsPanel: Rect;
   readonly keepClear: { readonly column: Rect; readonly window: Rect };
@@ -452,66 +454,59 @@ export interface Placement {
 export function placeControls(vw: number, vh: number): Placement;
 ```
 
-Constants: touch target `T = 44`, gap `G = 8`, margin `M = 8` (4 from the top for the top row), pads `PAD_COLUMN = 6`, `PAD_WINDOW = 1`.
+Constants: touch target `T = 44`, gap `G = 8`, margin `M = 8`, pads `PAD_COLUMN = 6`, `PAD_WINDOW = 1`.
 
 **Mode.** `wide` when `ox >= 360` (at least 360 px free on each side of the stage), else `compact`.
 
-**Both modes**
-- Settings button: `T × T` at `(vw − M − T, 4)`.
-- Zone: `y = floorY`, height `vh − floorY`. The text area is `x X(110) .. X(490)`, `y floorY .. Y(1000)`. The time text sits at the top of the text area, centred, `timeSize` px high; the status line is directly under it, 20 px high, centred, over the width of the text area (and over the whole zone width in `idle` and the ended phases, where the running buttons are hidden, so the long first-visit line fits).
-- Running buttons are vertically centred in the zone: `y = floorY + (zoneH − T) / 2`.
+**The zone, both modes.** The zone is `y = floorY` down to `vh`, `zoneH = vh − floorY`. Zone buttons are vertically centred: `by = floorY + (zoneH − T) / 2`. The time text is centred at `cx = X(300)` (the candle's axis), its box starts at `floorY + 2` and is `timeSize` high and about `3.1 · timeSize` wide; the status line is directly under it, 20 px high. `timeSize` is 36 in the compact mode and `clamp(zoneH − 28, 32, 44)` in the wide mode. Left to right the zone controls are always: **Pause or Resume, the time text and status line, Let it go dark, Settings**. In `idle` and the ended phases Pause and Let it go dark are hidden and Settings stays where it is, so it never moves.
 
-**Compact**
-- Intent field: if the window pane is low enough (`window.y >= 50`) it is a top row, `(M, 4)`, width `vw − M − (T + 8 + M)`, height `T`: it ends 8 px before the Settings button. Else (a stage that is limited by height, so the window is high) it goes in the left region, `(M, 4)`, width `window.x − 8 − M`, height `T`; the minimum width is 120 px.
-- Chooser: a 2 × 2 grid of `54 × 44` cells with an 8 px gap, 116 × 96, at `(M, 56)`.
-- Light: `116 × 52` at `(vw − M − 116, 56)`.
-- Running buttons: icon buttons `T × T`, centred in the free cell at each side of the text area: pause at `x = (X(110) − T) / 2`, snuff at `x = X(490) + (vw − X(490) − T) / 2`.
-- `timeSize = 36`.
-- Snuff dialog: top-anchored, `x = M`, `y = 8`, width `vw − 2M`, maximum height `Y(290) − 8 − 8` (the halo's highest point minus a margin), so it never reaches the halo at any wax height. The settings panel: the same x and y, width, and a maximum height of the viewport minus 16 with scrolling.
+**Compact zone.** Pause at `(M, by)`, Settings at `(vw − M − T, by)`, Let it go dark at `(settings.x − G − T, by)`, all `T × T` (icons with text names). The status line is centred on `cx` and bounded by the buttons: while running, its half-width is `min(cx − (pause.x + T + G), (snuff.x − G) − cx)`; at rest it is `min(cx − M, (settings.x − G) − cx)`, and it may take two lines (40 px) when `zoneH >= 80`.
 
-**Wide**
-- Setup column in the free side area to the right of the stage: width `cw = min(360, ox − 48)`, `x0 = vw − 24 − cw`. Chooser row at `y = 96` (four cells `(cw − 24) / 4` wide, `T` high), intent at `y = 152` (`T` high), Light at `y = 212` (`52` high). All three sit beyond the stage's right edge `ox + 600 s` by at least 24 px.
-- Running buttons are labelled: pause `128 × T` ending 16 px before the text area; snuff `160 × T` starting 16 px after it. `timeSize = 44`. The Settings button stays an icon.
-- Snuff dialog: in the same right column, `x0`, `y = 96`, width `cw`. Settings panel: in the free side area to the left of the stage, `x = 24`, `y = 96`, width `min(360, ox − 48)`.
+**Wide zone.** Pause `128 × T`, its right edge 16 px before the text area; Let it go dark `160 × T`, 16 px after it; Settings `96 × T`, `G` after Let it go dark. All labelled. The status line is the width of the text area while running; at rest it is centred on `cx` and bounded by `M` and `settings.x − G`.
 
-**Resizing.** `update` recomputes `placeControls(width, height)` only when the size changed; `dom/apply.ts` writes `--x --y --w --h` for each element and `--time-size`.
+**Setup controls** (idle and the ended phases; always above the floor line; reading order chooser, intent, Light):
+- **Compact, `top-row`** (the window pane starts at `window.y >= 50`, which holds at 360 × 640): the chooser is a row of four cells across the viewport, `(M, 4)`, width `vw − 2M`, `T` high, each cell `(vw − 2M − 3G) / 4` wide. Under it, at `y = 56`: the intent field at `x = M`, width `window.x − G − M`, `T` high; and Light, `116 × 52`, at `x = vw − M − 116`.
+- **Compact, `left-region`** (the window pane starts higher, a stage limited by height in a narrow viewport): the chooser is a 2 × 2 grid of `54 × 44` cells (`116 × 96`) at `(M, 4)`. Under it, at `y = 108`: the intent field at `x = M`, width `window.x − G − M` (at least 120), and Light at `x = vw − M − 116`. Reading order stays chooser, intent, Light.
+- **Wide, `column`**: width `cw = min(360, ox − 48)` and `x0 = vw − 24 − cw`, in the free side area to the right of the stage: the chooser (four cells of `(cw − 3G) / 4`) at `y = 96`, the intent field at `y = 152`, Light (`52` high) at `y = 212`.
 
-### 6.4 The Settings corner button and the pool
+**Overlays.** The snuff dialog and the settings panel (6.6) are placed here too.
 
-The Settings button is the one persistent control above the floor line while a session runs (Decision Q1). It is 44 × 44 at `(vw − 52, 4)`. It is clear of the keep-clear column and the window at every viewport (6.8). It can overlap the *pool*, which is a soft vignette that starts as a large disc. Computed from the scene's own formulas (`lightRadius = 0.2 + 0.8 · wax`, pool centre `(300, 400 + (1 − wax) · 420)`, pool radius `lightRadius · 700`, and the hole alpha 1 at the centre, 0.75 at 60 % of the radius, 0 at the edge):
+**Resizing.** `update` recomputes `placeControls(width, height)` only when the size changed; `dom/apply.ts` writes `--x --y --w --h` for each element, and `--time-size`.
 
-| Viewport | Overlaps the pool while wax is at least | Pool strength over the button at the start |
-|---|---|---|
-| 360 × 640 | 0.70 | 0.75 (the nearest corner is at 59 % of the radius) |
-| 375 × 667 | 0.70 | 0.75 |
-| 390 × 844 | 0.82 | 0.47 |
-| 768 × 1024 | 0.76 | 0.59 |
-| 1280 × 800, 1920 × 1080 | never (the button is more than the pool radius from the centre) | 0 |
+### 6.4 The pool: no exception
 
-So on a phone the button sits in the lit part of the pool for roughly the first third of a session and leaves it before the wax is down to 0.7; on wider screens it never touches it. It never touches the flame, halo or candle. This is the cost of the answer to Q1 (Settings in a top corner, the stage not moved) and is recorded as such. It is a 44 px button in a corner; it does not hide the pool's centre or edge. If the costume review judges it unacceptable, the fallback is to open Settings from the zone (a third button in the zone row on wide screens, an overflow in the status area on phones), at the cost of space the zone does not have at 360 × 640.
+Review change 1 (D14): nothing persistent is ever in the light pool.
+
+- **While a session runs** (`lit`, `paused`) the persistent interface is only the zone controls, the time text and the status line. They are below the floor line, which the pool never enters (candle-scene R7.8): the pool is masked at the floor line, and the zone is the topmost layer with its own backgrounds. At the start of a session the pool has a radius of 700 room units and fills the whole stage; the zone is still clear of it. So at every size and wax height the rule holds with no special case, and there is nothing to measure.
+- **In `idle`** the pool is the small idle disc (radius `LIGHT_MIN · 700` = 140 units around (300, 400)), which lies inside the keep-clear column x 160..440, y 260..540. The setup controls stay at least 6 px from the column.
+- **In `burned-out` and `snuffed`** the pool has radius 0 (candle-scene R7.5); the dawn is a wash, not a pool.
+- **Overlays** are the exemption the review allowed (Decision Q2).
+
+The earlier design put the Settings button in the top-right corner. At 360 × 640 it was inside the pool while the wax was above about 0.7 (and above 0.82 at 390 × 844); that analysis is dropped with the corner button.
 
 ### 6.5 The two stated layouts
 
-**360 × 640** (compact). `s = 0.6`, `ox = 0`, `oy = 20`: the stage is 360 × 600 from `y = 20`. `X(u) = 0.6 u`, `Y(u) = 20 + 0.6 u`. `floorY = 560`. The zone is `y 560 .. 640` (80 px). The text area is `x 66..294`, `y 560..620`.
+**360 × 640** (compact, `top-row`). `s = 0.6`, `ox = 0`, `oy = 20`: the stage is 360 × 600 from `y = 20`. `X(u) = 0.6 u`, `Y(u) = 20 + 0.6 u`. `floorY = 560`; the zone is `y 560 .. 640` (80 px); `cx = 180`. The text area is `x 66..294`, `y 560..620`.
 
 | Thing | Rectangle (x, y, w, h) | Checked against |
 |---|---|---|
 | Keep-clear column | 96, 176, 168, 384 | — |
 | Window pane | 144, 50, 72, 126 | — |
-| Intent field (top row) | 8, 4, 292, 44 | window top is 50: 2 px above it; the Settings button is 8 px to its right |
-| Settings button | 308, 4, 44, 44 | clear of the window (x 144..216) and the column |
-| Length chooser (2 × 2 cells of 54 × 44) | 8, 56, 116, 96 | 20 px left of the window; its bottom is 24 px above the column top (176) |
-| Light | 236, 56, 116, 52 | 20 px right of the window; 68 px above the column top |
-| Time text | inside 66, 560, 228, 60; 36 px high | the zone is below the floor line |
-| Status line | 66, 598, 228, 20 (the whole 8..352 width in idle and the ended phases) | — |
-| Pause or Resume (icon) | 11, 578, 44, 44 | in the free cell x 0..66 |
-| Let it go dark (icon) | 305, 578, 44, 44 | in the free cell x 294..360 |
-| Left door slot | x 0..66, y ≥ 200 | the chooser ends at y = 152: clear |
+| Length chooser, four cells of 80 × 44 with 8 px gaps | 8, 4, 344, 44 | 2 px above the window top (50); above the intent row |
+| Intent field | 8, 56, 128, 44 | 8 px left of the window; 76 px above the column top (176) |
+| Light | 236, 56, 116, 52 | 20 px right of the window (216); 8 px below the chooser row |
+| Time text (box about 112 wide, 36 high) | 124, 562, 112, 36 | inside the text area (66..294) |
+| Status line while running | 112, 598, 136, 20 | between Pause (ends 52) and Let it go dark (starts 256) |
+| Status line at rest (idle, ended) | 60, 598, 240, 40 | clear of Settings (starts 308) |
+| Pause or Resume (icon) | 8, 578, 44, 44 | zone, left |
+| Let it go dark (icon) | 256, 578, 44, 44 | zone; 8 px before Settings |
+| Settings (icon) | 308, 578, 44, 44 | zone, right; 8 px from the right edge |
+| Left door slot | x 0..66, y ≥ 200 | the chooser, intent and Light all end at y 108: clear |
 | Snuff dialog | 8, 8, 344, ≤ 178 | stops 8 px above the halo's highest point, y = 194 |
 
-While running, the upper room has only the Settings button. While idle or ended, it has the top row, the chooser and Light, and nothing in the column or the window. The status line carries the refusal message for an invalid custom length (Decision Q1). The labels of the two icon buttons are icons plus an accessible name; the cell is 66 px wide, so a 44 px target fits with 11 px either side.
+While running, the upper room has nothing persistent. While idle or ended it has the chooser row, the intent field and Light, and nothing in the column or the window. The status line carries the refusal message for an invalid custom length (Decision Q1). The icon buttons have text names; the zone is 80 px tall, so 44 px targets sit 18 px from the floor line and the bottom edge.
 
-**1280 × 800** (wide). `s = 0.8`, `ox = 400`, `oy = 0`: the stage is 480 × 800 from `x = 400`. `floorY = 720`. The zone is `y 720 .. 800` (80 px) across all 1280 px. The text area is `x 488..792`, `y 720..800`.
+**1280 × 800** (wide, `column`). `s = 0.8`, `ox = 400`, `oy = 0`: the stage is 480 × 800 from `x = 400`. `floorY = 720`; the zone is `y 720 .. 800` (80 px) across all 1280 px; `cx = 640`. The text area is `x 488..792`, `y 720..800`.
 
 | Thing | Rectangle | Checked against |
 |---|---|---|
@@ -520,17 +515,17 @@ While running, the upper room has only the Settings button. While idle or ended,
 | Chooser (four cells of 82 × 44) | 904, 96, 352, 44 | 24 px right of the stage's right edge (880); 150 px from the column |
 | Intent field | 904, 152, 352, 44 | same |
 | Light | 904, 212, 352, 52 | same |
-| Settings button | 1228, 4, 44, 44 | beyond the pool at every wax height (6.4) |
-| Time text | inside 488, 720, 304, 80; 44 px high | below the floor line |
-| Status line | 488, 768, 304, 20 | — |
+| Time text (box about 136 wide, 44 high) | 572, 722, 136, 44 | inside the text area |
+| Status line while running | 488, 766, 304, 20 | the width of the text area |
+| Status line at rest | 312, 766, 656, 20 | 8 px short of Settings (starts 976) |
 | Pause or Resume (labelled) | 344, 738, 128, 44 | ends 16 px before the text area |
 | Let it go dark (labelled) | 808, 738, 160, 44 | starts 16 px after the text area |
+| Settings (labelled) | 976, 738, 96, 44 | 8 px after Let it go dark |
 | Left door slot | x 400..488, y ≥ 240 | nothing of this spec there |
 | Snuff dialog | 904, 96, 352, ≤ 260 | right column, clear of the stage |
 | Settings panel | 24, 96, 352, ≤ 360 | left side area, clear of the stage |
 
-At 768 × 1024 and 1920 × 1080 the same rules give: 768 × 1024 compact (`s = 1.024`, `oy = 0`, the window top is 51.2, so the top row is used); 1920 × 1080 wide (`ox = 636`, column width 360).
-
+Other sizes follow from the same rules: 375 × 667 compact `top-row` (the chooser row 359 wide, intent 134, zone 83.5 px); 768 × 1024 compact `top-row` (`s = 1.024`, the window top is 51.2; the chooser row 752 wide, intent 307, zone 102 px); 480 × 800 compact `left-region` (the window top is 40, so the chooser is a 2 × 2 grid at 8, 4, the intent field is 8, 108, 176 wide, Light at 356, 108); 1920 × 1080 wide (`ox = 636`, column 360 wide, Settings at x 1349).
 ### 6.6 Overlays
 
 Overlays are exempt from the keep-clear rule while open (Decision Q2) but are placed to avoid the flame and halo wherever there is room. Wide: in the free side columns (the stage is not touched at all). Compact: the snuff dialog is anchored to the top and no taller than the space above the halo's highest point (178 px at 360 × 640), so it covers the window and the upper pool but never the flame or the halo, at any wax height. The settings panel is taller (a heading, two switches, the length chooser and a Close button: about 280 px at 360 × 640) and may cover the upper candle; it is a deliberate, brief visit. The room behind is not dimmed or blurred, and the candle keeps burning and redrawing behind and under the dialogs.
@@ -543,11 +538,14 @@ Overlays are exempt from the keep-clear rule while open (Decision Q2) but are pl
 
 ### 6.8 The check, and the property that keeps it true
 
-Before this design was written, the placement rules above were run as a throwaway script over **882,601 viewports** (every width 360 to 2560 and every second height 640 to 1440): every control was inside the viewport, at least 44 px, at least 4 px from every other control, at least 6 px from the keep-clear column, at least 1 px from the window pane, with the setup controls above the floor line and the running controls inside the zone, and the compact intent field at least 120 px wide. There were no violations, after one rule was relaxed (the compact intent field may be 120 px wide in the fallback case; it is 292 px at 360 × 640). The script is not kept. **P10** (`layout.prop.test.ts`) is that check as a permanent property, plus the exact rectangles of 6.5 and the comparison of the constants with `src/scene/constants.ts`. E3 and E14 repeat it in a real browser against the rectangles of `.candle`, `.flame-shape`, `.halo` and `.zone-text-area` read from the page.
+The placement rules above were run as a throwaway script over **882,601 viewports** (every width 360 to 2560 and every second height 640 to 1440), with the review's two changes in. For every viewport: every rectangle is inside the viewport; every control is at least 44 px in both directions; every pair that is on screen together keeps at least 4 px; every setup control keeps 6 px from the keep-clear column and 1 px from the window pane and is above the floor line; the chooser is above the intent field and the intent field comes before Light in reading order; every zone control, the time text and the status line are wholly inside the zone, in the order Pause, Let it go dark, Settings from left to right; the time text is inside the text area; the status line never touches a button; and the status line never leaves the viewport. **There were no violations.** Measured minima over the whole range: the status line while running is 136 px wide (at 360 × 640 and every phone width), at rest 240 px; the compact intent field is 128 px (at 360 × 640; 176 px in the `left-region` variant at 480 × 800).
 
-Two findings of the check are written down because they change how the requirements are read:
-- The pool cannot be kept clear above the floor line (6.2), so the pool rule applies to the zone and the setup controls, with the Settings button as the one exception (6.4).
-- The top row for the intent field needs the window pane to start at least 50 px below the viewport top (`oy + 50 s >= 50`). That holds at 360 × 640, 375 × 667, 768 × 1024 and every taller phone. On a stage limited by height in a narrow viewport (for example 480 × 800, 600 × 800 or 900 × 800) the pane starts higher, and the intent field falls back to the left region (at least 120 px wide, 176 px at 480 × 800). Wide viewports (at least 360 px free on each side) use the side column instead.
+The first run found two things that were then fixed in the rules: the wide time text was 44 px even where the zone is only 64 px tall (1104 × 640), so `timeSize` is now `clamp(zoneH − 28, 32, 44)` there; and the wide status line at rest was only the text area wide, too narrow for the first-visit line, so it is now bounded by `M` and Settings. The script is not kept. **P10** (`layout.prop.test.ts`) is that check as a permanent property, plus the exact rectangles of 6.5, the Tab-order check, and the comparison of the constants with `src/scene/constants.ts`. E3 and E14 repeat it in a real browser against the rectangles of `.candle`, `.flame-shape`, `.halo` and `.zone-text-area` read from the page.
+
+What the check shows about the requirements:
+- Because the pool never enters the zone (6.4), putting the Settings opener in the zone removes the only exception the first design had, at no cost to the other controls.
+- The top row for the chooser needs the window pane to start at least 50 px below the viewport top (`oy + 50 s >= 50`). That holds at 360 × 640, 375 × 667, 768 × 1024 and every taller phone. On a stage limited by height in a narrow viewport (480 × 800, 600 × 800, 900 × 800) the pane starts higher, and the chooser becomes a 2 × 2 grid in the region left of the window (the `left-region` variant). Wide viewports use the side column.
+- The compact intent field is narrow (128 px at 360 × 640) because the window pane sits between it and Light. It scrolls its text; the engine keeps the first 80 characters whatever the field shows.
 ## 7. The time text and the status line
 
 ### 7.1 The time text
@@ -559,13 +557,13 @@ Two findings of the check are written down because they change how the requireme
 | `burned-out`, `snuffed` | `00:00` | `formatTime(0)` |
 
 - The element is `div#time[role="timer"]`. `role="timer"` has an implicit `aria-live="off"`, so a screen reader reads it when visited and does not read it every second (R9.1). Its text is the digits; the words come from the live region and the T key.
-- It lies in the text area (6.5), is `timeSize` px high (36 compact, 44 wide), bold, with `font-variant-numeric: tabular-nums` so digits do not jitter, and uses `--ui-text` (ivory).
+- It lies in the text area (6.5), is `timeSize` px high (36 compact; 32 to 44 wide, by the zone height, 6.3), bold, with `font-variant-numeric: tabular-nums` so digits do not jitter, and uses `--ui-text` (ivory).
 - It is written only when the string changes (`apply` compares), which is once a second in a running session and never in a paused one.
 - It is the same value the page title will show; `sound-and-title` calls `formatTime`.
 
 ### 7.2 The status line
 
-One line, 16 px, `--ui-text`, centred, cut with an ellipsis (`text-overflow: ellipsis; white-space: nowrap; overflow: hidden`); the full text remains in the DOM for screen readers. By phase, first match wins:
+Centred on the candle's axis, 16 px, `--ui-text`, cut with an ellipsis (`text-overflow: ellipsis; overflow: hidden`); the full text remains in the DOM for screen readers. While Pause and Let it go dark are shown it is **one line and narrow** (136 px at 360 × 640, 6.5); in `idle` and the ended phases it is wider (240 px at 360 × 640, 656 px at 1280 × 800) and, at the compact size when the zone is at least 80 px tall, **up to two lines** (`-webkit-line-clamp: 2`), so the first-visit instructions fit. By phase, first match wins:
 
 | Condition | Kind | Text (key in `strings.ts`) |
 |---|---|---|
@@ -593,7 +591,7 @@ The refusal clears as soon as the custom text becomes valid or a preset is chose
 | Light | `button#light[type=submit]` | `light.light` / `light.again` | `light` |
 | Pause / Resume | `button#pause` (icon in the compact layout, labelled in the wide one; the accessible name is always the text) | `pause.pause` / `pause.resume` | `toggle-pause` |
 | Let it go dark | `button#snuff`, same | `snuff.open` | `open-snuff` |
-| Settings | `button#settings-button[aria-haspopup=dialog]` | `settings.open` | `open-settings` |
+| Settings | `button#settings-button[aria-haspopup=dialog]`, in the floor-band zone, the rightmost zone control | `settings.open` | `open-settings` |
 | Dialog buttons | `button#keep`, `button#confirm` | `snuff.keep`, `snuff.confirm` | `keep-burning`, `confirm-snuff` |
 | Switches | `button[role=switch][aria-checked]` | `settings.sound`, `settings.ghosts` | `settings-change` |
 | Close | `button#close` | `settings.close` | `close-settings` |
@@ -603,7 +601,7 @@ The refusal clears as soon as the custom text becomes valid or a preset is chose
 - Roving tabindex: the selected stop has `tabindex="0"` and the others `-1`, so the group is one Tab stop. When the custom stop is selected, the text input is the stop.
 - On the radios: Left and Up select the previous stop, Right and Down the next, wrapping (`nextChoice`); Home and End are not handled. Selecting moves focus with the selection (the standard radio group). In the custom text input: Up and Down leave it to the previous or next stop; Left and Right move the caret; typing selects the custom stop.
 - The selected stop shows `aria-checked="true"`, a heavier border and a check mark glyph in the compact cell, so the choice is not colour alone.
-- The custom input is 54 px wide in the compact layout (a two- or three-digit number); its `placeholder` is the unit abbreviation from `strings.ts`; `maxlength` is 3.
+- The custom input is a chooser cell like the others: 80 px wide in the compact `top-row` variant (a two- or three-digit number with room to spare), 54 px in the `left-region` variant, about 82 px in the wide layout. Its `placeholder` is the unit abbreviation from `strings.ts`; `maxlength` is 3.
 - Invalid custom text (only after the user has typed in it or pressed Light): `aria-invalid="true"`, a visible error border (shape: a double border and a "!" glyph), and `aria-describedby="status"`. The message itself is in the status line (7.2).
 
 ### 8.3 The intent field
@@ -631,7 +629,7 @@ The refusal clears as soon as the custom text becomes valid or a preset is chose
 
 ### 8.7 The Settings button
 
-A 44 px square icon button with the accessible name "Settings", in the top-right corner in both layouts (the rectangles in 6.5).
+In the floor-band zone, the rightmost zone control, always shown (review change 1, D14): an icon button `44 × 44` with the accessible name "Settings" in the compact layout, a labelled `96 × 44` button in the wide layout (the rectangles in 6.5). It does not move between phases.
 
 ### 8.8 What is not a control
 
@@ -734,7 +732,7 @@ Thresholds are `L · 0.75`, `L · 0.5`, `L · 0.25` (L the length in ms) and `60
 | Settings opened | the Sound switch | `uiStep` `open-settings` |
 | Settings closed | `#settings-button` (or the held `pendingFocus`) | `uiStep` `close-settings` |
 | Light refused | `#custom` | `uiStep` `light` |
-| Tab order | chooser → intent → Light → Pause or Resume → Let it go dark → Settings | DOM order (12.2) |
+| Tab order | chooser → intent → Light (idle, ended); Pause or Resume → Let it go dark (running); Settings last: equal to the visual order in every layout | DOM order = reading order (12.2) |
 
 The scripted keyboard walk of E4 checks, after every key, that `document.activeElement` is a visible, connected element inside the viewport (or the document at load), and that the focus ring is drawn (12.1).
 
@@ -799,10 +797,16 @@ Text sizes: body and status 16 px, buttons 16 px, time 36 px (compact) or 44 px 
 
 **Focus ring.** `:focus-visible { outline: 3px solid var(--ui-focus); outline-offset: 3px }` on every control; `outline: none` is never used without a replacement (a unit test scans the CSS). It is also applied to programmatic focus moves (`:focus-visible` matches after keyboard use; after a pointer action the browser does not draw it, which is the standard). No ancestor has `overflow: hidden` around a control (the top row, the chooser and the zone buttons are direct children of `#ui`). The ring is 3 px plus the 3 px offset, so on a 44 px target the visible indicator is 56 px; the 4 px minimum gap of R8.6 is measured between controls, and the ring may touch a neighbour's ring without hiding it (the gap in the layout is 8).
 
-### 12.2 Tab order
+### 12.2 Tab order equals the visual order
 
-DOM order is the Tab order: `#length` (one stop), `#intent`, `#light` (setup, hidden while running); `#pause`, `#snuff` (running, hidden otherwise); `#settings-button`. That is the order of the task: choose, say what it is for, light. In the compact layout the intent field is drawn above the chooser, so the order is not the top-to-bottom order there. This is accepted: the order is logical and stable, nothing is trapped, and the group of controls is small. If the reviewer asks for visual order, the alternative is to put the intent field first in the DOM; that changes this table and the first-visit instructions only.
+Review change 2 (D15). DOM order is the Tab order, and it is also the visual reading order (top to bottom, then left to right) in every layout:
 
+| Phase | Visual order = Tab order |
+|---|---|
+| `idle`, `burned-out`, `snuffed` | `#length` (one stop: the selected cell or the custom field), `#intent`, `#light`, then `#settings-button` (in the zone, last) |
+| `lit`, `paused` | `#pause`, `#snuff`, `#settings-button` (left to right in the zone) |
+
+In the compact `top-row` variant the chooser row is at the top, the intent field and Light are on the next row (intent on the left), and the zone is below, so the reading order is chooser, intent, Light, then the zone. In the `left-region` variant the chooser grid is first, the intent field and Light are on the row under it, intent on the left. In the wide layout the order is the column, top to bottom, then the zone. Within the chooser, arrow keys move between the stops in the reading order of the cells (left to right, and in the 2 × 2 grid row by row). The requirement is checked two ways: P10 compares the DOM order of the visible controls with the order of their rectangles (sorted by row, then column), and E4 presses Tab through every state at 360 × 640 and 1280 × 800 and compares the focus order with the rectangles read from the page. There is no focus trap except in an open overlay, and no positive `tabindex`.
 ### 12.3 Motion
 
 Outside reduced motion, the only transitions are: the dialogs' fade (120 ms opacity), the switches' knob (120 ms), and a button's pressed state (80 ms). No transition touches the time text or the status line. Under `prefers-reduced-motion: reduce`, `#ui, #ui * { transition: none !important; animation: none !important }` is the first rule of the stylesheet, so the still version holds before any script runs (R13.1).
@@ -844,7 +848,7 @@ Dark, soft, ivory: controls are rounded 10 px rectangles with a 2 px light borde
 | P7 | `src/ui/announcer.prop.test.ts` | generated sessions, call-time sets (every second, every frame, a few, long gaps) containing at least one call after each engine event |
 | P8 | `src/ui/ui-state.prop.test.ts` | engine scripts with UI-only inputs interleaved, compared by deep equality |
 | P9 | `src/engine/selectors.prop.test.ts` | engine scripts and probe times, as in section 2 |
-| P10 | `src/ui/layout.prop.test.ts` | integer viewports from 360 × 640 to 2560 × 1440, plus the four named sizes |
+| P10 | `src/ui/layout.prop.test.ts` | integer viewports from 360 × 640 to 2560 × 1440, plus the four named sizes; every rule of 6.8 (including no persistent control above the floor line while a session runs, and Tab order = visual order) |
 
 Shared generators and the reference model of the UI are in `src/ui/test-kit.ts`, test-only.
 
@@ -864,7 +868,7 @@ Setup: the fixtures of `e2e/scene-fixtures.ts` (stored sessions built with the e
 
 **E1b (touch, 360 × 640).** A context with `hasTouch`. Tap the 25 stop's neighbour (50) and Light; the same checks as E1 through taps on the icon buttons: tap the pause icon (paused), tap it again (resumed), tap the snuff icon (dialog), tap **Keep burning**, tap the snuff icon, tap **Snuff it**; tap Light another. At each step the rectangles of the visible controls equal the table of 6.5 within 1 px, and each is at least 44 × 44.
 
-**E3/E14 (layout).** For each viewport and phase the page's rectangles for `#intent`, `#length`, `#light`, `#pause`, `#snuff`, `#settings-button`, `#time`, `#status` and the dialogs are compared with `placeControls`; none intersects the rectangles of `.candle`, `.flame-shape`, `.halo` or the window pane (read from the page); the time text is wholly inside `.zone-text-area`; there is no scrollbar; the dialog, when open, leaves the flame and halo uncovered at the compact size for the whole range of wax heights (checked at `lit-start`, `lit-half`, `lit-last-minute`) and is allowed to cover them only in the settings panel case.
+**E3/E14 (layout).** For each viewport and phase the page's rectangles for `#intent`, `#length`, `#light`, `#pause`, `#snuff`, `#settings-button`, `#time`, `#status` and the dialogs are compared with `placeControls`; none intersects the rectangles of `.candle`, `.flame-shape`, `.halo` or the window pane (read from the page); the time text is wholly inside `.zone-text-area`; there is no scrollbar; while a session runs no control rectangle is above the floor line; the dialog, when open, leaves the flame and halo uncovered at the compact size for the whole range of wax heights (checked at `lit-start`, `lit-half`, `lit-last-minute`) and is allowed to cover them only in the settings panel case.
 
 **E6 (accessibility).** `locator.ariaSnapshot()` of `#ui` and of each dialog is compared with a hand-written expected snapshot per state; the live log of a whole 25-minute session is compared with the list of 9.2, once with one-second steps and once with the clock jumped in one run; the scene's label never contains a digit.
 
@@ -872,7 +876,7 @@ Setup: the fixtures of `e2e/scene-fixtures.ts` (stored sessions built with the e
 
 ### 13.4 Mutation checks (at the wrap-up, as in the earlier specs: apply, run the suite, revert in a `finally`, record in `KIRO_USAGE.md`)
 
-`formatTime` rounds down instead of up (P1); `parseLength` accepts `+25` or `25.0` (P2); `keyAction` ignores `repeat` (P4); `keyAction` maps Esc to a snuff (P4, P5); `uiStep` keeps the dialog open after the phase ends (P5); the announcer announces every minute (P7); the announcer forgets `done` after a pause (P7); `parseSettings` keeps an invalid default length (P6); `pauseLeftMs` loses its clamp, or uses `>` for `>=` (P9); the Light button's rectangle is moved into the window (P10); the intent is put in with `innerHTML` (the purity test); `T` announces while a text field has focus (P4, E13); the dialog's initial focus is the confirm button (E1, E4).
+`formatTime` rounds down instead of up (P1); `parseLength` accepts `+25` or `25.0` (P2); `keyAction` ignores `repeat` (P4); `keyAction` maps Esc to a snuff (P4, P5); `uiStep` keeps the dialog open after the phase ends (P5); the announcer announces every minute (P7); the announcer forgets `done` after a pause (P7); `parseSettings` keeps an invalid default length (P6); `pauseLeftMs` loses its clamp, or uses `>` for `>=` (P9); the Light button's rectangle is moved into the window (P10); the Settings button is put back above the floor line (P10, E14); the chooser is drawn below the intent field, or the DOM order differs from the visual order (P10, E4); the intent is put in with `innerHTML` (the purity test); `T` announces while a text field has focus (P4, E13); the dialog's initial focus is the confirm button (E1, E4).
 
 ## 14. Screenshots
 
@@ -918,7 +922,7 @@ That is 15 new files (7 screens at two sizes, plus the reduced-motion dialog) an
 
 Files: section 1.3, plus `e2e/scene.spec.ts` (one test), `e2e/controls*.spec.ts`, `e2e/controls-fixtures.ts`, `docs/screenshots/*`, `.kiro/steering/structure.md` (the `ui/` folder and the settings key, at the wrap-up), `KIRO_USAGE.md`, and the session-engine Decisions (done).
 
-Suggested order for the tasks (they are written after this design is approved): (1) the engine selector and its tests; (2) the pure modules with their properties, in the order format, length, light, keys, ui-state, announcer, layout, settings; (3) strings; (4) the view model; (5) the DOM layer and the stylesheet; (6) `main.ts` wiring; (7) the e2e tests; (8) the screenshots and looking at each; (9) the mutation checks; (10) the `costume-reviewer` run on the finished interface (R15.5); (11) wrap-up.
+The order of work is in `tasks.md`: (1) the engine selector and its tests; (2) the pure modules; (3) strings and the view model; (4) the DOM layer and the stylesheet; (5) `main.ts` and the visibility wiring; (6) one required task per property; (7) the e2e groups and the zone-clear test change; (8) the screenshots; (9) the mutation checks and the `costume-reviewer` run; (10) wrap-up.
 
 ## 17. Decisions
 
@@ -926,13 +930,15 @@ The review answers Q1 to Q8 are in `requirements.md` Decisions. These are the de
 
 - **D1. The pure/thin split with a view model.** Everything that decides is pure and property-tested; the DOM layer copies a `ViewModel` and routes events. Reason: Vitest has no DOM library and none is to be added (R1.9).
 - **D2. Layout by computation, not by CSS breakpoints.** `placeControls(vw, vh)` returns pixel rectangles from the scene's own scaling rule, and the DOM layer writes them as custom properties. Reason: the controls must avoid rectangles that depend on the SVG's `meet` scaling, which CSS media queries cannot express; a pure function can be property-tested over every viewport (P10).
-- **D3. The Settings corner button may overlap the pool** on phones (6.4). This follows from Q1 and is the only place the pool rule is not met; the fallback is written down.
-- **D4. The custom-length error goes in the status line**, not beside the field, because the upper room has no space for a message next to a 54 px field (Q1), and it is also announced once through the live region.
+- **D3. Superseded by D14.** The first design let a Settings corner button overlap the pool on phones; the review removed that exception.
+- **D4. The custom-length error goes in the status line**, not beside the field, because the upper room has no space for a message next to a field that is 54 to 128 px wide (Q1), and it is also announced once through the live region.
 - **D5. Native `<dialog>` with `showModal()`** for the snuff dialog and the settings panel: inert background, focus containment and the dialog role come from the browser; Esc is routed through the state machine so there is one path.
 - **D6. Light is never disabled.** An invalid length is a refusal with a message, a focus move and an announcement; a disabled button would give no reason.
-- **D7. Tab order is the order of the task**, not the visual order, in the compact layout (12.2).
+- **D7. Superseded by D15.** The first design accepted a Tab order that differed from the visual order in the compact layout; the review removed that.
 - **D8. Announcement frequency is state changes, four milestones per session and on request**; nothing per second or per minute; the first call after a load says the state once. The T key repeats even identical text by clearing the region for one frame (4.4).
 - **D9. The time text rounds up.** A candle with 0.4 s left reads `00:01`, and `00:00` means the time is up. The page title will use the same text.
 - **D10. `pauseLeftMs` reuses the engine's own `pauseLimitAt`**, so the allowance shown and the instant of the snuff cannot disagree.
 - **D11. No change to the scene.** Its geometry is copied into `layout.ts` as constants and guarded by a test that reads `src/scene/constants.ts`, so a later scene change fails loudly instead of silently putting a control over the flame.
 - **D12. Coordination with `ghosts-and-graveyard`.** The left edge band below y = 300 units is the door's slot. In the ended phases the setup controls are on screen while that session's ghosts may still be; the ghosts spec must keep ghosts clear of the control rectangles (`Placement`), or hide them while the controls are shown. This spec exports `placeControls` for it.
+- **D14. Design review change 1: the Settings opener is a zone control.** It sits in the floor-band zone with the time text, Pause or Resume and Let it go dark, rightmost, in every phase and at every size (6.3, 6.5). So no persistent control is ever in the light pool, at any size or wax height, and the pool rule has no exception (R8.4). Re-checked at 360 × 640 with 44 px targets: the zone is 80 px tall, the three buttons are 44 × 44 at y 578..622 (x 8..52, 256..300, 308..352), the time text is 36 px, centred at x 180, and the status line is one line 136 px wide while the buttons are shown and up to two lines 240 px wide at rest. At 1280 × 800 the buttons are labelled and Settings is at x 976..1072. The cost is the narrower status line while running (it was 228 px), so a long intent is cut short with an ellipsis (the full text stays for screen readers). The pool analysis of the first design (6.4) is dropped.
+- **D15. Design review change 2: Tab order equals the visual order in every layout.** In the compact layout the length chooser is drawn above the intent field, as in the wide layout, so the reading order is chooser, intent, Light, then the zone controls (12.2, 6.3). Two compact variants keep that order: `top-row` (the chooser is a row of four cells across the top) and `left-region` (a 2 × 2 grid on the left, for stages limited by height). The cost is a narrow compact intent field (128 px at 360 × 640, 176 px at 480 × 800), because the window pane sits between it and Light; the field scrolls its text, and the engine keeps the first 80 characters. The order is checked by P10 (rectangles against the DOM order) and E4 (Tab through the real page).
