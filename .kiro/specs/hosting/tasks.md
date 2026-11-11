@@ -4,7 +4,7 @@ Implements `design.md` against `requirements.md` in this folder. Work the tasks 
 
 Conventions for every task:
 
-- TypeScript strict, no `any`, exact dependency versions. The only new dependency allowed is `yaml` (task 4), pinned exactly, and only if Point for review P3 is accepted.
+- TypeScript strict, no `any`, exact dependency versions. The only new dependency allowed is `yaml` (task 4), pinned exactly (Decision P3, accepted).
 - Tests are colocated or live in `e2e/` per `.kiro/steering/structure.md`. Nothing in this spec changes `src/engine/`, `src/scene/`, `src/distraction/`, `src/storage/` or `main.ts`.
 - A task is done only when `npm run verify` passes (type-check and lint, unit tests, build, e2e). Tasks 9 to 14 also need a live site; their "done when" says so.
 - **Agents never create, change or delete a Render resource and never hold a Render account or token (R11.1).** Steps marked **[owner]** are done by the repo owner in the Render dashboard.
@@ -15,20 +15,22 @@ Build order note: the Blueprint comes before its tests (tasks 2 and 3 before 4),
 
 ## Tasks
 
-- [ ] 1. Verify the Render facts (design section 0)
-  - Open Render's Blueprint reference and its static-site and header documentation (from a session that can reach them, or from the owner's browser), or run Render's own Blueprint validator on the draft file from the design if the CLI is available. Settle each **[verify]** row: `type: web` with `runtime: static`; `branch`; `autoDeployTrigger: commit` (or the current field name); `pullRequestPreviewsEnabled`; whether `plan: free` is accepted on a static site; `NODE_VERSION` (does Render accept `22.23.4`, or only `22`?); header `path` matching with `*`; what happens when two rules match one path; whether Render adds its own `Cache-Control` or `Strict-Transport-Security`; the free plan's limits on bandwidth and build minutes; and that a failed build keeps the last deploy live.
-  - Edit `design.md` section 0: replace each **[verify]** with the verified fact and its source link, or with "still unverified" and the reason. Change the YAML in section 2 to match. If a fact contradicts a requirement, stop and report it instead of editing the requirement.
-  - Run `npm view yaml version` and note the exact version for task 4.
+- [ ] 1. Confirm the `headers` block (design section 0)
+  - Most Render fields are already verified by a working sibling Blueprint (design section 0, Decision P7): `type: web`, `runtime: static`, `branch`, `autoDeployTrigger: commit`, the `&&` build chain, `staticPublishPath`, `NODE_VERSION: "22"`, no `plan`, no `routes`. Do not re-check them.
+  - Confirm only these, from Render's Blueprint reference and static-site header documentation (from a session that can reach them, or from the owner's browser), or with Render's Blueprint validator if the CLI is available:
+    1. The `headers` block syntax: a list of entries with `path`, `name` and `value`, and how `*` matches in `path` (does `/*` cover `/`; does `/assets/*` cover `/assets/x.js`; is a path without `*` an exact match).
+    2. How several header rules for the same path combine: when two matching rules set the same header name, which wins, or are both sent; and whether Render adds its own value for `Cache-Control` or `Strict-Transport-Security`.
+  - Edit `design.md` section 0: replace the two "Task 1 confirms" rows with the confirmed facts and a source link, or with "still unverified" and the reason. If the matching rule differs from section 6.1, change 6.1. If the combine rule makes the Blueprint in section 2 wrong (for example `/*` and `/assets/*` would both send a header), change the YAML in section 2 and say so. If a fact contradicts a requirement, stop and report it instead of editing the requirement.
   - Files: `.kiro/specs/hosting/design.md` only.
-  - Requirements: R1.2, R2, R3.4, R5.4, R6.4, R12.1. Properties: none.
-  - Done when every **[verify]** row has an answer or an honest "unverified", and `npm run verify` still passes.
+  - Requirements: R5.1, R5.4, R6.4. Properties: none.
+  - Done when both items are answered or honestly marked unverified, section 2 matches, and `npm run verify` still passes.
 
 - [ ] 2. The Blueprint: service, build and publish
-  - Create `render.yaml` at the repo root from design section 2, **without** the `headers` list yet: one `type: web`, `runtime: static` service named `candlewatch`, `branch: main`, auto-deploy on commit, previews off, the exact build command, `staticPublishPath: dist`, and the two environment variables. Apply the answers from task 1 (the plan line, the Node version form).
-  - Do not add `routes`, `repo`, a disk, a database or any other key.
+  - Create `render.yaml` at the repo root from design section 2, **without** the `headers` list yet: one `type: web`, `runtime: static` service named `candlewatch`, `branch: main`, `autoDeployTrigger: commit`, previews off, the exact build command, `staticPublishPath: dist`, and the two environment variables (`NODE_VERSION` with the value `"22"`, and `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD` with `"1"`). Write no `plan` field.
+  - Do not add `plan`, `routes`, `repo`, a disk, a database or any other key.
   - Files: `render.yaml`.
   - Requirements: R1.1, R1.2, R1.3, R1.6, R2.1, R2.2, R3.1, R3.2, R3.4, R4.1, R7.1. Properties: none.
-  - Done when `npm run verify` passes and the file validates (task 1's validator, or a careful read if none was available; say which).
+  - Done when `npm run verify` passes and the file is checked against the sibling Blueprint's shape (same field names and the same `NODE_VERSION` form), and, if task 1 used a validator, against that validator too (say which).
 
 - [ ] 3. The Blueprint: security and cache headers
   - Add the `headers` list from design sections 2 and 5 to `render.yaml`: the eight security headers on `/*`, and `Cache-Control` on `/assets/*`, `/` and `/index.html`. `/*` must not set `Cache-Control` (R6.4). Quote the CSP value.
@@ -38,9 +40,9 @@ Build order note: the Blueprint comes before its tests (tasks 2 and 3 before 4),
   - Done when `npm run verify` passes.
 
 - [ ] 4. Blueprint parser and the configuration test
-  - Run `npm install --save-exact --save-dev yaml@<version from task 1>` and commit the lock file change. (If P3 was declined, skip the dependency and write the test as text matching instead, and say so.)
+  - Run `npm view yaml version`, then `npm install --save-exact --save-dev yaml@<that version>`, and commit the lock file change (Decision P3, accepted).
   - Create `src/hosting/blueprint.ts` (test-only, never imported by shipped code): `readBlueprint()` reads `render.yaml` from the repo root and parses it; `headersFor(blueprint, pathname)` returns every header whose `path` matches, using the matching rule verified in task 1.
-  - Create `src/hosting/render-blueprint.test.ts` with the assertions in design 6.2: the service fields; plan absent or `free`; no extra top-level keys; the exact build command and its absences (`verify`, `e2e`, `playwright`, `||`); exactly the two environment variables with no `sync: false` and no secret-looking name or value; the exact security header table; the cache rules; at most one `Cache-Control` rule per sample path; a CSP made only of `'self'` and `'none'` with no `unsafe-*` and no `*`; no `routes`.
+  - Create `src/hosting/render-blueprint.test.ts` with the assertions in design 6.2: the service fields; `plan` absent; `NODE_VERSION` exactly `"22"`; no extra top-level keys; the exact build command and its absences (`verify`, `e2e`, `playwright`, `||`); exactly the two environment variables with no `sync: false` and no secret-looking name or value; the exact security header table; the cache rules; at most one `Cache-Control` rule per sample path; a CSP made only of `'self'` and `'none'` with no `unsafe-*` and no `*`; no `routes`.
   - Add example tests for `headersFor`: `/` matches `/*` and `/`; `/assets/index-abc.js` matches `/*` and `/assets/*`; `/index.html` matches `/*` and `/index.html`; `/other` matches only `/*`.
   - Mutation check: change the build command to `npm run verify`, remove one security header, add a second `Cache-Control` rule for `/assets/*`, add `unsafe-inline` to the CSP and add a `routes` entry. Each must fail the test. Revert each, and say so.
   - Files: `package.json`, `package-lock.json`, `src/hosting/blueprint.ts`, `src/hosting/render-blueprint.test.ts`.
@@ -70,13 +72,13 @@ Build order note: the Blueprint comes before its tests (tasks 2 and 3 before 4),
   - Case 1: a fresh page draws the idle scene (`data-flame="unlit"`, `--wax-height` 1), with no violation, no console error and no failed request, and the real hashed script and `/` carry the cache values from the Blueprint.
   - Case 2: seed a lit session with the existing helpers in `e2e/scene-fixtures.ts` (built with `serializeSession`, never hand-written JSON) and confirm `data-flame="steady"`. This exercises `style.setProperty` and animation frames under the policy.
   - Case 3 (negative control): rewrite `script-src` to `'none'` in the applied headers and confirm that at least one violation is recorded and the scene does not draw.
-  - If case 1 or 2 finds a real violation, stop and report it with the directive and the blocked URI. Do not loosen the policy to make it pass; report which of the code or the policy should change (Point for review P5).
+  - If case 1 or 2 finds a real violation, stop and report it with the directive and the blocked URI. Do not loosen the policy to make it pass; report which of the code or the policy should change (Decision P5).
   - Files: `e2e/headers-local.spec.ts`.
   - Requirements: R5.3, R5.5, R8.3, R8.4. Properties: none.
   - Done when `npm run verify` passes.
 
 - [ ] 8. Dry-run the exact Render build
-  - In a clean copy of the repo (`git worktree` or a fresh clone in a temporary folder, never in the working tree), run with the Node version from the Blueprint if it can be had, otherwise say which version ran: `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm ci && npm run check && npm test && npm run build`.
+  - In a clean copy of the repo (`git worktree` or a fresh clone in a temporary folder, never in the working tree), run with a Node 22 (the Blueprint says `"22"`, the major only; record the exact version that ran): `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm ci && npm run check && npm test && npm run build`.
   - Confirm: no browser download happened (no "Downloading" lines, nothing new under the Playwright browser cache); `dist/` holds `index.html` and `assets/` with hashed names and nothing else (list it); every `assets/` file name contains a hash (R6.5); the whole command exits 0. Record the time of each step and the number of unit tests (R3.6).
   - Then break each of `check`, `test` and `build` on purpose in the clean copy (one type error, one failing test, one missing import), confirm the command exits non-zero at that step and later steps do not run, and discard the copy.
   - Files: none (a report). Add the timings to `design.md` section 3 as one sentence.
@@ -86,7 +88,7 @@ Build order note: the Blueprint comes before its tests (tasks 2 and 3 before 4),
 - [ ] 9. **[owner]** Create the service from the Blueprint
   - Merge the pull request with tasks 1 to 8 into `main` first, so Render reads the final `render.yaml`.
   - Follow design section 9: connect Render to `UBayouski/Candlewatch`; New, Blueprint; branch `main`; check the preview shows one free static site named `candlewatch` with auto-deploy on, previews off and the exact build command; apply; wait for the first deploy.
-  - Report back to the agent: the service URL, whether it is `https://candlewatch.onrender.com`, the plan shown in the dashboard, and the build time and result of the first deploy.
+  - Report back to the agent: the service URL, whether it is `https://candlewatch.onrender.com`, the plan shown in the dashboard, the build time and result of the first deploy, whether the build log shows `npm ci` finishing and no browser download, whether Render accepted `pullRequestPreviewsEnabled` (the one field the sibling evidence does not cover), and any bandwidth or build-minute limit the dashboard shows.
   - If the URL differs, say so; the agent records it (R1.5) and uses the real URL in tasks 10 and 11.
   - Files: none.
   - Requirements: R1.5, R2.1, R2.2, R11.2. Properties: none.
@@ -102,7 +104,7 @@ Build order note: the Blueprint comes before its tests (tasks 2 and 3 before 4),
   - Done when `npm run smoke` passes against the live URL with groups A, B and C all run (none skipped), and the result is in `KIRO_USAGE.md`.
 
 - [ ] 11. README "Live" section and Status
-  - Only now (R10.1), add the "Live" section to `README.md` from design section 8, with the real URL, and update the Status section so that it says only what is deployed on this day. Remove "There is no live URL yet." Keep to plain, short sentences, no trademarks beyond the single provider mention (Point for review P2), and the naming rule in `product.md` ("focus session").
+  - Only now (R10.1), add the "Live" section to `README.md` from design section 8, with the real URL, and update the Status section so that it says only what is deployed on this day. Remove "There is no live URL yet." Keep to plain, short sentences, no trademarks beyond the single provider mention (Decision P2), and the naming rule in `product.md` ("focus session").
   - Add `smoke` to the README's script list with one line on what it does, and mention `render.yaml` in "How it is built" if it fits in one sentence.
   - Files: `README.md`.
   - Requirements: R10.1 to R10.5. Properties: none.

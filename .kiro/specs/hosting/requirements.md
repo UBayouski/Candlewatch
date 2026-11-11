@@ -2,7 +2,7 @@
 
 Source: `docs/BRIEF.md` section 8 (static site, no backend, no API keys, no AI calls at run time, free and always on until Jan 29, 2027) and section 11 item 7 (`hosting`: static build and free deploy). Constrained by `.kiro/steering/product.md`, `tech.md`, `structure.md` and `scene.md`, and by `package.json` (scripts `build`, `check`, `test`, `e2e`, `verify`; Node 22 or newer; exact dependency versions).
 
-Status: **draft for review.** Requirements only. Design and tasks follow in this folder, in the same pull request.
+Status: **review answers applied** (see Decisions in `design.md` section 13). Requirements, design and tasks are in this folder.
 
 ## Introduction
 
@@ -33,7 +33,7 @@ This spec writes no application code. It adds the Blueprint, tests that keep the
 **User story:** As the maintainer, I want the whole hosting setup in the repo, so that I can recreate it and review it like code.
 
 1. A file `render.yaml` at the repo root SHALL define exactly one service. It SHALL be a Render static site (`type: web` with `runtime: static`), named `candlewatch`.
-2. The service SHALL use a free plan and no paid add-on, disk, database, worker, cron job or environment group. If a plan field is accepted for static sites, it SHALL say `free`; otherwise it SHALL be absent.
+2. The service SHALL use the free static-site tier and no paid add-on, disk, database, worker, cron job or environment group. The Blueprint SHALL have no `plan` field (a static site needs none; the working sibling Blueprint has none, Decision P7).
 3. The service SHALL have no backend, no API keys and no secrets. It SHALL define no environment variable with `sync: false`, and no variable whose name or value looks like a key, token or password. The only variables allowed are those listed in R3.4.
 4. Nothing in the app SHALL call a network service at run time: no `fetch`, no `XMLHttpRequest`, no `WebSocket`, no `sendBeacon`, no `EventSource`, no analytics and no external font, script or style. Every request the page makes SHALL go to its own origin (brief section 8; R9.3).
 5. The expected URL is `https://candlewatch.onrender.com`. WHEN Render gives a different URL (for example because the name is taken), THE actual URL SHALL replace it everywhere it is written (README, smoke test default, this spec), and the difference SHALL be recorded.
@@ -56,7 +56,7 @@ This spec writes no application code. It adds the Blueprint, tests that keep the
 2. The build command SHALL NOT run `npm run verify`, `npm run e2e`, `playwright test` or `playwright install`, and SHALL NOT download browsers.
 3. The build SHALL work from a clean checkout with only the files in the repo and the npm registry. `npm ci` SHALL be used (not `npm install`) so that the lock file decides every version.
 4. The Blueprint SHALL set these environment variables and no others:
-   - `NODE_VERSION`: an exact Node 22 version, because `package.json` says `engines.node >= 22`.
+   - `NODE_VERSION` set to `"22"`, because `package.json` says `engines.node >= 22`. It names the major version only, as in the working sibling Blueprint (Decision P7); Render picks the current 22.x. `npm ci` and the lock file fix every dependency version.
    - `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD` set to `1`, so that no browser download can happen even if a future Playwright version asks for one on install.
 5. WHEN any of `npm run check`, `npm test` or `npm run build` fails, THE deploy SHALL fail (R2.3). No step SHALL be followed by `|| true` or similar.
 6. The build time and the number of tests it runs SHALL be recorded once after the first deploy, so a later slowdown can be noticed.
@@ -86,7 +86,7 @@ This spec writes no application code. It adds the Blueprint, tests that keep the
    | `Cross-Origin-Resource-Policy` | `same-origin` |
    | `Strict-Transport-Security` | `max-age=31536000` |
 
-2. The Content Security Policy SHALL NOT contain `unsafe-inline`, `unsafe-eval`, a wildcard source, or any origin other than `'self'` and `'none'`. It follows from R1.4: the app talks to no one.
+2. The Content Security Policy SHALL NOT contain `unsafe-inline`, `unsafe-eval`, a wildcard source, or any origin other than `'self'` and `'none'`. It follows from R1.4: the app talks to no one. A future spec that needs more changes the code, or changes the policy in `render.yaml` in the same pull request (Decision P5).
 3. The site SHALL work under that policy. The app already satisfies it: it ships one module script, one stylesheet and an inline SVG with no `style` attributes, and it sets styles through script (`style.setProperty`), which the policy allows. A browser test SHALL load the real build with these exact headers applied and fail on any policy violation (R8.3).
 4. IF Render adds a header of the same name itself (for example `Strict-Transport-Security`), THEN the live response SHALL still carry exactly one value for it, equal to the Blueprint's. The smoke test checks this (R9.4).
 5. The headers SHALL be written once, in `render.yaml`. No second copy SHALL be kept, except the tests that read `render.yaml` itself.
@@ -96,10 +96,10 @@ This spec writes no application code. It adds the Blueprint, tests that keep the
 **User story:** As a visitor, I want repeat visits to be fast, and I want new deploys to show up at once.
 
 1. Hashed assets (`/assets/*`) SHALL have `Cache-Control: public, max-age=31536000, immutable`. They are safe to cache for a year because their names change when their content changes.
-2. `index.html` (`/` and `/index.html`) SHALL have `Cache-Control: no-cache`, so that the browser asks again on every load and a new deploy is seen on the next visit. It SHALL NOT be cached without revalidation.
+2. `index.html` (`/` and `/index.html`) SHALL have `Cache-Control: no-cache`, so that the browser asks again on every load and a new deploy is seen on the next visit. It SHALL NOT be cached without revalidation. `no-store` is not used (Decision P4).
 3. No other path SHALL be given a long cache. Files that are not hashed (anything outside `/assets/`) keep Render's default behaviour.
 4. The Blueprint SHALL NOT define two rules that set `Cache-Control` for the same path. The `/*` rule SHALL NOT set `Cache-Control`, so that the specific rules above never compete with it.
-5. Every file that Vite writes into `dist/assets/` SHALL have a hash in its name. Fonts and other assets SHALL be imported by the code (so Vite hashes and places them in `/assets/`), not copied from `public/`.
+5. Every file that Vite writes into `dist/assets/` SHALL have a hash in its name. Fonts and other assets SHALL be imported by the code (so Vite hashes and places them in `/assets/`), not copied from `public/`. This is a rule for the spec that adds fonts (Decision P6).
 
 ### R7. Routing
 
@@ -113,7 +113,7 @@ This spec writes no application code. It adds the Blueprint, tests that keep the
 
 **User story:** As the maintainer, I want the Blueprint to be checked by `npm run verify`, so it cannot drift from this spec.
 
-1. A Vitest test SHALL read `render.yaml` and assert R1 to R7: one service; type, runtime, name, branch, publish path and auto-deploy; no paid plan; no preview; the exact build command and its absences (R3.2); exactly the two allowed environment variables; the exact header table (R5.1); the cache rules (R6.1, R6.2, R6.4); and no routes.
+1. A Vitest test SHALL read `render.yaml` and assert R1 to R7: one service; type, runtime, name, branch, publish path and auto-deploy; no `plan` field; no preview; the exact build command and its absences (R3.2); exactly the two allowed environment variables; the exact header table (R5.1); the cache rules (R6.1, R6.2, R6.4); and no routes.
 2. A Vitest test SHALL scan the shipped source (`src/` without test files, and `index.html`) for run-time network use (R1.4): no `fetch(`, `XMLHttpRequest`, `WebSocket`, `sendBeacon`, `EventSource`, `importScripts`, and no `http://` or `https://` literal other than the SVG namespace `http://www.w3.org/2000/svg`.
 3. A Playwright test SHALL load the real build (`vite preview`, as `npm run e2e` already does) with the headers from `render.yaml` applied to every response, and SHALL fail on any `securitypolicyviolation` event, any console error, and any failed request. It SHALL also check that the candle scene still draws a state (R5.3). It SHALL have a negative control: with one source removed from `script-src`, the same test fails.
 4. These tests SHALL read the headers from `render.yaml` and SHALL NOT hold their own copy (R5.5).
@@ -138,7 +138,7 @@ This spec writes no application code. It adds the Blueprint, tests that keep the
 1. The README SHALL get a "Live" section only after the first successful deploy and a passing smoke check. Until then it SHALL still say "no live URL yet" (as it does today). This spec's pull request SHALL NOT change the README.
 2. The section SHALL give the live URL (the actual one, R1.5), say that it is a static site with no accounts, no tracking and no server, say how to check it (`npm run smoke`), and say that it redeploys from `main`.
 3. The section SHALL describe only what is live. It SHALL NOT say the scene, controls or sound are built unless they are. The "Status" section of the README SHALL be updated to match what is deployed at that time.
-4. The README MAY name the hosting provider once, in this section. The app itself (code, copy, UI) SHALL NOT (Point for review P2 in the design).
+4. The README MAY name the hosting provider once, in this section. The provider's name MAY also appear in `render.yaml` and in the spec files. The app itself (code, copy, UI) SHALL NOT name it (Decision P2).
 5. The section SHALL follow the naming rule in `product.md` (say "focus session"; no trademarked names for the timer technique).
 
 ### R11. Owner steps and nothing created by agents
@@ -154,7 +154,7 @@ This spec writes no application code. It adds the Blueprint, tests that keep the
 
 **User story:** As a judge, I want the link to work for as long as the hackathon needs it.
 
-1. The service SHALL stay on the free plan with no feature that ends on its own before Jan 29, 2027 (brief section 8). The design lists what is known and what is assumed about the free plan.
+1. The service SHALL stay on the free static-site tier with no feature that ends on its own before Jan 29, 2027 (brief section 8). Free static sites on Render do not sleep (verified, design section 0). The design lists what is still unverified about the free tier, such as bandwidth and build-minute limits.
 2. The smoke check SHALL be run and its result recorded: right after the first deploy, before the submission on Dec 3, 2026, and on or after Jan 29, 2027.
 3. Nothing in the repo can guarantee a third party's free plan. The dated smoke runs are the evidence. If the provider changes its terms, the fallback is to move the static `dist/` to another static host; the header table is plain data and the build has no provider-specific code.
 4. The site SHALL have no run-time dependency on the provider, so a move needs no code change (R1.4).
@@ -174,8 +174,18 @@ This spec writes no application code. It adds the Blueprint, tests that keep the
 
 ## Open questions
 
-See "Points for review" at the end of `design.md`. They are about the service name, naming the provider in the README, one new dev dependency, `no-cache` against `no-store`, the strict policy, and what could not be verified about the free plan.
+None. The nine points for review are answered in `design.md` section 13.
 
 ## Decisions
 
-None yet. Answer the points for review and they will be moved here, with the requirements changed to match.
+The decisions are recorded in `design.md` section 13 and applied above:
+
+- **P1:** keep the name `candlewatch`; the real URL is an output of the first deploy (R1.5).
+- **P2:** the provider's name is allowed in `render.yaml`, the spec files and once in the README "Live" section; never in the app (R10.4).
+- **P3:** the dev dependency `yaml` is accepted, pinned exactly (R8.4).
+- **P4:** `no-cache` for `index.html` (R6.2).
+- **P5:** the strict policy, no `unsafe-inline` (R5.2).
+- **P6:** fonts are imported so they land hashed in `/assets/` (R6.5).
+- **P7:** the service fields are verified by a working sibling Blueprint (R1.2, R3.4); the remaining unknowns are listed in design section 0.
+- **P8:** header and live-only smoke checks skip themselves on localhost (R9.4).
+- **P9:** no build id for now (design 7.3).

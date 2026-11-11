@@ -2,23 +2,28 @@
 
 Implements `requirements.md` in this folder (R1-R13). Scope: a `render.yaml` Blueprint, tests that keep it honest, a smoke test that runs against a base URL, and a README "Live" section after the first deploy. No application code changes.
 
-Status: **draft for review.** Design only. Tasks are in `tasks.md`.
+Status: **review answers applied** (section 13). Tasks are in `tasks.md`.
 
 ## 0. What is verified and what is not
 
-I could not open Render's documentation while writing this (every fetch of `render.com/docs` returned 403). The Render-specific facts below come from public example Blueprints and search snippets, so they are **unverified** until task 1 checks them against Render's own Blueprint reference or validator. They are marked **[verify]** wherever they appear.
+I could not open Render's documentation while writing this (every fetch of `render.com/docs` returned 403). Most of the Render-specific facts are settled instead by **a working Blueprint in a sibling project by the same author**, reported by the repo owner: deployed on Render since 2026-11-06 and serving HTTP 200. That Blueprint uses `type: web`, `runtime: static`, `branch: main`, `autoDeployTrigger: commit`, a `buildCommand` written as an `&&` chain, `staticPublishPath: dist`, `envVars` with `NODE_VERSION: "22"`, no `plan` field and no `routes`. I have not seen the file myself; the evidence is the owner's report (Decision P7).
 
-| Fact | Source | Status |
+| Fact | Evidence | Status |
 |---|---|---|
-| A static site in a Blueprint is `type: web` with `runtime: static` (there is no `type: static`) | Render tutorial snippet | Likely; **[verify]** |
-| Fields `buildCommand`, `staticPublishPath`, `envVars`, `headers` (`path`, `name`, `value`) and `routes` exist on static sites | Example Blueprints | Likely; **[verify]** |
-| `branch` and `autoDeployTrigger: commit` control auto-deploy | From memory | **[verify]** |
-| `pullRequestPreviewsEnabled: false` turns previews off | Example Blueprints | **[verify]** |
-| Whether `plan: free` is accepted on a static site, or static sites are free without it | From memory | **[verify]** |
-| `NODE_VERSION` selects the Node version, and which exact versions are accepted | From memory | **[verify]** |
-| What happens when two header rules match one path and both set the same header; whether Render adds its own `Cache-Control` or `Strict-Transport-Security` | Unknown | **[verify]** by the smoke test (section 7) |
-| Static sites are free, do not sleep, and a failed build leaves the last deploy live | From memory | **[verify]** |
-| Free-plan limits on bandwidth and build minutes | Unknown | **[verify]** |
+| A static site in a Blueprint is `type: web` with `runtime: static` | Sibling Blueprint, live since 2026-11-06 | **Verified** |
+| `branch: main` and `autoDeployTrigger: commit` control auto-deploy | Sibling Blueprint | **Verified** |
+| `buildCommand` can be an `&&` chain; `staticPublishPath: dist` publishes `dist/` | Sibling Blueprint | **Verified** |
+| `envVars` with `NODE_VERSION: "22"` selects Node 22 (the major version only) | Sibling Blueprint | **Verified** |
+| No `plan` field is needed; no `routes` are needed | Sibling Blueprint | **Verified** |
+| Free static sites on Render do not sleep | Repo owner | **Verified** |
+| `headers` entries have the shape `path`, `name`, `value`; how `*` matches in `path` | Example Blueprints seen in search results, not the sibling | **Task 1 confirms** |
+| What happens when two header rules match one path; whether Render adds its own `Cache-Control` or `Strict-Transport-Security` | Unknown | **Task 1 confirms from the docs**; the live smoke test (section 7, B1 and B2) shows the real result |
+| `pullRequestPreviewsEnabled: false` is accepted and turns previews off | Example Blueprints, not the sibling | Not covered. Low risk: Render rejects an unknown key when the Blueprint is applied, and the owner checks the preview in step 3 (section 9) |
+| A failed build leaves the last deploy live | Render's documented behaviour, from memory | Not tested. Observed only if a build ever fails |
+| `npm ci` installs dev dependencies in the Render build | The same `&&` chain pattern | Confirmed by the first deploy's build log (task 9) |
+| Free-tier limits on bandwidth and build minutes | Unknown | Unverified. The owner reports any limit the dashboard shows (task 9) |
+
+"Verified" here means seen working in a deployed Blueprint, not read in Render's documentation.
 
 Facts about this repo (checked in the sandbox): Node v22.23.4 and npm 11.4.2; scripts and pinned versions in `package.json`; `dist/` is git-ignored; `vite.config.ts` has no `base`, no `build` options and no plugins; there is no `public/` directory; `index.html` has one module script; the scene writes styles with `style.setProperty` and has no `style` attribute or `<style>` element; no source file calls the network; the only `http://` literal in shipped source is the SVG namespace.
 
@@ -41,7 +46,7 @@ Before merge, on a developer machine or in a session, `npm run verify` adds what
 
 ## 2. The Blueprint (`render.yaml`)
 
-This is the intended file. The code task writes it after task 1 has resolved the **[verify]** fields.
+This is the intended file. The code task writes it after task 1 has confirmed the `headers` block (path, name, value, and how rules for one path combine).
 
 ```yaml
 services:
@@ -55,7 +60,7 @@ services:
     staticPublishPath: dist
     envVars:
       - key: NODE_VERSION
-        value: 22.23.4
+        value: "22"
       - key: PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD
         value: "1"
     headers:
@@ -96,10 +101,10 @@ services:
 
 Choices:
 
-- **No `plan` line** in this draft. Static sites are free by default as far as I know, and a plan field might be rejected for them **[verify]**. If task 1 finds that `plan: free` is accepted, it is added, because explicit is better (R1.2).
+- **No `plan` line.** A static site needs none, and the working sibling Blueprint has none (verified, section 0). The tests assert that the field is absent (R1.2).
 - **No `repo` line.** A Blueprint is read from the repository that holds it. The owner picks the repository when creating the Blueprint (owner step).
 - **No `routes`.** There is no client-side router, so no rewrite (R7). An unknown path gets Render's 404.
-- **`NODE_VERSION: 22.23.4`** is the version this repo was run on in the sandbox. `package.json` only requires `>=22`. Task 1 checks that Render accepts an exact version, and otherwise uses `22`.
+- **`NODE_VERSION: "22"`** names the major version only, as the sibling Blueprint does (verified). `package.json` requires `>=22`. The trade-off: Render picks the current 22.x, so the Node patch version can change between deploys; every package version is still fixed by `npm ci` and the lock file. The sandbox runs v22.23.4 for the local dry run (task 8).
 - **`PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD`** is belt and braces. Installing `@playwright/test` is not expected to download browsers (they come from `npx playwright install`), but the variable costs nothing and makes the guarantee in R3.2 independent of that. Task 8 checks that a clean `npm ci` downloads nothing.
 - **Header values are plain strings.** The Permissions-Policy value and the HSTS value contain no characters that need quoting in YAML; the CSP value is quoted because it contains `;` and `'`.
 
@@ -119,9 +124,9 @@ It is not `npm run verify`, because `verify` ends with `npm run e2e`, which need
 Properties of this command:
 
 - `&&` stops at the first failure, and a non-zero exit fails the Render build, so the previous deploy stays live (R2.3, R3.5).
-- It installs dev dependencies, because `check`, `test` and `build` all need them. Render's static build runs `npm ci` with dev dependencies available when the command is given explicitly **[verify]**.
+- It installs dev dependencies, because `check`, `test` and `build` all need them. The explicit build command runs `npm ci`, which installs dev dependencies unless `NODE_ENV=production` is set (it is not set here). The first deploy's build log confirms it (task 9).
 - `npm test` runs on every deploy. If it ever becomes slow, task 8's recorded timing is the evidence for changing this; the change would need a requirement edit (R3.1 fixes the command).
-- Build minutes on the free plan may be limited **[verify]**. The expected cost per deploy is install time plus a few seconds of tests and a one-second Vite build.
+- Build minutes on the free tier may be limited (unverified, section 0). The expected cost per deploy is install time plus a few seconds of tests and a one-second Vite build.
 
 ## 4. What is published
 
@@ -144,7 +149,7 @@ Properties of this command:
 | `Permissions-Policy` | `camera=(), microphone=(), geolocation=(), payment=(), usb=()` | The app needs none of these. Web Audio output needs no permission, so audio is not restricted. |
 | `Cross-Origin-Opener-Policy` | `same-origin` | Isolates the page from other windows. |
 | `Cross-Origin-Resource-Policy` | `same-origin` | Other sites cannot load the app's files as subresources. |
-| `Strict-Transport-Security` | `max-age=31536000` | One year. No `includeSubDomains` and no `preload`: the host is a shared `onrender.com` subdomain, and the app does not own the parent domain. Render may set this itself **[verify]**; R5.4 requires exactly one value either way. |
+| `Strict-Transport-Security` | `max-age=31536000` | One year. No `includeSubDomains` and no `preload`: the host is a shared `onrender.com` subdomain, and the app does not own the parent domain. Render may set this itself (task 1 reads the docs; smoke checks B1 and B2 show the live result); R5.4 requires exactly one value either way. |
 
 ### 5.2 The Content Security Policy
 
@@ -168,7 +173,7 @@ frame-ancestors 'none'
 
 What could break it, and what catches it: an inline `style="..."` in markup, a `<style>` element, `element.setAttribute("style", ...)`, a remote font or script, a `data:` URL for an image or font, or a new network call. The browser test in section 6.2 loads the real build under this exact policy and fails on any violation. The negative control in the same test proves that it can fail.
 
-If a future spec truly needs one of these, the right fix is to change the code, or to change the policy in `render.yaml` in the same pull request, with the test following automatically. Adding `unsafe-inline` is the weaker choice (Point for review P5).
+If a future spec truly needs one of these, the right fix is to change the code, or to change the policy in `render.yaml` in the same pull request, with the test following automatically. Adding `unsafe-inline` is the weaker choice and was not accepted (Decision P5).
 
 ### 5.3 Cache headers
 
@@ -179,9 +184,9 @@ If a future spec truly needs one of these, the right fix is to change the code, 
 | `/index.html` | `no-cache` | Same, for the explicit path. |
 | anything else | Render's default | Nothing else exists today. |
 
-`/*` sets no `Cache-Control`, so no two rules compete for the same header on the same path (R6.4). This matters because I could not confirm how Render combines two matching rules **[verify]**. The smoke test compares the live value with the Blueprint's, so a merge or a duplicate shows up as a failure.
+`/*` sets no `Cache-Control`, so no two rules compete for the same header on the same path (R6.4). This matters because I could not confirm how Render combines two matching rules (task 1 reads the docs on it). The smoke test compares the live value with the Blueprint's, so a merge or a duplicate shows up as a failure.
 
-`no-cache` does not mean "never store": it means "store, but ask before using". The brief says no cache for `index.html`; `no-store` would also satisfy it but forces a full download every time. Point for review P4.
+`no-cache` does not mean "never store": it means "store, but ask before using". The brief says no cache for `index.html`; `no-store` would also satisfy it but forces a full download every time. `no-cache` was chosen (Decision P4).
 
 ## 6. Tests that keep the config honest
 
@@ -204,16 +209,16 @@ package.json                             script "smoke"; devDependency "yaml"
 
 `blueprint.ts` exports `readBlueprint(): Blueprint` (reads `render.yaml` from the repo root with `node:fs`, parses it with the `yaml` package) and `headersFor(blueprint, pathname): Record<string, string>` (every header whose `path` matches the pathname).
 
-Path matching follows what Render documents for header paths **[verify]**: `*` matches any run of characters, and a path without `*` must match exactly. `/*` matches everything, `/assets/*` matches everything under `/assets/`, `/` and `/index.html` match only themselves.
+Path matching follows what Render documents for header paths (task 1 confirms it): `*` matches any run of characters, and a path without `*` must match exactly. `/*` matches everything, `/assets/*` matches everything under `/assets/`, `/` and `/index.html` match only themselves.
 
-The `yaml` package is a new dev dependency, pinned to an exact version (task 4 looks it up with `npm view`). It is used only by the config tests. Point for review P3 asks whether to accept it or to test the file as text.
+The `yaml` package is a new dev dependency, pinned to an exact version (task 4 looks it up with `npm view`). It is used only by the config tests. Accepted (Decision P3).
 
 ### 6.2 What each test checks
 
 **`render-blueprint.test.ts`** (Vitest, node), R8.1:
 
 - One service; `type: web`, `runtime: static`, `name: candlewatch`, `branch: main`, `autoDeployTrigger: commit`, `staticPublishPath: dist`, `pullRequestPreviewsEnabled: false`.
-- `plan` is absent or `free`. No `disk`, `databases`, `envVarGroups`, `previews` or other top-level key.
+- `plan` is absent. `NODE_VERSION` is exactly `"22"`. No `disk`, `databases`, `envVarGroups`, `previews` or other top-level key.
 - `buildCommand` equals the exact string, and does not contain `verify`, `e2e`, `playwright` or `||`.
 - `envVars` are exactly the two allowed names; neither uses `sync: false`; no variable name or value matches `/key|token|secret|password/i` (neither allowed name does).
 - Headers: the exact table of section 5.1 for `/*`; `Cache-Control` rules for `/assets/*`, `/` and `/index.html` with the exact values; and for any sample path, at most one `Cache-Control` rule matches (R6.4).
@@ -299,7 +304,7 @@ Candlewatch is a static site: https://candlewatch.onrender.com
 It has no accounts, no tracking and no server. It is rebuilt and redeployed from `main` on every push. To check the live site, run `npm run smoke`.
 ```
 
-The same pull request edits the Status section so that it matches what is deployed on that day (today it says there is no live URL and that the scene is not built; the scene has since been built, so the sentence will need changing then, and only to what is true). Naming the provider is Point for review P2.
+The same pull request edits the Status section so that it matches what is deployed on that day (today it says there is no live URL and that the scene is not built; the scene has since been built, so the sentence will need changing then, and only to what is true). Naming the provider is allowed there and nowhere in the app (Decision P2).
 
 ## 9. Owner steps (one-time)
 
@@ -307,10 +312,10 @@ Done by the repo owner in the Render dashboard (R11). Agents cannot and do not.
 
 1. Sign in to Render and connect it to the GitHub repository `UBayouski/Candlewatch` (grant access to that one repo).
 2. New, Blueprint. Choose the repository and the branch `main`. Render reads `render.yaml`.
-3. Check the preview before applying: one service, a static site named `candlewatch`, free, auto-deploy on, previews off, the build command as written.
+3. Check the preview before applying: one service, a static site named `candlewatch`, free, auto-deploy on, previews off (this is the one field the sibling evidence does not cover; if Render rejects `pullRequestPreviewsEnabled`, report the message), the build command as written.
 4. Apply. Wait for the first deploy to finish.
 5. Copy the service URL. If it is not `https://candlewatch.onrender.com`, say so (R1.5).
-6. Tell the agent the URL. The agent runs the smoke test (task 10).
+6. Tell the agent the URL, the plan the dashboard shows, the first build's time, whether the build log shows `npm ci` finishing and no browser download, and any usage limit the dashboard shows. The agent runs the smoke test (task 10).
 
 ## 10. Failure handling
 
@@ -342,16 +347,16 @@ Done by the repo owner in the Render dashboard (R11). Agents cannot and do not.
 
 ## 12. Points for review
 
-1. **P1. The name `candlewatch`.** Render subdomains are shared across all users, so `candlewatch.onrender.com` may already be taken; Render would then add a suffix. I cannot check this from here. Recommendation: keep the name, and treat the real URL as an output of the first deploy (R1.5). It is recorded in the README, the smoke default and `KIRO_USAGE.md`.
-2. **P2. Naming the provider.** `product.md` says no real product names "anywhere". The repo already names its tools (Vite, Vitest, Playwright, Kiro), and `render.yaml` cannot avoid the word. Recommendation: allow it in `render.yaml`, in these spec files and once in the README "Live" section; keep it out of the app (code, copy, UI).
-3. **P3. A new dev dependency, `yaml`.** It parses `render.yaml` in the config tests and the header test, so the header table lives in one place (R5.5). It adds no run-time code. The alternative is to test the file as text with regular expressions, which is fragile for a list of header rules. Recommendation: accept `yaml`, pinned to an exact version.
-4. **P4. `no-cache` or `no-store` for `index.html`.** You asked for no cache. `no-cache` still lets the browser keep a copy but forces a check each time, so deploys show at once and repeat loads are tiny. `no-store` forbids keeping a copy at all. Recommendation: `no-cache`.
-5. **P5. A strict policy with no `unsafe-inline`.** It works today because the scene writes styles through the CSS object model. The cost is that a future spec cannot add an inline `style` attribute or `<style>` element without changing the policy, which the browser test will flag at once. Recommendation: keep it strict. The alternative (`style-src 'self' 'unsafe-inline'`) is weaker and was not needed.
-6. **P6. Fonts and the cache.** Fonts will arrive in a later spec (`tech.md` rule 7). They must be imported by code so they land hashed in `/assets/` (R6.5), and `font-src 'self'` already allows them. This is a note for that spec, not work here.
-7. **P7. What I could not verify.** Section 0 lists every Render fact I could not confirm, including the free plan's limits and whether "always on" holds. The repo cannot guarantee a provider's free plan (R12.3); the dated smoke runs (Dec 3, 2026 and on or after Jan 29, 2027) are the evidence. Task 1 settles the **[verify]** fields before any file is written.
-8. **P8. Header checks only off localhost.** The smoke test's group B and C skip themselves on localhost, so `npm run verify` stays offline. The Blueprint's headers are still exercised locally by `headers-local.spec.ts`. Recommendation: keep both.
-9. **P9. No build id.** The smoke test cannot say which commit is live (7.3). Recommendation: accept this for now.
+None open. All nine were answered; the answers are in section 13.
 
 ## 13. Decisions
 
-None yet. Answer the points for review above and they will be moved here, with this design changed to match.
+- **P1. The name `candlewatch`:** accepted as recommended. Keep the name. The real URL is an output of the first deploy; if Render gives a different one, it replaces the expected one in the README, the smoke default and `KIRO_USAGE.md` (R1.5).
+- **P2. Naming the provider:** accepted as recommended. The provider's name is allowed in `render.yaml`, in these spec files and once in the README "Live" section. It stays out of the app (code, copy, UI) (R10.4).
+- **P3. The `yaml` dev dependency:** accepted as recommended. It is pinned to an exact version and used only by the config tests, so the header table lives in `render.yaml` alone (R5.5, R8.4; task 4).
+- **P4. `no-cache` for `index.html`:** accepted as recommended. The browser keeps a copy but revalidates on every load; `no-store` is not used (R6.2).
+- **P5. A strict policy with no `unsafe-inline`:** accepted as recommended. A future inline `style` attribute or `<style>` element needs a code change, or a policy change in the same pull request, and the browser test flags it at once (R5.2).
+- **P6. Fonts and the cache:** accepted as recommended. A note for the spec that adds fonts: import them so Vite hashes them into `/assets/`; do not put them in `public/` (R6.5).
+- **P7. What could not be verified:** settled in large part by evidence. A working Blueprint in a sibling project by the same author, on Render since 2026-11-06 and serving 200, uses `type: web`, `runtime: static`, `branch: main`, `autoDeployTrigger: commit`, an `&&` build chain, `staticPublishPath: dist`, `NODE_VERSION: "22"`, no `plan` and no `routes`. Those fields are marked verified (section 0) and dropped from task 1. Free static sites on Render do not sleep. **Changes that follow:** `NODE_VERSION` is `"22"` (the major only) instead of an exact patch version, the Blueprint has no `plan` field, and the tests assert both. **Still open, and not part of task 1:** `pullRequestPreviewsEnabled` (checked at owner step 3), that a failed build keeps the last deploy live (not tested), and free-tier bandwidth and build-minute limits (the owner reports what the dashboard shows). **Task 1 now only** confirms the `headers` block syntax (`path`, `name`, `value`, and how `*` matches in `path`) and how several header rules for the same path combine, including whether Render adds its own value for the same header, before `render.yaml` is written. The repo still cannot guarantee a provider's free tier (R12.3); the dated smoke runs remain the evidence.
+- **P8. Header checks only off localhost:** accepted as recommended. Groups B and C of the smoke test skip themselves on localhost; `headers-local.spec.ts` exercises the Blueprint's headers locally (R9.4).
+- **P9. No build id:** accepted as recommended. The smoke test cannot say which commit is live (section 7.3); the owner reads the commit in the Render dashboard.
