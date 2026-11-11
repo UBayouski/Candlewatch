@@ -67,7 +67,7 @@ Conventions for every task:
 
 - [x] 8. Stylesheet
   - Create `src/scene/scene.css` (design sections 5, 7, 8): the palette custom properties (7.1), the layout (fixed full-viewport container, `html, body` with no margin and no overflow), the rules that turn custom properties into shapes, `.visually-hidden`, the `[data-settled="true"]` transitions, and the `@media (prefers-reduced-motion: reduce)` block. `.pool` has no opacity rule; `.night` has no rule that reads `--dawn` or `--flame-glow`; `.stub` takes its opacity from `--stub`; `.body` is `scaleY(var(--wax-height))` over a full height of `CANDLE_H`.
-  - Create `src/scene/scene.css.test.ts` (design 12.3, stylesheet part): the reduced-motion block sets `animation: none` and `transition: none`; every custom property in design 6.2 is used by at least one rule; the palette test (background stops between the room bounds; ivory against `--room-bg-darkest`, `--room-bg-brightest`, `--zone-bg-darkest`, `--zone-bg-brightest` at least 4.5:1, with the four figures 16.20, 4.66, 15.83 and 7.53 asserted to two decimals; `--window-night` against `--room-night` at least 1.4:1 and a single constant value); the rules named above exist or are absent as stated.
+  - Create `src/scene/scene.css.test.ts` (design 12.3, stylesheet part): the reduced-motion block sets `animation: none` and `transition: none`; every custom property in design 6.2 is used by at least one rule; the palette test (background stops between the room bounds; ivory against `--room-bg-darkest`, `--room-bg-brightest`, `--zone-bg-darkest`, `--zone-bg-brightest` at least 4.5:1, with the four figures 16.20, 4.66, 15.83 and 7.53 asserted to two decimals; the resting window (`--window-moon` 1.33:1 and `--window-night` 1.10:1 against `--room-night`, `--window-moon` 1.15:1 against `--wall-top`, each a single constant value)); the rules named above exist or are absent as stated.
   - Files: `src/scene/scene.css`, `src/scene/scene.css.test.ts`.
   - Requirements: R7.7, R7.8, R7.9, R8.7, R9.5, R10, R11.2, R11.3, R11.5. Properties: none.
   - Done when `npm run verify` passes. Affects: all screenshots.
@@ -94,55 +94,55 @@ Conventions for every task:
   - Requirements: supports R1 to R9 test coverage. Properties: supports P1 to P8.
   - Done when `npm run verify` passes.
 
-- [ ] 12. Required: P1, wax height and drips
+- [x] 12. Required: P1, wax height and drips
   - Create `src/scene/model.prop.test.ts` and add P1 per design 13: while running, `waxHeight === waxFraction(state, now)`; across consecutive running states of the same session and across probe offsets, wax height never grows and the drip count never falls; while paused, wax and drips equal those at the anchor for every probe.
   - Files: `src/scene/model.prop.test.ts`.
   - Requirements: R3.1, R3.2, R4.2. Properties: P1.
   - Done when `npm run verify` passes.
 
-- [ ] 13. Required: P2, the light radius
+- [x] 13. Required: P2, the light radius
   - Add P2 to `src/scene/model.prop.test.ts`: sorted by wax height the light radius is non-decreasing; it never grows within a session, along the trace or across probes; it is constant while paused; it stays within `[LIGHT_MIN, 1]` while running.
   - Files: `src/scene/model.prop.test.ts`.
   - Requirements: R7.2, R7.3. Properties: P2.
   - Done when `npm run verify` passes.
 
-- [ ] 14. Required: P3, the flame mode
+- [x] 14. Required: P3, the flame mode
   - Add P3: (a) pairs of lit states with different lengths, intents and earlier history, probed so time left equals a drawn value from a boundary-biased set (0, 1, 59 999, 60 000, 60 001, then arbitrary), and paused states with the same time left, always give the same mode; (b) pooled samples keyed by `(phase, timeLeftMs)` map to exactly one mode; both equal an independent plain `if` table of R5.1 for all five phases, including `paused` over `guttering` and time left 0 while lit.
   - Files: `src/scene/model.prop.test.ts`.
   - Requirements: R5.1 to R5.4. Properties: P3.
   - Done when `npm run verify` passes.
 
-- [ ] 15. Required: P4, the flicker
+- [x] 15. Required: P4, the flicker
   - Create `src/scene/flicker.prop.test.ts` and add P4: the same `(seed, now, mode)` gives equal values; values are finite and in range; all three are exactly 0 for `unlit` and `smoke`; two different states of the same mode, `now` and seed give the same flicker fields through `sceneModel`; `|f(now + d) - f(now)|` stays within the smoothness bound of design 13 (including the dip term in `guttering`) for `d` of 1 to 5 ms; different seeds differ at most instants on a fixed 200-instant grid.
   - Files: `src/scene/flicker.prop.test.ts`.
   - Requirements: R6. Properties: P4.
   - Done when `npm run verify` passes.
 
-- [ ] 16. Required: P5, reduced motion keeps the information
+- [x] 16. Required: P5, reduced motion keeps the information
   - Add P5 to `src/scene/model.prop.test.ts`: for any trace sample, `arbNow`, `arbSeed`, the models with `reducedMotion` true and false are deeply equal after removing `MOTION_FIELDS`; with `reducedMotion` true the three flicker values are 0 and the three flags are false.
   - Files: `src/scene/model.prop.test.ts`.
   - Requirements: R9.1, R9.2. Properties: P5.
   - Done when `npm run verify` passes.
 
-- [ ] 17. Required: P6, totality and bounds
+- [x] 17. Required: P6, totality and bounds
   - Add P6: for trace samples and extra states from the engine's `arbWildScript`, with `arbNow` (non-finite included) and `arbSeed`, `sceneModel` never throws; every number is finite and inside `RANGES`; `drips` is 0, 1, 2 or 3; `stub` is 0 or 1; `flameMode` and `phase` are in their unions; booleans are booleans.
   - Files: `src/scene/model.prop.test.ts`.
   - Requirements: R1.5, R2.2, R2.4. Properties: P6.
   - Done when `npm run verify` passes.
 
-- [ ] 18. Required: P7, purity of the model
+- [x] 18. Required: P7, purity of the model
   - Add P7: the same input gives deeply equal models; a deep-frozen input equals its `structuredClone` afterwards; every model value is a number, a boolean, or one of the two fixed unions (no other string, object or array).
   - Files: `src/scene/model.prop.test.ts`.
   - Requirements: R2.3, R2.5, R2.6. Properties: P7.
   - Done when `npm run verify` passes.
 
-- [ ] 19. Required: P8, dawn, light, cooling and the stub
+- [x] 19. Required: P8, dawn, light, cooling and the stub
   - Add P8: `dawn === 1` iff the phase is `burned-out`, whether or not the break is in progress; `lightRadius === 0` iff the phase is `burned-out` or `snuffed`; `stub === 1` iff the phase is `burned-out` or `snuffed`; `cooling === isBreak(state, now)`; for a burned-out state, the models at an instant inside the break and at one after it differ only in `cooling`.
   - Files: `src/scene/model.prop.test.ts`.
   - Requirements: R3.7, R7.5, R8.2, R8.5. Properties: P8.
   - Done when `npm run verify` passes.
 
-- [ ] 20. Mutation spot-check
+- [x] 20. Mutation spot-check
   - Break the scene code on purpose, one change at a time, run the whole suite, and revert: remove the `paused` case from `flameModeOf`; change `<=` to `<` in the drip test; make `lightRadius` grow with the flicker; call `Math.random` in the hash; drop one `MOTION_FIELDS` entry from the reduced-motion path; draw the stub in every phase (`stub` always 1); make the pool's opacity read `--flame-glow` in `scene.css`. Each must be caught by at least one property or example test. Record which test caught each in `KIRO_USAGE.md`. A mutant that survives means a test is too weak: strengthen the test, not the code.
   - Files: none kept (a note in `KIRO_USAGE.md` at the end).
   - Requirements: R3, R4, R5, R6, R7, R9, R11. Properties: P1 to P8.

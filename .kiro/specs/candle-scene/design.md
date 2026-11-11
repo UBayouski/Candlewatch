@@ -287,7 +287,7 @@ All shapes are static markup in `room.ts`. IDs are prefixed `cw-`. Classes carry
 |---|---|---|---|
 | 1 | `.wall` | A large rect from y = -600 down to the floor line (y = 900), vertical gradient `--wall-top` to `--wall-low`. | Nothing of its own. It is the surface the light pool reveals, so it carries progress: the lit part of the wall is the pool. Without it the pool would have nothing to show. |
 | 2 | `.night` | A rect over the same area, filled `--room-night`, opacity constant 1, masked by `#cw-pool-mask` (5.3). It ends at the floor line. | Progress (the dark outside the pool). |
-| 3 | `.window` | A pane at x 190..410, y 70..250 on the wall, drawn above `.night` so it keeps its colour in the dark. `.window-rest` is filled `--window-night`, a constant faint night colour that is visible against both the night and the lit wall. `.window-dawn` is filled `--window-dawn`, opacity `var(--dawn)`. Only the pane: no frame, sill, mullion or curtain. | Dawn (completion): the pane lights up. |
+| 3 | `.window` | A night window on the wall: a **portrait** pane at x 240..360, y 50..260 (120 wide, 210 tall), drawn above `.night` so it keeps its colour in the dark. The group has **soft edges**: a Gaussian blur (`#cw-soft-edge`, standard deviation 5, in sRGB so the dark gradient does not band). `.window-rest` is filled with a **constant faint vertical moonlight gradient** (`#cw-window-grad`) from `--window-moon` at the top to `--window-night` at the bottom; it carries no state. `.window-dawn` is filled `--window-dawn`, opacity `var(--dawn)`. Only the pane: no frame, sill, mullion or curtain. | Dawn (completion): the pane lights up. |
 | 4 | `.dawn-wash` | A rect over the wall area, vertical gradient from `--dawn-cool` (top) to `--dawn-warm` (low), stops at alpha `--dawn-alpha`, opacity `var(--dawn)`. Layered above `.night`; `.night` is not faded. | Dawn. |
 | 5 | `.candle` | `.body`: x 268..332, from the floor line up 420 units, `scaleY(var(--wax-height))` from the bottom. `.stub`: x 268..332, y 872..900, opacity `var(--stub)`. | Time left (body). An ended session (stub). |
 | 6 | `.lit` (group) | Not translated; carries `clip-path: url(#cw-above-floor)`, the stage area above y = 900. Inside it, `.head`, translated down by `(1 - var(--wax-height)) * 420px`, holds the rim ellipse, `.wick`, `.drip-1..3`, the `.flame` stack, `.ember`, `.smoke-wisp` and `.halo`. | Wax top (time left), drips (quarters burned), flame (session state), ember (break), smoke (ended), halo (flame state). |
@@ -328,7 +328,7 @@ The drawn height of the candle is exactly proportional to the wax height (R3.6, 
 | Drawn candle height | 420 h exactly, in `idle`, `lit` and `paused`. At `h = 0` the body is gone. |
 | Stub | y 872 to 900 (28, `STUB_H`), drawn only in `burned-out` and `snuffed` (`--stub` is 1). It is the whole candle then. |
 | Wick | 20 tall, standing on the rim |
-| Flame at full height | 120 tall, base on the wick. At a whole candle its tip is at y = 340, below the window (y 70..250). |
+| Flame at full height | 120 tall, base on the wick. At a whole candle its tip is at y = 340, below the window (y 50..260). |
 | Time-text zone | The stage band below the floor line. The text area is x 110..490, y 900..1000 (380 x 100). |
 | Reserved edge bands | x 0..110 and x 490..600 for every y, including the outer parts of the zone band, and everything beyond. |
 
@@ -336,15 +336,17 @@ The pure helper `candleHeightUnits(model)` in `model.ts` returns this drawn heig
 
 ### 5.5 Drips
 
-Three drips, each a rounded stroke hanging from the rim and travelling with it (children of `.head`):
+Drips are the quarter counter (R4), so each one has to read as a drip on its own, at desktop and at 360 x 640. A drip is a **rounded runnel of wax** with a bead at its end, hanging from the rim and travelling with it (children of `.head`). It is a filled shape with a thin outline (`--wax-ivory` fill, `--wax-shade` stroke), not a bare line, so it shows against the candle and against the dark. `dripPath(cx, length, width)` in `room.ts` draws it: a neck that is 0.68 of the bead wide, flaring into a round bead, from `DRIP_TOP_Y` (478, just above the rim) down by `length`. The specs are in `constants.ts` (`DRIPS`):
 
-| Drip | x on the rim | Length (units) |
-|---|---|---|
-| 1 | 268 (left edge) | 80 |
-| 2 | 332 (right edge) | 100 |
-| 3 | 284 (inside left) | 60 |
+| Drip | Centre x | Length (units) | Bead width | Where |
+|---|---|---|---|---|
+| 1 | 272 | 78 | 18 | left edge: the runnel stays on the wax, the bead bulges out of the outline |
+| 2 | 328 | 112 | 18 | right edge: the longest, same bulge on the right |
+| 3 | 296 | 58 | 15 | down the front, the shortest |
 
-Drip `n` is shown when the model's `drips >= n`. In CSS, with a number: `transform: scaleY(clamp(0, calc(var(--drips) - (n - 1)), 1)); transform-origin: top; transform-box: fill-box;`. The `.lit` group's clip at the floor line (y = 900) keeps drips from running below the candle's base. Drips hang from the rim and travel with it for a reason (Decision P7): fixed marks on the side would be clipped as the wax burns past them, so the visible drip count would fall, which R4.2 forbids. When `animateDrips` is true, a transition on `transform` runs the new drip down over 3.5 seconds; otherwise it appears at once (R4.3, R4.4). After a reload the first paint has no transition (section 6.5), so existing drips appear whole (R4.5).
+The lengths all differ, so at the half (two drips) the right one is clearly longer than the left. At 360 x 640 (scale 0.6) the beads are about 11 px wide and the runnels 33 to 67 px long. The longest drip ends 112 units below the rim, so on a whole candle it stops at y = 590, and the floor line clips it when the rim is low.
+
+Drip `n` is shown when the model's `drips >= n`. In CSS, with a number: `transform: scaleY(clamp(0, calc(var(--drips) - (n - 1)), 1)); transform-origin: 50% 0%; transform-box: fill-box;`. The `.lit` group's clip at the floor line (y = 900) keeps drips from running below the candle's base. Drips hang from the rim and travel with it for a reason (Decision P7): fixed marks on the side would be clipped as the wax burns past them, so the visible drip count would fall, which R4.2 forbids. When `animateDrips` is true, a transition on `transform` runs the new drip down over 3.5 seconds; otherwise it appears at once (R4.3, R4.4). After a reload the first paint has no transition (section 6.5), so existing drips appear whole (R4.5).
 
 ### 5.6 The flame
 
@@ -449,7 +451,8 @@ The renderer counts its calls. On the first call it sets `data-settled="false"`;
 | `--halo` | `#ffb347` | halo |
 | `--smoke-colour` | `#8a93a6` | the wisp (`--smoke` is the 0 or 1 number the renderer writes) |
 | `--ember` | `#ff7a2e` | cooling glow |
-| `--window-night` | `#233152` | window pane at rest: constant, faint, visible against the night and the wall |
+| `--window-moon` | `#1a2540` | window pane at rest, top of the moonlight gradient: constant, faint |
+| `--window-night` | `#0d1424` | window pane at rest, bottom of the gradient: constant, faint |
 | `--window-dawn` | `#566683` | window pane at dawn (equals the brightest room background) |
 | `--dawn-cool` | `#4a5a78` | dawn wash, top |
 | `--dawn-warm` | `#5a4a52` | dawn wash, low |
@@ -474,7 +477,7 @@ Contrast figures, from the WCAG relative luminance formula (ivory `#efe6cf` has 
 
 Every ratio is at least 4.5:1. The two zone ratios are the ones the time text meets. A mix of the two zone colours during the 3 second dawn ease has a luminance between them, so its ratio is between 7.53 and 15.83.
 
-For the window pane at rest (not text, visibility only): `--window-night` `#233152` against `--room-night` is 1.57:1 and against `--wall-top` it is 1.36:1. It is faint and constant, and it is visible, so the dawn reads as the window lighting up.
+For the window pane at rest (not text, visibility only), after the render check made the first pane much dimmer and closer to the wall: the top stop `--window-moon` `#1a2540` against `--room-night` is 1.33:1 and against `--wall-top` it is 1.15:1; the bottom stop `--window-night` `#0d1424` against `--room-night` is 1.10:1; the two stops differ by 1.21:1. The first pane (`#233152`) was 1.57:1 against the night. The pane is faint, constant and soft-edged, and still visible, so the dawn reads as the window lighting up. Both stops lie between the room bounds, so every contrast figure in the table above stays valid.
 
 **Handoff for `controls-and-access`:**
 
@@ -655,11 +658,13 @@ Reuses the technique of the engine's purity test (comment stripping, whole-word 
 - **Palette test.** Parse the colours in `scene.css`:
   - Every background colour stop (`--room-night`, `--wall-*`, `--window-*`, and `--dawn-*` composited over `--room-night` at `--dawn-alpha`) has a relative luminance between that of `--room-bg-darkest` and `--room-bg-brightest`.
   - `--wax-ivory` against `--room-bg-darkest`, `--room-bg-brightest`, `--zone-bg-darkest` and `--zone-bg-brightest` is at least 4.5:1 in each case. The test also asserts the four figures to two decimals (16.20, 4.66, 15.83, 7.53), so a palette edit that changes the handoff shows up.
-  - `--window-night` against `--room-night` is at least 1.4:1, and `--window-night` is a single value that no state rule changes.
+  - The resting window: `--window-moon` against `--room-night` is 1.33, against `--wall-top` 1.15, and `--window-night` against `--room-night` is 1.10 (asserted to two decimals; at least 1.25, 1.1 and 1.08), the top is lighter than the bottom and dimmer than the first pane, and each colour is declared once and no state rule changes the resting pane.
+  - The drips are filled wax with an outline, not a bare stroke.
 - **Markup test** on `ROOM_SVG`:
   - `.zone` is the last layer; `.lit` carries `clip-path: url(#cw-above-floor)` and that clip path covers the stage only above y = 900; `.halo` is inside `.lit`.
   - `.wall` and `.night` end at y = 900.
-  - There are no `.table`, `.dish` or `.floor` elements, and the window has only its two pane rects (no frame).
+  - There are no `.table`, `.dish` or `.floor` elements, and the window has only its two pane rects (no frame): portrait (120 x 210), blurred in sRGB, with the vertical gradient.
+  - The three drips have different lengths of at least 50 units; the two side beads bulge out of the candle's outline; `dripPath` hangs from the rim and ends in a bead at the drip's length.
   - `.pool` has no opacity rule and `.night` has no rule that reads `--dawn` or `--flame-glow` (F4).
   - `.stub` takes its opacity from `--stub`; `.body` is `scaleY(var(--wax-height))` and its full height is `CANDLE_H` (F6).
 - No `url(` for a raster file, no `<img>`, `<canvas>` or `image` element in `room.ts` (R11.1).
@@ -729,7 +734,9 @@ The review was done in the Kiro CLI against the three rules of the `costume-revi
 
 - **F1. Table and dish were decoration only (rule 1).** They showed no state; their only jobs were to be a surface and the drip clip line. *Fix:* both are removed (layer 5 of the old design, `--table`, `--dish`). The candle stands on the floor line (y = 900), which is also the drip clip line (5.2, 5.4, 5.5).
 - **F2. The floor was a separate rect with no state (rule 1), and there was no usable place for the time text (rule 3, F5).** *Fix:* the floor band below y = 900 is kept and declared the **time-text zone** that `controls-and-access` will use. The wall stays only as the substrate the pool reveals (5.2, 7.2).
-- **F3. The window at rest was an invisible dark rectangle (rule 1).** The dawn would then read as something appearing, not as the window lighting up. *Fix:* the pane has a faint, constant night colour (`--window-night` `#233152`), drawn above the night layer so it stays visible in the dark. It is constant and carries no state. Its ratio to the night is 1.57 and to the wall 1.36. Only the pane is drawn: no frame, sill or curtain (5.2, 7.2).
+- **F3. The window at rest was an invisible dark rectangle (rule 1).** The dawn would then read as something appearing, not as the window lighting up. *Fix:* the pane has a faint, constant night colour, drawn above the night layer so it stays visible in the dark. It is constant and carries no state. Only the pane is drawn: no frame, sill or curtain (5.2, 7.2). *Refined after the render check:* the first version (`#233152`, a flat 220 x 180 rectangle) read as a hard blue square. It is now a portrait pane (120 x 210) with soft edges and a vertical moonlight gradient (`--window-moon` `#1a2540` to `--window-night` `#0d1424`), much dimmer and closer to the wall: 1.33 and 1.10 against the night, 1.15 at the top against the wall.
+
+- **Drips (refined after the render check).** At the half the first drips looked like a slight widening near the top, not two drips. They are now filled runnels with a bead at the end, three different lengths (78, 112, 58), the two side beads bulging out of the candle's outline (5.5).
 - **F4. Two elements showed two things (rule 1).** The pool's opacity followed the flame glow, so the pool showed progress and flame state; the night layer was faded by the dawn, so it showed progress and completion. *Fix:* the pool's opacity is constant (it shows progress only, by its radius), and the dawn is a wash layered above the night layer; the night layer is not faded (5.2, 5.3, 5.8, 6.2).
 - **F5. No usable place for the time text (rule 3).** The contrast bounds held (ivory on `#05070d` 16.20, on `#566683` 4.66), but the candle column and the reserved edge bands left no room on a phone, and the flame halo is brighter than the bound. *Fix:* the zone has its own darkest and brightest background (`--zone-bg-darkest` `#080b12`, `--zone-bg-brightest` `#4b4358`). The lit group is clipped at the floor line, the night layer and pool end there, and the zone is the topmost layer, so the flame, halo and pool never enter it at any wax height. The contrast of ivory is 15.83 against the darkest and 7.53 against the brightest, both at least 4.5:1. The time text must be at least ivory in brightness (relative luminance 0.7945). The zone is in the contrast handoff (7.2) and in the palette test (12.3), and a pixel test checks it is clear (11.3).
 - **F6. The candle was not exactly proportional to the wax (rule 1).** A fixed 28-unit stub was always drawn under the body, so the drawn height was 28 + 392 h, not h (R3.6, brief section 4). *Fix:* the candle's drawn height is exactly `420 * waxHeight`. The fixed stub is drawn only in `burned-out` and `snuffed`, through a new model field `stub` (0 or 1) and `--stub`. The formulas (3.2), the geometry (5.4), the unit tests (12.1) and the e2e assertions (11.3) are updated.

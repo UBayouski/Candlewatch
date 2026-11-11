@@ -67,6 +67,21 @@ export const DIP_GLOW_FACTOR = 0.9;
 
 // --- the room (design 5.4), in room units ---
 
+/** The window pane: portrait, soft-edged, constant (F3). Room units. */
+export const WINDOW = { x: 240, y: 50, width: 120, height: 210, blur: 5 } as const;
+
+/**
+ * The three drips (R4, design 5.5): a rounded runnel of wax with a bead at the end, hanging from the rim.
+ * `x` is the centre, `length` runs from `DRIP_TOP_Y`, `width` is the bead. The lengths differ so each one reads on its own.
+ * The first two sit on the edges of the candle, their beads bulging out of its outline; the third runs down the front.
+ */
+export const DRIP_TOP_Y = 478;
+export const DRIPS = [
+  { x: 272, length: 78, width: 18 },
+  { x: 328, length: 112, width: 18 },
+  { x: 296, length: 58, width: 15 },
+] as const;
+
 /** Full candle height. The drawn height is `CANDLE_H * waxHeight` (R3.7). */
 export const CANDLE_H = 420;
 /** The candle's base, the drip clip line and the top of the time-text zone. */

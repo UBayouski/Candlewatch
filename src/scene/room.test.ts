@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { CANDLE_H, FLOOR_Y, STUB_H } from "./constants";
-import { ROOM_SVG } from "./room";
+import { CANDLE_H, DRIPS, DRIP_TOP_Y, FLOOR_Y, STUB_H, WINDOW } from "./constants";
+import { ROOM_SVG, dripPath } from "./room";
 
 /** Attributes of the first element whose class attribute is exactly `className` (or contains it as a token). */
 function element(svg: string, tag: string, className: string): { attrs: Record<string, string>; raw: string } {
@@ -138,11 +138,25 @@ describe("ROOM_SVG: the window (F3)", () => {
     expect(inner).toContain("window-dawn");
   });
 
-  it("the two panes cover the same area, x 190..410, y 70..250", () => {
+  it("the two panes cover the same area: portrait, x 240..360, y 50..260", () => {
     for (const name of ["window-rest", "window-dawn"]) {
       const e = element(ROOM_SVG, "rect", name);
-      expect([num(e, "x"), num(e, "y"), num(e, "width"), num(e, "height")]).toEqual([190, 70, 220, 180]);
+      expect([num(e, "x"), num(e, "y"), num(e, "width"), num(e, "height")]).toEqual([240, 50, 120, 210]);
     }
+    expect(WINDOW.height).toBeGreaterThan(WINDOW.width); // taller than wide
+  });
+
+  it("the window has soft edges (a blur filter on the group) and a constant vertical moonlight gradient", () => {
+    expect(element(ROOM_SVG, "g", "window").attrs["filter"]).toBe("url(#cw-soft-edge)");
+    expect(ROOM_SVG).toMatch(/<filter id="cw-soft-edge"[^>]*><feGaussianBlur stdDeviation="5"\/><\/filter>/);
+    const grad = ROOM_SVG.match(/<linearGradient id="cw-window-grad" x1="0" y1="0" x2="0" y2="1">([\s\S]*?)<\/linearGradient>/);
+    expect(grad?.[1]).toContain("st-window-moon");
+    expect(grad?.[1]).toContain("st-window-night");
+    expect(element(ROOM_SVG, "rect", "window-rest").attrs["fill"]).toBeUndefined(); // the colour comes from the stylesheet
+  });
+
+  it("the window stays well above the flame at a whole candle (flame tip y = 340)", () => {
+    expect(WINDOW.y + WINDOW.height).toBeLessThan(340);
   });
 });
 
@@ -165,6 +179,32 @@ describe("ROOM_SVG: the candle (F6)", () => {
     const head = groupInner(ROOM_SVG, "head");
     for (const n of [1, 2, 3]) expect(head).toContain(`drip-${n}`);
     expect(ROOM_SVG.match(/class="drip drip-\d"/g)).toHaveLength(3);
+    for (const n of [1, 2, 3]) expect(groupInner(ROOM_SVG, `drip-${n}`).match(/<path\b/g)).toHaveLength(1);
+  });
+
+  it("the drips have different lengths, so each one reads on its own", () => {
+    const lengths = DRIPS.map((d) => d.length);
+    expect(new Set(lengths).size).toBe(3);
+    expect(Math.min(...lengths)).toBeGreaterThanOrEqual(50); // long enough to read at 360 x 640 (scale 0.6)
+    expect(Math.max(...lengths)).toBeLessThanOrEqual(120);
+    // The longest drip, on the right, stays above the floor line even on a whole candle.
+    expect(DRIP_TOP_Y + Math.max(...lengths)).toBeLessThan(FLOOR_Y);
+  });
+
+  it("the two side drips sit on the edges of the candle, their beads bulging out of its outline; the third runs down the front", () => {
+    const [left, right, front] = DRIPS;
+    expect(left.x - left.width / 2).toBeLessThan(268); // the bead leaves the body on the left
+    expect(left.x).toBeGreaterThan(268); // while the runnel stays on the wax
+    expect(right.x + right.width / 2).toBeGreaterThan(332);
+    expect(right.x).toBeLessThan(332);
+    expect(left.width).toBeGreaterThanOrEqual(18);
+    expect(right.width).toBeGreaterThanOrEqual(18);
+    expect(front.x - front.width / 2).toBeGreaterThan(268);
+    expect(front.x + front.width / 2).toBeLessThan(332);
+  });
+
+  it("the window filter works in sRGB, so the dark gradient does not band", () => {
+    expect(ROOM_SVG).toContain('color-interpolation-filters="sRGB"');
   });
 
   it("the rim and the wick sit at the top of a whole candle, y = 480", () => {
@@ -199,5 +239,42 @@ describe("ROOM_SVG: the pool", () => {
     expect([num(pool, "cx"), num(pool, "cy"), num(pool, "r")]).toEqual([0, 0, 700]);
     expect(pool.attrs["transform"]).toBeUndefined();
     expect(pool.attrs["opacity"]).toBeUndefined();
+  });
+});
+
+describe("dripPath", () => {
+  /** All coordinates of the path as (x, y) pairs, control points included. */
+  function points(d: string): [number, number][] {
+    const n = (d.match(/-?\d+(?:\.\d+)?/g) ?? []).map(Number);
+    const out: [number, number][] = [];
+    for (let i = 0; i + 1 < n.length; i += 2) out.push([n[i] ?? 0, n[i + 1] ?? 0]);
+    return out;
+  }
+
+  it("hangs from the rim and ends in a bead at the drip's length", () => {
+    for (const d of DRIPS) {
+      const pts = points(dripPath(d.x, d.length, d.width));
+      const ys = pts.map((p) => p[1]);
+      expect(Math.min(...ys)).toBe(DRIP_TOP_Y);
+      expect(Math.max(...ys)).toBeGreaterThanOrEqual(DRIP_TOP_Y + d.length);
+      expect(Math.max(...ys)).toBeLessThanOrEqual(DRIP_TOP_Y + d.length + d.width * 0.2 + 0.01);
+    }
+  });
+
+  it("is a closed, symmetric shape around its centre, as wide as its bead", () => {
+    for (const d of DRIPS) {
+      const pts = points(dripPath(d.x, d.length, d.width));
+      const xs = pts.map((p) => p[0]);
+      expect(Math.min(...xs)).toBeCloseTo(d.x - d.width / 2, 5);
+      expect(Math.max(...xs)).toBeCloseTo(d.x + d.width / 2, 5);
+      expect(dripPath(d.x, d.length, d.width).trim().endsWith("Z")).toBe(true);
+    }
+  });
+
+  it("is narrower at the neck than at the bead", () => {
+    const d = DRIPS[1];
+    const pts = points(dripPath(d.x, d.length, d.width));
+    const neck = pts[0]?.[0] ?? 0;
+    expect(Math.abs(d.x - neck)).toBeLessThan(d.width / 2);
   });
 });

@@ -187,6 +187,7 @@ describe("palette and contrast (R7.7, R7.8)", () => {
       "--room-night": night,
       "--wall-top": palette("--wall-top"),
       "--wall-low": palette("--wall-low"),
+      "--window-moon": palette("--window-moon"),
       "--window-night": palette("--window-night"),
       "--window-dawn": palette("--window-dawn"),
       "dawn-cool over night": composite(palette("--dawn-cool"), night, alpha),
@@ -225,10 +226,30 @@ describe("palette and contrast (R7.7, R7.8)", () => {
     expect(contrast(brightest, zoneDark)).toBeGreaterThan(contrast(ivory, zoneDark));
   });
 
-  it("the window at rest is a single constant colour, visible against the night (F3)", () => {
-    expect(contrast(palette("--window-night"), palette("--room-night"))).toBeGreaterThanOrEqual(1.4);
-    expect(Math.round(contrast(palette("--window-night"), palette("--room-night")) * 100) / 100).toBe(1.57);
-    expect(rule(".window-rest")).toBe("fill: var(--window-night);");
+  it("the window at rest is a constant, faint moonlight gradient: dimmer than before, visible against the night and the wall (F3)", () => {
+    const moon = palette("--window-moon");
+    const base = palette("--window-night");
+    const round = (x: number): number => Math.round(x * 100) / 100;
+    expect(round(contrast(moon, palette("--room-night")))).toBe(1.33);
+    expect(round(contrast(moon, palette("--wall-top")))).toBe(1.15);
+    expect(round(contrast(base, palette("--room-night")))).toBe(1.1);
+    expect(contrast(moon, palette("--room-night"))).toBeGreaterThanOrEqual(1.25);
+    expect(contrast(moon, palette("--wall-top"))).toBeGreaterThanOrEqual(1.1);
+    expect(contrast(base, palette("--room-night"))).toBeGreaterThanOrEqual(1.08);
+    expect(luminance(moon)).toBeGreaterThan(luminance(base)); // lighter at the top
+    expect(luminance(moon)).toBeLessThan(0.0259); // dimmer than the first pane (#233152)
+    // Constant: each colour is declared once, and nothing in a state rule changes the resting pane.
+    expect(CSS.match(/--window-moon\s*:/g)).toHaveLength(1);
     expect(CSS.match(/--window-night\s*:/g)).toHaveLength(1);
+    expect(rule(".window-rest")).toBe("fill: url(#cw-window-grad);");
+    expect(rule(".st-window-moon")).toBe("stop-color: var(--window-moon);");
+    expect(rule(".st-window-night")).toBe("stop-color: var(--window-night);");
+  });
+
+  it("the drips are filled wax with an outline, not a bare stroke", () => {
+    const body = rule(".drip");
+    expect(body).toContain("fill: var(--wax-ivory)");
+    expect(body).toContain("stroke: var(--wax-shade)");
+    expect(body).not.toContain("fill: none");
   });
 });

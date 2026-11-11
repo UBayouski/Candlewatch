@@ -5,9 +5,45 @@
 // The floor line is y = 900: the candle's base, the clip line for everything lit, and the top of the zone.
 // Layers, back to front: wall, night, window, dawn-wash, candle, lit (clipped), zone (topmost).
 
+import { DRIPS, DRIP_TOP_Y, WINDOW } from "./constants";
+
+const num = (n: number): string => String(Math.round(n * 100) / 100);
+
+/**
+ * The outline of one drip: a narrow runnel from the rim that flares into a rounded bead (design 5.5).
+ * Pure geometry, computed once; every point is an `x y` pair, so a test can read the extent.
+ */
+export function dripPath(cx: number, length: number, width: number): string {
+  const r = width / 2;
+  const neck = width * 0.34;
+  const y0 = DRIP_TOP_Y;
+  const flare = y0 + length - width * 1.1;
+  const waist = y0 + length - width * 0.85;
+  const shoulder = y0 + length - width * 0.75;
+  const bead = y0 + length - r;
+  const low = y0 + length + r * 0.4;
+  const p = [
+    `M${num(cx - neck)} ${num(y0)}`,
+    `L${num(cx - neck)} ${num(flare)}`,
+    `C${num(cx - neck)} ${num(waist)} ${num(cx - r)} ${num(shoulder)} ${num(cx - r)} ${num(bead)}`,
+    `C${num(cx - r)} ${num(low)} ${num(cx + r)} ${num(low)} ${num(cx + r)} ${num(bead)}`,
+    `C${num(cx + r)} ${num(shoulder)} ${num(cx + neck)} ${num(waist)} ${num(cx + neck)} ${num(flare)}`,
+    `L${num(cx + neck)} ${num(y0)} Z`,
+  ];
+  return p.join(" ");
+}
+
+const DRIPS_SVG = DRIPS.map(
+  (d, i) => `<g class="drip drip-${i + 1}"><path d="${dripPath(d.x, d.length, d.width)}"/></g>`,
+).join("\n");
+
+const WINDOW_RECT = `x="${WINDOW.x}" y="${WINDOW.y}" width="${WINDOW.width}" height="${WINDOW.height}"`;
+
 export const ROOM_SVG = `<svg class="room" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 1000" preserveAspectRatio="xMidYMid meet" aria-hidden="true" focusable="false">
 <defs>
 <linearGradient id="cw-wall-grad" gradientUnits="userSpaceOnUse" x1="0" y1="-600" x2="0" y2="900"><stop class="st-wall-top" offset="0"/><stop class="st-wall-low" offset="1"/></linearGradient>
+<linearGradient id="cw-window-grad" x1="0" y1="0" x2="0" y2="1"><stop class="st-window-moon" offset="0"/><stop class="st-window-night" offset="1"/></linearGradient>
+<filter id="cw-soft-edge" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="${WINDOW.blur}"/></filter>
 <linearGradient id="cw-dawn-grad" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="900"><stop class="st-dawn-top" offset="0"/><stop class="st-dawn-low" offset="1"/></linearGradient>
 <linearGradient id="cw-wax-grad" x1="0" y1="0" x2="1" y2="0"><stop class="st-wax-shade" offset="0"/><stop class="st-wax-ivory" offset="0.4"/><stop class="st-wax-ivory" offset="0.7"/><stop class="st-wax-shade" offset="1"/></linearGradient>
 <radialGradient id="cw-flame-amber" cx="0.5" cy="0.78" r="0.62"><stop class="st-flame-core" offset="0"/><stop class="st-amber-mid" offset="0.45"/><stop class="st-amber-outer" offset="1"/></radialGradient>
@@ -23,7 +59,7 @@ export const ROOM_SVG = `<svg class="room" xmlns="http://www.w3.org/2000/svg" vi
 </defs>
 <rect class="wall" x="-2200" y="-600" width="5000" height="1500" fill="url(#cw-wall-grad)"/>
 <rect class="night" x="-2200" y="-600" width="5000" height="1500" mask="url(#cw-pool-mask)"/>
-<g class="window"><rect class="window-rest" x="190" y="70" width="220" height="180"/><rect class="window-dawn" x="190" y="70" width="220" height="180"/></g>
+<g class="window" filter="url(#cw-soft-edge)"><rect class="window-rest" ${WINDOW_RECT}/><rect class="window-dawn" ${WINDOW_RECT}/></g>
 <rect class="dawn-wash" x="-2200" y="-600" width="5000" height="1500" fill="url(#cw-dawn-grad)"/>
 <g class="candle">
 <rect class="body" x="268" y="480" width="64" height="420" fill="url(#cw-wax-grad)"/>
@@ -34,9 +70,7 @@ export const ROOM_SVG = `<svg class="room" xmlns="http://www.w3.org/2000/svg" vi
 <circle class="halo" cx="300" cy="410" r="120" fill="url(#cw-halo-grad)"/>
 <ellipse class="rim" cx="300" cy="480" rx="32" ry="6"/>
 <ellipse class="melt" cx="300" cy="480" rx="22" ry="3.5"/>
-<path class="drip drip-1" d="M268 482 L268 562"/>
-<path class="drip drip-2" d="M332 482 L332 582"/>
-<path class="drip drip-3" d="M284 482 L284 542"/>
+${DRIPS_SVG}
 <rect class="wick" x="298" y="460" width="4" height="20"/>
 <circle class="ember" cx="300" cy="458" r="8" fill="url(#cw-ember-grad)"/>
 <g class="flame"><g class="flame-flicker"><g class="flame-shape">

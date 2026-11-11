@@ -44,7 +44,8 @@ body {
   --halo: #ffb347;
   --smoke-colour: #8a93a6;
   --ember: #ff7a2e;
-  --window-night: #233152;
+  --window-moon: #1a2540; /* the window at rest, top: faint moonlight (constant) */
+  --window-night: #0d1424; /* the window at rest, bottom (constant) */
   --window-dawn: #566683;
   --dawn-cool: #4a5a78;
   --dawn-warm: #5a4a52;
@@ -84,6 +85,8 @@ body {
 .st-wall-low { stop-color: var(--wall-low); }
 .st-dawn-top { stop-color: var(--dawn-cool); stop-opacity: var(--dawn-alpha); }
 .st-dawn-low { stop-color: var(--dawn-warm); stop-opacity: var(--dawn-alpha); }
+.st-window-moon { stop-color: var(--window-moon); }
+.st-window-night { stop-color: var(--window-night); }
 .st-wax-shade { stop-color: var(--wax-shade); }
 .st-wax-ivory { stop-color: var(--wax-ivory); }
 .st-flame-core { stop-color: var(--flame-core); }
@@ -105,7 +108,7 @@ body {
   transform: translate(300px, calc(400px + (1 - var(--wax-height)) * 420px)) scale(var(--light-radius));
 }
 
-.window-rest { fill: var(--window-night); }
+.window-rest { fill: url(#cw-window-grad); }
 .window-dawn { fill: var(--window-dawn); opacity: var(--dawn); }
 .dawn-wash { opacity: var(--dawn); }
 
@@ -125,10 +128,10 @@ body {
 .wick { fill: var(--wick); }
 
 .drip {
-  fill: none;
+  fill: var(--wax-ivory);
   stroke: var(--wax-shade);
-  stroke-width: 7;
-  stroke-linecap: round;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
   transform-box: fill-box;
   transform-origin: 50% 0%;
 }
