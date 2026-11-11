@@ -5,8 +5,8 @@ import { describe, expect, it } from "vitest";
 import { BREAK_MS, INITIAL_STATE, MS_PER_MINUTE, isBreak, step, timeLeftMs, waxFraction } from "../engine";
 import type { State } from "../engine";
 import { PROP_PARAMS, arbIntent, arbLength, arbScript, arbT0, arbWildScript, runScript } from "../engine/test-kit";
-import { GUTTER_MS, LIGHT_MIN } from "./constants";
-import { sceneModel } from "./model";
+import { CANDLE_H, GUTTER_MS, LIGHT_MIN, STUB_H } from "./constants";
+import { candleHeightUnits, sceneModel } from "./model";
 import { arbNow, arbReduced, arbSeed, deepFreeze, sampleModels } from "./scene-kit";
 import { MOTION_FIELDS, RANGES } from "./types";
 import type { FlameMode, SceneModel } from "./types";
@@ -85,6 +85,37 @@ describe("P1 (quarter marks): drips change exactly at the quarter marks", () => 
           expect(model.drips).toBe(marks.filter((m) => left <= m).length);
         },
       ),
+      PROP_PARAMS,
+    );
+  });
+});
+
+describe("P1 (candle height): the drawn candle is exactly proportional to the wax", () => {
+  it("is 420 * waxHeight in idle, lit and paused, for every state and moment, and nothing fixed is added (R3.6)", () => {
+    fc.assert(
+      fc.property(arbT0, arbWildScript, fc.array(arbNow, { minLength: 1, maxLength: 3 }), (t0, script, nows) => {
+        const ratios: number[] = [];
+        for (const { after, now } of runScript(script, t0)) {
+          for (const at of [now, ...nows]) {
+            const m = sceneModel(after, at);
+            const height = candleHeightUnits(m);
+            if (after.phase === "burned-out" || after.phase === "snuffed") {
+              // After the end the wax is gone and only the fixed stub is drawn.
+              expect(m.waxHeight).toBe(0);
+              expect(height).toBe(STUB_H);
+              continue;
+            }
+            expect(m.stub).toBe(0);
+            expect(height).toBe(CANDLE_H * m.waxHeight); // exactly proportional, nothing added
+            expect(height).toBeGreaterThanOrEqual(0);
+            expect(height).toBeLessThanOrEqual(CANDLE_H);
+            if (m.waxHeight > 0) ratios.push(height / m.waxHeight);
+            else expect(height).toBe(0); // no wax, no candle: the stub is not drawn while the session runs
+          }
+        }
+        // The same constant for every height: that is what "proportional" means.
+        for (const r of ratios) expect(r).toBeCloseTo(CANDLE_H, 9);
+      }),
       PROP_PARAMS,
     );
   });

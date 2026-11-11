@@ -148,14 +148,14 @@ Conventions for every task:
   - Requirements: R3, R4, R5, R6, R7, R9, R11. Properties: P1 to P8.
   - Done when the code is back to its original state and `npm run verify` passes.
 
-- [ ] 21. Browser fixtures and state assertions
+- [x] 21. Browser fixtures and state assertions
   - Create `e2e/scene-fixtures.ts` (design 11.1, 11.2): the seven fixtures built in Node with the engine only (`step`, `serializeSession`, `serializeHistory`) and the storage key names; `showAt(page, fixture, now, { reducedMotion })` using `page.addInitScript`, `page.clock.install`, `pauseAt` and `runFor`. If task 1 needed the `globalSetup` fallback, read the fixtures from its file instead.
   - Create `e2e/scene.spec.ts` (design 11.3): per fixture, wait for `data-settled="true"` and finished transitions, then assert `data-flame`, `data-phase` and the computed custom properties of the table (including `--stub`); `aria-label` and `role="img"`; with reduced motion on, `--flicker-*` are 0 and the three animate and ease attributes are `"false"`; no scrollbar and the candle and flame inside the viewport at 360x640, 768x1024, 1280x800 and 1920x1080; the candle height is proportional (the `.body` box height over its height at `lit-start` equals `--wax-height`; `.stub` opacity 0 while running, 1 and body height under 1 px after the end); the time-text zone region is decoded in the page and every pixel is within 2 per channel of `--zone-bg-darkest` (or `--zone-bg-brightest` in the dawn fixtures), with `lit-last-minute` included; reload settle checks (a stored lit session past completion draws the dawn; a stored paused session past the pause limit draws smoke; `--cooling` is 0 after the break).
   - Files: `e2e/scene-fixtures.ts`, `e2e/scene.spec.ts`.
   - Requirements: R3, R4, R5, R7, R8, R9, R10, R12, R13.2, R13.7. Properties: none.
   - Done when `npm run verify` passes.
 
-- [ ] 22. Screenshots (21 PNGs), then look at them
+- [x] 22. Screenshots (21 PNGs), then look at them
   - Create `e2e/screenshots.spec.ts` (design 11.4). For each of the seven states (`idle`, `lit-start`, `lit-half`, `lit-last-minute`, `paused`, `burned-out` inside the break, `snuffed`) take `docs/screenshots/candle-<state>-desktop.png` at 1280x800 and `candle-<state>-phone.png` at 360x640, and `candle-<state>-desktop-reduced.png` at 1280x800 with reduced motion on: 7 x 3 = 21 files. The tests do not compare pixels.
   - **Look at every PNG after capture** (open each file with the image reader). Check for each: it shows the state in its name; the candle is inside the frame; there is no text; the time-text zone below the floor line is a clear flat band with no flame, halo or pool in it; the flame modes can be told apart in the still shots; the dawn can be told from idle; the reduced-motion shot shows the same information as the normal one. Write the result for each file in the task note (`KIRO_USAGE.md`). If a shot is wrong, fix the cause (markup, CSS or model) and retake all affected shots; do not edit PNGs.
   - Remove `docs/screenshots/.gitkeep` once the folder has files.

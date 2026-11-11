@@ -187,3 +187,14 @@ A running log of how Kiro was used to build Candlewatch, for the hackathon write
 - **Result:** `npm run verify`: 28 test files, 456 tests, build and 2 e2e tests pass.
 - **What was changed by hand:** Nothing.
 - **Notable:** The dev server was started with `Start-Process` and stopped with `taskkill /T`. Tasks 21 to 24 (browser assertions, the 21 screenshots, the costume review of the finished scene and the wrap-up) have not been started.
+
+## 2026-11-10 - candle-scene candle-height property, browser assertions and screenshots (tasks 21 and 22)
+
+Surface: Kiro CLI.
+
+- Added property "P1 (candle height)" to `src/scene/model.prop.test.ts`: drawn candle height is exactly 420 * waxHeight (R3.6), numRuns 300. Mutant `STUB_H + CANDLE_H * waxHeight` (fixed addition) is caught (seed -1797230058); mutant reverted.
+- Task 21: `e2e/scene-fixtures.ts` and `e2e/scene.spec.ts` (39 tests): state tables, reload-settle fixtures, reduced motion for 7 states, 4 viewports, height proportionality, floor-band zone pixel-clear checks. Mutating the zone (not topmost, no clip) made 7 e2e tests fail, so the checks are not vacuous; restored.
+- Decisions: fake clock runs to now+40 ms so the last rAF frame lands at or after the quarter mark; CSS-transition wait filters on `CSSTransition` because the smoke sway is infinite; screenshots use `animations: "disabled"`.
+- Task 22: 21 PNGs in `docs/screenshots/` (7 states x desktop 1280x800, phone 360x640, desktop reduced motion). Every PNG viewed. Idle: whole unlit candle, small dim pool. Lit-start: whole candle, steady flame, wide pool. Lit-half: half candle, two drips, smaller pool. Last minute: sliver of wax, small ragged flame, tight pool. Paused: small blue flame, one drip. Burned-out: dawn sky, stub with ember and smoke. Snuffed: dark room, stub with smoke, no ember. Nothing spills into the floor band. No scene fixes needed.
+- Note: parallel image reads came back out of call order; matched by file size and re-read singly.
+- Verify: 28 unit files / 457 tests, 63 e2e tests, all green.
