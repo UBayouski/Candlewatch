@@ -163,14 +163,14 @@ Conventions for every task:
   - Requirements: R13.3 to R13.6. Properties: none.
   - Done when `npm run verify` passes and every PNG has been looked at.
 
-- [ ] 23. Costume review of the finished scene (R13.8)
+- [x] 23. Costume review of the finished scene (R13.8)
   - Run `kiro-cli chat --agent costume-reviewer` in the Kiro CLI (custom agents do not run in Kiro Web) and ask it to review the finished scene: `src/scene/room.ts`, `src/scene/scene.css`, `src/scene/model.ts` and the screenshots in `docs/screenshots/`, against `docs/BRIEF.md` section 4 and its three rules (every element shows one piece of state; the reduced-motion version still shows it; the time text keeps WCAG AA contrast).
   - Record the verdict and each finding in the design's Decisions under a new heading "Costume review of the finished scene". Fix every finding (retaking the affected screenshots as in task 22) until the verdict is PASS, or record why a finding is accepted.
   - Files: `.kiro/specs/candle-scene/design.md` (Decisions), and any scene file a finding touches.
   - Requirements: R13.8, R11.8. Properties: none.
   - Done when the verdict is PASS (or accepted findings are recorded) and `npm run verify` passes.
 
-- [ ] 24. Wrap-up
+- [x] 24. Wrap-up
   - Run `npm run verify` and confirm every property test ran with its full number of runs (all through `PROP_PARAMS`, no literal lower `numRuns`, no skipped or `todo` tests).
   - Update `.kiro/steering/structure.md`: `src/scene/` is implemented (list the files), `e2e/` holds the scene specs and fixtures, the boundaries section says the scene imports only the engine's `index.ts` and that `scene-kit.ts` is test-only.
   - Confirm `docs/screenshots/` holds the 21 files named in design 11.4, and that no screenshot is older than the last change to `src/scene/` (`scene.md`, "Screenshots stay current").

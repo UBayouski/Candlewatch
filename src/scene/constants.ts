@@ -88,3 +88,11 @@ export const CANDLE_H = 420;
 export const FLOOR_Y = 900;
 /** The stub of an ended candle. */
 export const STUB_H = 28;
+
+// --- the cooling glow (costume review, task 23) ---
+
+/**
+ * The cooling glow on the wick tip (design 5.7). It shows the break ("the wax cools", brief section 3), so it maps to state
+ * although it is not a row in the brief section 4 table. Large enough to read as a glow on the stub's rim at 360 x 640.
+ */
+export const EMBER = { cx: 300, cy: 456, r: 15 } as const;

@@ -203,3 +203,30 @@ export async function maxPixelDistance(page: Page, box: Box, rgb: [number, numbe
     { base64: png.toString("base64"), target: rgb },
   );
 }
+
+/** The mean colour of a 3 x 3 patch of the page centred on (x, y), as [r, g, b]. Test code only. */
+export async function colourAt(page: Page, x: number, y: number): Promise<[number, number, number]> {
+  const png = await page.screenshot({ clip: { x: Math.round(x) - 1, y: Math.round(y) - 1, width: 3, height: 3 }, animations: "disabled" });
+  return page.evaluate(async (base64) => {
+    const bitmap = await createImageBitmap(await (await fetch(`data:image/png;base64,${base64}`)).blob());
+    const canvas = document.createElement("canvas");
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("no 2d context");
+    ctx.drawImage(bitmap, 0, 0);
+    const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+    const sum = [0, 0, 0];
+    const n = data.length / 4;
+    for (let i = 0; i < data.length; i += 4) for (let c = 0; c < 3; c++) sum[c] = (sum[c] ?? 0) + (data[i + c] ?? 0);
+    return sum.map((v) => v / n) as [number, number, number];
+  }, png.toString("base64"));
+}
+
+/** The computed `stop-color` of the first element matching `selector`, as [r, g, b] in 0..255. */
+export async function stopColour(page: Page, selector: string): Promise<[number, number, number]> {
+  const text = await page.evaluate((s) => getComputedStyle(document.querySelector(s) as Element).stopColor, selector);
+  const nums = (text.match(/-?\d*\.?\d+/g) ?? []).slice(0, 3).map(Number);
+  const scale = text.startsWith("color(") ? 255 : 1;
+  return nums.map((v) => v * scale) as [number, number, number];
+}

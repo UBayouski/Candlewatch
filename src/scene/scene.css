@@ -94,9 +94,11 @@ body {
 .st-amber-outer { stop-color: var(--flame-amber-outer); }
 .st-blue-core { stop-color: var(--flame-blue-core); }
 .st-blue-outer { stop-color: var(--flame-blue-outer); }
-.st-halo-in { stop-color: var(--halo); stop-opacity: 0.6; }
-.st-halo-out { stop-color: var(--halo); stop-opacity: 0; }
+/* The halo takes the flame's colour: amber, blue when paused (one colour for flame and halo). */
+.st-halo-in { stop-color: color-mix(in srgb, var(--flame-blue-outer) calc(var(--flame-blue) * 100%), var(--halo)); stop-opacity: 0.6; }
+.st-halo-out { stop-color: color-mix(in srgb, var(--flame-blue-outer) calc(var(--flame-blue) * 100%), var(--halo)); stop-opacity: 0; }
 .st-ember-in { stop-color: var(--ember); stop-opacity: 1; }
+.st-ember-mid { stop-color: var(--ember); stop-opacity: 0.8; }
 .st-ember-out { stop-color: var(--ember); stop-opacity: 0; }
 
 /* --- the room --- */

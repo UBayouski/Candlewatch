@@ -253,3 +253,23 @@ describe("palette and contrast (R7.7, R7.8)", () => {
     expect(body).not.toContain("fill: none");
   });
 });
+
+describe("review changes (task 23)", () => {
+  it("the halo is tinted by the flame's blue amount: both halo stops mix the blue flame colour in by --flame-blue", () => {
+    for (const name of [".st-halo-in", ".st-halo-out"]) {
+      const body = rule(name);
+      expect(body, name).toContain("color-mix(in srgb");
+      expect(body, name).toContain("var(--flame-blue-outer)");
+      expect(body, name).toContain("var(--flame-blue) * 100%");
+      expect(body, name).toContain("var(--halo)");
+    }
+    // The halo's blue is the flame's own blue, not a new colour.
+    expect(CSS).not.toMatch(/--halo-blue/);
+  });
+
+  it("the ember has a strong mid stop and an opaque centre", () => {
+    expect(rule(".st-ember-in")).toContain("stop-opacity: 1");
+    expect(rule(".st-ember-mid")).toMatch(/stop-opacity:\s*0\.[7-9]/);
+    expect(rule(".st-ember-out")).toContain("stop-opacity: 0");
+  });
+});

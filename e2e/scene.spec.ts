@@ -2,7 +2,7 @@
 // Each state is reached the way a real visit reaches it: a stored session and a frozen clock, with no hook in the shipped code.
 import { expect, test } from "@playwright/test";
 import { STRINGS } from "../src/strings";
-import { FIXTURES, STATES, VIEWPORTS, boxOf, maxPixelDistance, openScene, paletteColour, readScene } from "./scene-fixtures";
+import { FIXTURES, STATES, VIEWPORTS, boxOf, colourAt, maxPixelDistance, openScene, paletteColour, readScene, stopColour } from "./scene-fixtures";
 import type { Fixture } from "./scene-fixtures";
 
 test.describe.configure({ mode: "parallel" });
@@ -202,6 +202,96 @@ test.describe("the time-text zone stays clear of flame, halo and light pool (F5)
         expect(area.height).toBeGreaterThan(40);
         const worst = await maxPixelDistance(scene.page, area, colour);
         expect(worst).toBeLessThanOrEqual(2);
+      } finally {
+        await scene.close();
+      }
+    });
+  }
+});
+
+const near = (a: [number, number, number], b: [number, number, number], tolerance: number): boolean =>
+  a.every((v, i) => Math.abs(v - (b[i] ?? 0)) <= tolerance);
+
+test.describe("the ember reads as a warm glow on the stub's rim (review, task 23)", () => {
+  for (const [title, size] of [["desktop", "desktop"], ["phone", "phone"]] as const) {
+    test(`burned-out inside the break at ${title}`, async ({ browser }) => {
+      const scene = await openScene(browser, FIXTURES.burnedOut, { viewport: VIEWPORTS[size] });
+      try {
+        const ember = await boxOf(scene.page, ".ember");
+        const stub = await boxOf(scene.page, ".stub");
+        // Big enough to see: close to half the stub's width (30 units against 64).
+        expect(ember.width / stub.width).toBeGreaterThan(0.44);
+        // Beside the wick (the smoke wisp is drawn over its centre) the stub's rim is warm orange, not ivory wax.
+        const [r, g, b] = await colourAt(scene.page, ember.x + ember.width / 2 - ember.width * 0.2, ember.y + ember.height / 2 + 2);
+        expect(r).toBeGreaterThan(235);
+        expect(g).toBeGreaterThan(100);
+        expect(g).toBeLessThan(175);
+        expect(b).toBeLessThan(110);
+        // And it sits on the stub: its centre is within the stub's box, near the rim.
+        expect(ember.y + ember.height / 2).toBeGreaterThanOrEqual(stub.y - 2);
+        expect(ember.y + ember.height / 2).toBeLessThanOrEqual(stub.y + stub.height / 2);
+      } finally {
+        await scene.close();
+      }
+    });
+  }
+
+  test("after the break the same spot is plain ivory wax, not a glow", async ({ browser }) => {
+    const scene = await openScene(browser, FIXTURES.burnedOutAfterBreak);
+    try {
+      const ember = await boxOf(scene.page, ".ember");
+      const [, , b] = await colourAt(scene.page, ember.x + ember.width / 2 - ember.width * 0.2, ember.y + ember.height / 2 + 2);
+      expect(b).toBeGreaterThan(180);
+    } finally {
+      await scene.close();
+    }
+  });
+
+  test("the glow is still there with reduced motion", async ({ browser }) => {
+    const scene = await openScene(browser, FIXTURES.burnedOut, { reducedMotion: true });
+    try {
+      const ember = await boxOf(scene.page, ".ember");
+      const [r, , b] = await colourAt(scene.page, ember.x + ember.width / 2 - ember.width * 0.2, ember.y + ember.height / 2 + 2);
+      expect(r).toBeGreaterThan(235);
+      expect(b).toBeLessThan(110);
+    } finally {
+      await scene.close();
+    }
+  });
+});
+
+test.describe("the window lights up at dawn, above the wash (review, task 23)", () => {
+  test("at dawn the pane is clearly lighter than the wash beside it", async ({ browser }) => {
+    const dawn = await openScene(browser, FIXTURES.burnedOut);
+    try {
+      const pane = await boxOf(dawn.page, ".window-dawn");
+      const cx = pane.x + pane.width / 2;
+      const cy = pane.y + pane.height / 2;
+      const inside = await colourAt(dawn.page, cx, cy);
+      const beside = await colourAt(dawn.page, pane.x - 60, cy);
+      const sum = (c: [number, number, number]): number => c[0] + c[1] + c[2];
+      expect(sum(inside) - sum(beside)).toBeGreaterThan(30);
+      // The pane's colour is the dawn pane colour, undimmed by the wash.
+      expect(near(inside, await paletteColour(dawn.page, "--window-dawn"), 6)).toBe(true);
+    } finally {
+      await dawn.close();
+    }
+  });
+});
+
+test.describe("the halo is the flame's colour (review, task 23)", () => {
+  const cases = [
+    { fixture: FIXTURES.paused, colour: "--flame-blue-outer" },
+    { fixture: FIXTURES.litStart, colour: "--halo" },
+    { fixture: FIXTURES.litLastMinute, colour: "--halo" },
+  ];
+  for (const { fixture, colour } of cases) {
+    test(`${fixture.name}: the halo stops use ${colour}`, async ({ browser }) => {
+      const scene = await openScene(browser, fixture);
+      try {
+        const want = await paletteColour(scene.page, colour);
+        expect(near(await stopColour(scene.page, ".st-halo-in"), want, 2)).toBe(true);
+        expect(near(await stopColour(scene.page, ".st-halo-out"), want, 2)).toBe(true);
       } finally {
         await scene.close();
       }

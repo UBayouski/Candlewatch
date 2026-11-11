@@ -3,9 +3,9 @@
 //
 // Room units: the stage is 600 x 1000 (viewBox); the backdrop is drawn far beyond it, x -2200..2800.
 // The floor line is y = 900: the candle's base, the clip line for everything lit, and the top of the zone.
-// Layers, back to front: wall, night, window, dawn-wash, candle, lit (clipped), zone (topmost).
+// Layers, back to front: wall, night, dawn-wash, window, candle, lit (clipped), zone (topmost).
 
-import { DRIPS, DRIP_TOP_Y, WINDOW } from "./constants";
+import { DRIPS, DRIP_TOP_Y, EMBER, WINDOW } from "./constants";
 
 const num = (n: number): string => String(Math.round(n * 100) / 100);
 
@@ -49,7 +49,7 @@ export const ROOM_SVG = `<svg class="room" xmlns="http://www.w3.org/2000/svg" vi
 <radialGradient id="cw-flame-amber" cx="0.5" cy="0.78" r="0.62"><stop class="st-flame-core" offset="0"/><stop class="st-amber-mid" offset="0.45"/><stop class="st-amber-outer" offset="1"/></radialGradient>
 <radialGradient id="cw-flame-blue" cx="0.5" cy="0.78" r="0.62"><stop class="st-blue-core" offset="0"/><stop class="st-blue-outer" offset="1"/></radialGradient>
 <radialGradient id="cw-halo-grad"><stop class="st-halo-in" offset="0"/><stop class="st-halo-out" offset="1"/></radialGradient>
-<radialGradient id="cw-ember-grad"><stop class="st-ember-in" offset="0"/><stop class="st-ember-out" offset="1"/></radialGradient>
+<radialGradient id="cw-ember-grad"><stop class="st-ember-in" offset="0"/><stop class="st-ember-mid" offset="0.55"/><stop class="st-ember-out" offset="1"/></radialGradient>
 <radialGradient id="cw-pool-hole"><stop offset="0" stop-color="#000" stop-opacity="1"/><stop offset="0.6" stop-color="#000" stop-opacity="0.75"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
 <mask id="cw-pool-mask" maskUnits="userSpaceOnUse" x="-2200" y="-600" width="5000" height="1500">
 <rect class="mask-all" x="-2200" y="-600" width="5000" height="1500" fill="#fff"/>
@@ -59,8 +59,8 @@ export const ROOM_SVG = `<svg class="room" xmlns="http://www.w3.org/2000/svg" vi
 </defs>
 <rect class="wall" x="-2200" y="-600" width="5000" height="1500" fill="url(#cw-wall-grad)"/>
 <rect class="night" x="-2200" y="-600" width="5000" height="1500" mask="url(#cw-pool-mask)"/>
-<g class="window" filter="url(#cw-soft-edge)"><rect class="window-rest" ${WINDOW_RECT}/><rect class="window-dawn" ${WINDOW_RECT}/></g>
 <rect class="dawn-wash" x="-2200" y="-600" width="5000" height="1500" fill="url(#cw-dawn-grad)"/>
+<g class="window" filter="url(#cw-soft-edge)"><rect class="window-rest" ${WINDOW_RECT}/><rect class="window-dawn" ${WINDOW_RECT}/></g>
 <g class="candle">
 <rect class="body" x="268" y="480" width="64" height="420" fill="url(#cw-wax-grad)"/>
 <rect class="stub" x="268" y="872" width="64" height="28" rx="3" fill="url(#cw-wax-grad)"/>
@@ -72,7 +72,7 @@ export const ROOM_SVG = `<svg class="room" xmlns="http://www.w3.org/2000/svg" vi
 <ellipse class="melt" cx="300" cy="480" rx="22" ry="3.5"/>
 ${DRIPS_SVG}
 <rect class="wick" x="298" y="460" width="4" height="20"/>
-<circle class="ember" cx="300" cy="458" r="8" fill="url(#cw-ember-grad)"/>
+<circle class="ember" cx="${EMBER.cx}" cy="${EMBER.cy}" r="${EMBER.r}" fill="url(#cw-ember-grad)"/>
 <g class="flame"><g class="flame-flicker"><g class="flame-shape">
 <g class="flame-amber">
 <path class="teardrop" d="M300 340 C322 380 330 432 300 460 C270 432 278 380 300 340 Z" fill="url(#cw-flame-amber)"/>

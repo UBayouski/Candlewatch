@@ -281,14 +281,14 @@ The container is `position: fixed; inset: 0; overflow: hidden`, with `html, body
 
 ### 5.2 Layers (back to front)
 
-All shapes are static markup in `room.ts`. IDs are prefixed `cw-`. Classes carry the CSS hooks. After the costume review (Decisions F1 to F6) there is no table and no dish, and every layer shows one thing.
+All shapes are static markup in `room.ts`. IDs are prefixed `cw-`. Classes carry the CSS hooks. After the costume review (Decisions F1 to F6) there is no table and no dish, and every layer shows one thing. After the two review passes of the finished scene (17.3) the window is drawn above the dawn wash.
 
 | # | Layer (class) | Contents | Shows (R11.8) |
 |---|---|---|---|
 | 1 | `.wall` | A large rect from y = -600 down to the floor line (y = 900), vertical gradient `--wall-top` to `--wall-low`. | Nothing of its own. It is the surface the light pool reveals, so it carries progress: the lit part of the wall is the pool. Without it the pool would have nothing to show. |
 | 2 | `.night` | A rect over the same area, filled `--room-night`, opacity constant 1, masked by `#cw-pool-mask` (5.3). It ends at the floor line. | Progress (the dark outside the pool). |
-| 3 | `.window` | A night window on the wall: a **portrait** pane at x 240..360, y 50..260 (120 wide, 210 tall), drawn above `.night` so it keeps its colour in the dark. The group has **soft edges**: a Gaussian blur (`#cw-soft-edge`, standard deviation 5, in sRGB so the dark gradient does not band). `.window-rest` is filled with a **constant faint vertical moonlight gradient** (`#cw-window-grad`) from `--window-moon` at the top to `--window-night` at the bottom; it carries no state. `.window-dawn` is filled `--window-dawn`, opacity `var(--dawn)`. Only the pane: no frame, sill, mullion or curtain. | Dawn (completion): the pane lights up. |
-| 4 | `.dawn-wash` | A rect over the wall area, vertical gradient from `--dawn-cool` (top) to `--dawn-warm` (low), stops at alpha `--dawn-alpha`, opacity `var(--dawn)`. Layered above `.night`; `.night` is not faded. | Dawn. |
+| 3 | `.dawn-wash` | A rect over the wall area, vertical gradient from `--dawn-cool` (top) to `--dawn-warm` (low), stops at alpha `--dawn-alpha`, opacity `var(--dawn)`. Layered above `.night`; `.night` is not faded. | Dawn. |
+| 4 | `.window` | A night window on the wall: a **portrait** pane at x 240..360, y 50..260 (120 wide, 210 tall), drawn above `.night` so it keeps its colour in the dark, and **above `.dawn-wash`** so the wash does not dim it: the dawn pane (`#566683`) is lighter than the wash beside it (about 1.4:1) and visibly lights up. The group has **soft edges**: a Gaussian blur (`#cw-soft-edge`, standard deviation 5, in sRGB so the dark gradient does not band). `.window-rest` is filled with a **constant faint vertical moonlight gradient** (`#cw-window-grad`) from `--window-moon` at the top to `--window-night` at the bottom; it carries no state. `.window-dawn` is filled `--window-dawn`, opacity `var(--dawn)`. Only the pane: no frame, sill, mullion or curtain. | Dawn (completion): the pane lights up. |
 | 5 | `.candle` | `.body`: x 268..332, from the floor line up 420 units, `scaleY(var(--wax-height))` from the bottom. `.stub`: x 268..332, y 872..900, opacity `var(--stub)`. | Time left (body). An ended session (stub). |
 | 6 | `.lit` (group) | Not translated; carries `clip-path: url(#cw-above-floor)`, the stage area above y = 900. Inside it, `.head`, translated down by `(1 - var(--wax-height)) * 420px`, holds the rim ellipse, `.wick`, `.drip-1..3`, the `.flame` stack, `.ember`, `.smoke-wisp` and `.halo`. | Wax top (time left), drips (quarters burned), flame (session state), ember (break), smoke (ended), halo (flame state). |
 | 7 | `.zone` | An opaque band from the floor line down to y = 1600 and across the whole backdrop. `.zone-rest` is filled `--zone-bg-darkest`; `.zone-dawn` is filled `--zone-bg-brightest`, opacity `var(--dawn)`. Topmost layer. It contains an invisible marker rect, `.zone-text-area` (x 110..490, y 900..1000, no fill), so tests and the controls spec can read where the time text goes. | The reserved time-text zone (5.4, 7.2). It brightens at dawn (completion). |
@@ -357,13 +357,13 @@ Four stacked groups inside `.head`, from the outside in:
 3. Two flame sets: `.flame-amber` (opacity `calc(1 - var(--flame-blue))`) and `.flame-blue` (opacity `var(--flame-blue)`), each a layered teardrop of two or three radial gradients (outer, mid, core).
 4. `.flame-ragged`: a second outline with a lean and a ragged tip, opacity `var(--flame-ragged)`. The plain teardrop's opacity is `calc(1 - var(--flame-ragged))`.
 
-`.halo` radius and opacity follow `clamp(0, var(--flame-glow) + var(--flicker-glow), 1)`.
+`.halo` radius and opacity follow `clamp(0, var(--flame-glow) + var(--flicker-glow), 1)`. Its colour follows the flame's: both gradient stops are `color-mix(in srgb, var(--flame-blue-outer) calc(var(--flame-blue) * 100%), var(--halo))`, so the halo is amber while the flame is amber and blue while it is paused (one colour for flame and halo). It reads `--flame-blue` only for the colour; `.halo` stays the only reader of the glow.
 
 The wisp (`.smoke-wisp`) is a still S-curve drawn above the wick in `--smoke`. With `data-animate-smoke="true"` it sways (a looping 7 s ease-in-out alternate rotation of a few degrees). It never fades out, so an ended session keeps its mark (R9.3). `.ember` is the cooling glow (section 5.7).
 
 ### 5.7 The cooling glow
 
-`.ember` is a small radial gradient dot on the wick tip with opacity `var(--cooling)`. It is a still shape and colour, so it shows in reduced motion (R8.5). With `data-ease="true"` it fades in and out over 800 ms. `--cooling` is 1 while `isBreak` is true and 0 otherwise. It changes nothing else.
+`.ember` is a radial gradient glow on the wick tip (`EMBER` in `constants.ts`: centre (300, 456), **radius 15**), with opacity `var(--cooling)`. The gradient has three stops, `--ember` at opacity 1 at the centre, 0.8 at 55 percent and 0 at the edge, so it reads as a warm glow on the stub's rim in `candle-burned-out-*` at 360 x 640 as well (the first version, radius 8 with a two-stop fade, read as a dot). It is drawn under the smoke wisp, so the wisp crosses it. It shows the break ("the wax cools", brief section 3), see 17.3. It is a still shape and colour, so it shows in reduced motion (R8.5). With `data-ease="true"` it fades in and out over 800 ms. `--cooling` is 1 while `isBreak` is true and 0 otherwise. It changes nothing else.
 
 ### 5.8 Dawn
 
@@ -477,7 +477,7 @@ Contrast figures, from the WCAG relative luminance formula (ivory `#efe6cf` has 
 
 Every ratio is at least 4.5:1. The two zone ratios are the ones the time text meets. A mix of the two zone colours during the 3 second dawn ease has a luminance between them, so its ratio is between 7.53 and 15.83.
 
-For the window pane at rest (not text, visibility only), after the render check made the first pane much dimmer and closer to the wall: the top stop `--window-moon` `#1a2540` against `--room-night` is 1.33:1 and against `--wall-top` it is 1.15:1; the bottom stop `--window-night` `#0d1424` against `--room-night` is 1.10:1; the two stops differ by 1.21:1. The first pane (`#233152`) was 1.57:1 against the night. The pane is faint, constant and soft-edged, and still visible, so the dawn reads as the window lighting up. Both stops lie between the room bounds, so every contrast figure in the table above stays valid.
+For the window pane at rest (not text, visibility only), after the render check made the first pane much dimmer and closer to the wall: the top stop `--window-moon` `#1a2540` against `--room-night` is 1.33:1 and against `--wall-top` it is 1.15:1; the bottom stop `--window-night` `#0d1424` against `--room-night` is 1.10:1; the two stops differ by 1.21:1. The first pane (`#233152`) was 1.57:1 against the night. The pane is faint, constant and soft-edged, and still visible, so the dawn reads as the window lighting up. At dawn the pane (`#566683`, drawn above the wash since the review in 17.3) against the wash behind it (`#404E68` at the top, over the night layer) is 1.45:1, so the pane is lighter than its surroundings and visibly lights up; before the reorder the wash tinted the pane and the difference was about 1.1:1. Both stops lie between the room bounds, so every contrast figure in the table above stays valid.
 
 **Handoff for `controls-and-access`:**
 
@@ -742,3 +742,25 @@ The review was done in the Kiro CLI against the three rules of the `costume-revi
 - **F6. The candle was not exactly proportional to the wax (rule 1).** A fixed 28-unit stub was always drawn under the body, so the drawn height was 28 + 392 h, not h (R3.6, brief section 4). *Fix:* the candle's drawn height is exactly `420 * waxHeight`. The fixed stub is drawn only in `burned-out` and `snuffed`, through a new model field `stub` (0 or 1) and `--stub`. The formulas (3.2), the geometry (5.4), the unit tests (12.1) and the e2e assertions (11.3) are updated.
 
 Accepted by the reviewer, no change: three drips instead of four (Q4), and the reduced-motion version (rule 2: every state keeps a still form in size, colour or shape).
+
+### 17.3 Costume review of the finished scene (task 23, R13.8)
+
+The review of the finished scene was run with the `costume-reviewer` agent itself (`kiro-cli chat --agent costume-reviewer`), in two passes. This is the run 17.2 said was still to come. Task 23 is done: the findings are applied.
+
+**Pass 1. Verdict: CHANGES NEEDED.** Findings and what was done:
+
+1. **Ember too small to read (rule 1).** In `candle-burned-out-desktop`, `-phone` and `-desktop-reduced` the cooling glow (radius 8, two stops) read as a dot, so the break was not legible. *Fix:* radius 15 (`EMBER` in `constants.ts`), centre (300, 456), and a third gradient stop at 0.8 opacity, so it reads as a warm glow on the stub's rim (5.7). Checked by `room.test.ts` (radius 14 to 16, three stops), `scene.css.test.ts` (stop opacities) and three e2e tests (size against the stub, an orange pixel beside the wick in `burned-out`, plain wax after the break, the same with reduced motion).
+2. **The dawn window did not light up (rule 1).** The wash was drawn over the pane and dimmed it to about 1.1:1 against the wash. *Fix:* `.window` is drawn above `.dawn-wash` (5.2). The dawn pane keeps its colour `#566683` and is 1.45:1 against the wash behind it (7.2). No colour changed. Checked by `room.test.ts` (layer order) and an e2e pixel test (pane centre at least 30 channel units brighter than the wash beside it, and equal to `--window-dawn`).
+3. **Paused halo was amber around a blue flame (rule 1).** Flame and halo showed the state in two colours. *Fix:* the halo stops mix `--flame-blue-outer` in by `--flame-blue` (5.6). Checked by `scene.css.test.ts` and e2e tests that read the computed stop colours (blue when paused, amber when steady and guttering).
+4. **Flat wall (look).** *Fix proposed:* a faint, fixed, seeded grain on the wall.
+5. **Drips are clipped in the last minute: accepted.** Below about 25 percent wax the rim is close to the floor line and the `.lit` clip cuts the drips off, so fewer than three are fully visible. The wax height still carries the time, and the drip count is the quarter counter only while there is wax to hang them from.
+
+**Pass 2. Verdict: the ember, the dawn window and the paused halo fixes hold; the wall grain is decoration (rule 1).** It showed no state of its own, and `product.md` says an element that does not map to state does not ship. **The grain was proposed, judged decoration by the costume-reviewer, and removed completely:** the `GRAIN` constants, the filter, the pattern and the `.grain` rect, and every test that mentioned it. The room has no `feTurbulence` and no `<pattern>`, and `room.test.ts` checks that. The wall stays what Decision P2 made it: the surface the light pool reveals, with nothing added.
+
+**Decisions recorded**
+
+- **The ember maps to state although it is not a row in the brief section 4 table.** It shows the break (brief section 3, "the wax cools"), so it follows the rule that every spooky element shows one piece of state. It is a still shape and colour, so it also shows in reduced motion (R8.5).
+- **The drips are clipped in the last minute: accepted**, because the wax height carries the time.
+- **The grain is out** (pass 2). A flat wall is the accepted look.
+
+All screenshots that show the lit pool or changed with these edits were retaken: idle, lit-start, lit-half, lit-last-minute, paused and burned-out, in desktop, phone and desktop-reduced.

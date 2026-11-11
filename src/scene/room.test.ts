@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CANDLE_H, DRIPS, DRIP_TOP_Y, FLOOR_Y, STUB_H, WINDOW } from "./constants";
+import { CANDLE_H, DRIPS, DRIP_TOP_Y, EMBER, FLOOR_Y, STUB_H, WINDOW } from "./constants";
 import { ROOM_SVG, dripPath } from "./room";
 
 /** Attributes of the first element whose class attribute is exactly `className` (or contains it as a token). */
@@ -61,7 +61,7 @@ describe("ROOM_SVG: the stage", () => {
 });
 
 describe("ROOM_SVG: layers (design 5.2)", () => {
-  const order = ["wall", "night", "window", "dawn-wash", "candle", "lit", "zone"];
+  const order = ["wall", "night", "dawn-wash", "window", "candle", "lit", "zone"];
 
   it("has the seven layers in the documented order, with .zone last", () => {
     const at = order.map((name) => ROOM_SVG.indexOf(`class="${name}"`));
@@ -70,6 +70,15 @@ describe("ROOM_SVG: layers (design 5.2)", () => {
     // Nothing is painted after the zone's group closes.
     const zoneEnd = ROOM_SVG.indexOf("</g>", ROOM_SVG.indexOf('class="zone"'));
     expect(ROOM_SVG.slice(zoneEnd).replace(/<\/g>|<\/svg>|\s/g, "")).toBe("");
+  });
+
+  it("has no grain, texture or other decoration-only layer (costume review, second pass)", () => {
+    expect(ROOM_SVG).not.toMatch(/grain|feTurbulence|<pattern\b/);
+  });
+
+  it("draws the window pane above the dawn wash, so the pane lights up at dawn (review, task 23)", () => {
+    expect(ROOM_SVG.indexOf('class="window"')).toBeGreaterThan(ROOM_SVG.indexOf('class="dawn-wash"'));
+    expect(ROOM_SVG.indexOf('class="window"')).toBeGreaterThan(ROOM_SVG.indexOf('class="night"'));
   });
 
   it("has no table, dish or floor element (F1, F2)", () => {
@@ -276,5 +285,26 @@ describe("dripPath", () => {
     const pts = points(dripPath(d.x, d.length, d.width));
     const neck = pts[0]?.[0] ?? 0;
     expect(Math.abs(d.x - neck)).toBeLessThan(d.width / 2);
+  });
+});
+describe("ROOM_SVG: the cooling glow (review, task 23)", () => {
+  it(".ember is a glow of radius 14 to 16 on the wick tip, inside .head", () => {
+    const ember = element(ROOM_SVG, "circle", "ember");
+    expect(num(ember, "r")).toBe(EMBER.r);
+    expect(EMBER.r).toBeGreaterThanOrEqual(14);
+    expect(EMBER.r).toBeLessThanOrEqual(16);
+    expect(num(ember, "cx")).toBe(300);
+    // On the wick tip: within a few units of the top of the wick (y 460).
+    expect(Math.abs(num(ember, "cy") - 460)).toBeLessThanOrEqual(6);
+    expect(groupInner(ROOM_SVG, "head")).toContain('class="ember"');
+  });
+
+  it("the ember gradient is strong: opaque at the centre, a solid mid stop, clear at the edge", () => {
+    const grad = ROOM_SVG.match(/<radialGradient id="cw-ember-grad">([\s\S]*?)<\/radialGradient>/)?.[1] ?? "";
+    expect(grad).toContain("st-ember-in");
+    expect(grad).toContain("st-ember-mid");
+    expect(grad).toContain("st-ember-out");
+    expect(grad.indexOf("st-ember-in")).toBeLessThan(grad.indexOf("st-ember-mid"));
+    expect(grad.indexOf("st-ember-mid")).toBeLessThan(grad.indexOf("st-ember-out"));
   });
 });
