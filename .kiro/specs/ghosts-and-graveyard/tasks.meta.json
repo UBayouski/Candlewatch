@@ -1,0 +1,524 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1.1 Update the `controls-and-access` requirements, design and tasks documents where they are now wrong": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380407532
+      },
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380432432
+      },
+      {
+        "executionId": "7b0c9a87-42f8-4e08-8a6b-6112051faaa0",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794381347241
+      }
+    ],
+    "1.2 Make the `controls-and-access` code changes": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380408680
+      },
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380432775
+      },
+      {
+        "executionId": "7b0c9a87-42f8-4e08-8a6b-6112051faaa0",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794381347963
+      }
+    ],
+    "1.3 Extend the `controls-and-access` tests": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380409301
+      },
+      {
+        "executionId": "b4769e0e-333a-4257-8ea5-b398dc4260d0",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794381419034
+      },
+      {
+        "executionId": "b4769e0e-333a-4257-8ea5-b398dc4260d0",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794381652688
+      }
+    ],
+    "1.4 Add the strings groups needed early": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380409687
+      },
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380433262
+      },
+      {
+        "executionId": "7b0c9a87-42f8-4e08-8a6b-6112051faaa0",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794381348489
+      }
+    ],
+    "1.5 Add the first `KIRO_USAGE.md` entry": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380410005
+      },
+      {
+        "executionId": "b4769e0e-333a-4257-8ea5-b398dc4260d0",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794381419547
+      },
+      {
+        "executionId": "b4769e0e-333a-4257-8ea5-b398dc4260d0",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794381653213
+      }
+    ],
+    "2.1 `src/ghosts/slots.ts`": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380410339
+      }
+    ],
+    "2.2 `src/ghosts/visible.ts` and the ghost test-kit": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380410549
+      }
+    ],
+    "2.3 Required: P19, visible ghosts are the newest, with the right size": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380410759
+      }
+    ],
+    "2.4 Required: P20, ghost slots are unique and stable": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380410940
+      }
+    ],
+    "2.5 `src/ghosts/label.ts`": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380411135
+      }
+    ],
+    "2.6 Required: P21, the scene label always gives the engine count": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380411352
+      }
+    ],
+    "3.1 `src/graveyard/days.ts` and the graveyard test-kit": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380411496
+      }
+    ],
+    "3.2 Required: P1, entries group by their end day": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380411637
+      }
+    ],
+    "3.3 Required: P2, a daylight-saving day is one shelf": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380411771
+      }
+    ],
+    "3.4 `src/graveyard/visible.ts`": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380411909
+      }
+    ],
+    "3.5 Required: P7, visible history is a partition of the history": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380412088
+      }
+    ],
+    "3.6 Required: P8, the newest entries are the ones drawn": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380412257
+      }
+    ],
+    "3.7 Required: P9, visible history does not depend on the array order": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380412470
+      }
+    ],
+    "3.8 `src/graveyard/text.ts`": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380412764
+      }
+    ],
+    "3.9 Required: P3, the carved date comes from the end day": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380412940
+      }
+    ],
+    "3.10 Required: P10, a history within the limits hides nothing": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380413100
+      }
+    ],
+    "3.11 Required: P11, count lines state the exact hidden number": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380413278
+      }
+    ],
+    "3.12 Required: P18, the card text and the Item name equal the entry": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380413469
+      }
+    ],
+    "4. Checkpoint - Batch 1 ends here": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380413625
+      }
+    ],
+    "5.1 `src/graveyard/geometry.ts`": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380413766
+      }
+    ],
+    "5.2 Required: P16, the card never covers its item and stays on the stage": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380413904
+      }
+    ],
+    "5.3 Required: P17, the layout fits and does not overlap": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380414056
+      }
+    ],
+    "5.4 `src/graveyard/contrast.test.ts`": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380414224
+      }
+    ],
+    "6.1 `src/graveyard/focus.ts`": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380414449
+      }
+    ],
+    "6.2 Required: P12, roving focus keeps one stop and stays in its Group": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380414684
+      }
+    ],
+    "6.3 Required: P13, Up and Down on the Shelf follow the day order": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380414872
+      }
+    ],
+    "7.1 `src/graveyard/card.ts`": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380415043
+      }
+    ],
+    "7.2 Required: P15, one card at most, shown by the rules": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380415190
+      }
+    ],
+    "8.1 `src/graveyard/view.ts`": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380415369
+      }
+    ],
+    "8.2 Required: P4, the Door is usable exactly when no candle burns": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380415534
+      }
+    ],
+    "8.3 Required: P5, the Graveyard_View is open only when the Door is usable": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380415696
+      }
+    ],
+    "9.1 `src/graveyard/keys.ts`": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380415831
+      }
+    ],
+    "9.2 Required: P14, the key maps never clash and the Door key obeys the phase": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380415966
+      }
+    ],
+    "9.3 Required: P22, the graveyard view never triggers a room action": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380416076
+      }
+    ],
+    "10.1 Required: P6, UI-only inputs never change the engine state": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380416283
+      }
+    ],
+    "11.1 `src/ghosts/purity.test.ts`": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380416562
+      }
+    ],
+    "11.2 `src/graveyard/purity.test.ts`": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380416777
+      }
+    ],
+    "12. Checkpoint - Batch 2 ends here": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380417013
+      }
+    ],
+    "13.1 `Scene.apply(model, extra?)` in `src/scene/`": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380417441
+      }
+    ],
+    "14.1 `src/ghosts/layer.ts` and `src/ghosts/ghosts.css`": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380417756
+      }
+    ],
+    "15.1 `src/graveyard/day-key.ts`": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380418079
+      }
+    ],
+    "15.2 `src/graveyard/view-dom.ts`": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380419792
+      }
+    ],
+    "15.3 `src/graveyard/graveyard.css`": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380420209
+      }
+    ],
+    "16.1 Wiring, announcements and the interface hooks": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380420510
+      }
+    ],
+    "16.2 Run the page by hand once": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380420993
+      }
+    ],
+    "17.1 Every new string is used": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380421138
+      }
+    ],
+    "18. Checkpoint - Batch 3 ends here": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380421271
+      }
+    ],
+    "19.1 `e2e/graveyard-fixtures.ts`": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380421901
+      }
+    ],
+    "19.2 Fix the existing suites": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380422071
+      }
+    ],
+    "20.1 Write E1 and E7 in `e2e/graveyard.spec.ts`": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380422202
+      }
+    ],
+    "21.1 Write E2 in `e2e/graveyard.spec.ts`": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380422349
+      }
+    ],
+    "22.1 Write E3 in `e2e/graveyard-layout.spec.ts`": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380422487
+      }
+    ],
+    "23.1 Write E4 in `e2e/ghosts.spec.ts`": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380422645
+      }
+    ],
+    "24.1 Write E5 in `e2e/ghosts.spec.ts`": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380423087
+      }
+    ],
+    "25.1 `ariaSnapshot` of the Graveyard_View": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380423188
+      }
+    ],
+    "25.2 Focus indicator and text contrast": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380423282
+      }
+    ],
+    "26.1 Add the new shots to `e2e/screenshots.spec.ts`": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380423411
+      }
+    ],
+    "26.2 Retake all 21 `candle-*` screenshots, then look at each": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380423593
+      }
+    ],
+    "26.3 Take the new `ghosts-*` and `graveyard-*` screenshots, then look at each": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380423706
+      }
+    ],
+    "27.1 Run the Costume_Reviewer and record its findings in Decision D12": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380423803
+      }
+    ],
+    "28.1 Verify, log and summarise": [
+      {
+        "executionId": "ba477173-0442-4093-a297-c339511fe615",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794380423954
+      }
+    ],
+    "1. Apply the change-request table (design 6.1) to `controls-and-access`": [
+      {
+        "executionId": "b4769e0e-333a-4257-8ea5-b398dc4260d0",
+        "chatSessionId": "sess_38e23b5e-abbe-4212-a17e-a701fff038dd",
+        "timestamp": 1794381653347
+      }
+    ]
+  }
+}

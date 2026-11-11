@@ -173,8 +173,9 @@ body {
 .ember { opacity: var(--cooling); }
 
 /* --- the zone: the reserved time-text band below the floor line --- */
-.zone-rest { fill: var(--zone-bg-darkest); }
-.zone-dawn { fill: var(--zone-bg-brightest); opacity: var(--dawn); }
+/* The top edge of the band melts into the room: a soft shadow of the band itself, in its own colour, above the floor line. */
+.zone-rest { fill: var(--zone-bg-darkest); filter: drop-shadow(0 -8px 6px color-mix(in srgb, var(--zone-bg-darkest) calc((1 - var(--dawn)) * 100%), transparent)); }
+.zone-dawn { fill: var(--zone-bg-brightest); opacity: var(--dawn); filter: drop-shadow(0 -8px 6px var(--zone-bg-brightest)); }
 
 /* --- easing and motion, only after the first paint (design 6.5) --- */
 .candle-scene[data-settled="true"][data-animate-drips="true"] .drip {

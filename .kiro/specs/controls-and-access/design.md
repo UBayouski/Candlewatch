@@ -30,7 +30,7 @@ A layer of controls and text on top of the finished scene, driven by the finishe
         │                              (settings changes do not pass through uiStep: the panel calls onSettings → settings store)
         ▼
  every frame (main.ts):  dispatch(tick) → scene.apply(sceneModel(...)) → ui.update(state, now)
-        └─ ui.update: engine-phase changes → uiStep; announcer; viewOf(state, ui, settings, now, placement) → apply(view)
+        └─ ui.update: engine-phase changes → uiStep; announcer; viewOf(state, ui, settings, now, placement, view) → apply(view)   (the `view` argument: amended by ghosts-and-graveyard task 1, CR-V1)
 ```
 
 ### 1.3 Files
@@ -151,7 +151,7 @@ export type FocusKind =
   | "text"        // a text field (intent, custom length)
   | "button"      // any button, switch, radio or link (the Pause and Resume button included): Space and Enter activate it natively
   | "other";      // anything else focusable
-export interface KeyContext { readonly phase: State["phase"]; readonly overlay: "none" | "snuff" | "settings"; readonly focus: FocusKind }
+export interface KeyContext { readonly phase: State["phase"]; readonly overlay: "none" | "snuff" | "settings"; readonly focus: FocusKind; readonly view: "room" | "graveyard" }  // `view`: amended by ghosts-and-graveyard task 1, CR1
 export type KeyAction =
   | { readonly type: "light" } | { readonly type: "toggle-pause" } | { readonly type: "open-snuff" }
   | { readonly type: "keep-burning" } | { readonly type: "close-settings" } | { readonly type: "announce-time" };
@@ -173,6 +173,7 @@ The map, row by row (any row not listed gives `null`, and the DOM layer then lea
 | anything with Ctrl, Alt or Meta | any | `null` |
 | any key with `repeat` (Space, Enter, `t`, Escape, every key) | any | `null` (a held key never acts twice) |
 
+- **The view** *(amended by ghosts-and-graveyard task 1, CR1, CR2)*. The table above is the `view === "room"` map and is unchanged. With `view === "graveyard"` `keyAction` returns `null` for every key, so a key cannot light, pause, snuff, announce or change the length there, with one exception: with the settings overlay open Escape still gives `close-settings` (the Settings opener stays in the graveyard view). `view` is not part of `UiState` or of the engine state: `createInterface` holds it, `main.ts` sets it (task 16 of `ghosts-and-graveyard`; until then it is always `"room"`), and `dom/events.ts` copies it into the context. The second meaning of the arrow keys, Home, End and Escape (moving between Items, hiding the card, leaving the view) and the key `g` (the Door, only in `idle`, `burned-out` and `snuffed`) belong to `graveKeyAction` of `ghosts-and-graveyard`; in the room `keyAction` returns `null` for `g`, and the length chooser's arrows and Escape for the snuff dialog keep their meaning.
 - With an overlay open nothing else applies: no light, pause or announce. Tab and Shift+Tab are not handled here; the native dialog keeps the focus inside.
 - Shift changes nothing (Shift+Space still pauses). Every repeat returns `null`, Escape included: a held Escape would otherwise open the snuff dialog and, on its next repeat, close it again (batch 1 decision 1, section 17).
 - No key ever gives a `snuff` action. The only path to the engine's `snuff` is `confirm-snuff`, which comes from activating the confirm button (section 3.5).
@@ -236,8 +237,10 @@ The state is built by `initialUi(settings: Settings)`; the parameter is the `Set
 ### 3.6 `view.ts` — the view model
 
 ```ts
-export function viewOf(state: State, ui: UiState, settings: Settings, now: number, placement: Placement): ViewModel;
+export function viewOf(state: State, ui: UiState, settings: Settings, now: number, placement: Placement, view: "room" | "graveyard"): ViewModel;
 ```
+
+*(The `view` argument: amended by ghosts-and-graveyard task 1, CR-V1.)* When `view === "graveyard"` the setup controls are hidden (`setupVisible` is false in every phase). The zone controls (time text, status line, and Pause or Resume and Let it go dark while running) and the Settings opener stay as before. With `view === "room"` the result is exactly what it was.
 
 `ViewModel` is plain data and holds the strings, so `dom/apply.ts` only copies it. The fields:
 
@@ -246,7 +249,7 @@ export function viewOf(state: State, ui: UiState, settings: Settings, now: numbe
 | `phase` | `state.phase` |
 | `timeText`, `timeWords` | by phase, table 7.1: `formatTime(timeLeftMs(state, now))` in `lit` and `paused`; the chosen length in `idle` (`--:--` when the custom text is invalid); `00:00` in the ended phases |
 | `status` | `{ kind, text }` by the table in 7.2 |
-| `setupVisible`, `runningVisible` | `idle`/`burned-out`/`snuffed` and `lit`/`paused` |
+| `setupVisible`, `runningVisible` | `setupVisible`: `idle`/`burned-out`/`snuffed` and `view === "room"` (amended, CR-V1); `runningVisible`: `lit`/`paused` |
 | `light` | `{ label: "light" or "lightAnother" }` |
 | `pause` | `{ label: "pause" }` in `lit`, `{ label: "resume" }` in `paused` |
 | `chooser` | selected stop, custom text, `customInvalid` (only when `customTouched`), the four cell labels |
@@ -330,6 +333,8 @@ All inside a container `#ui` (`position: fixed; inset: 0`, above the scene, `poi
 say(text: string): void   // remembers the latest text as pending
 frame(): void              // called once per frame after apply
 ```
+
+*(Amended by ghosts-and-graveyard task 1, CR-A1.)* The interface returned by `createInterface` also exposes `announce(text: string)`, the one-line writer for `main.ts` (view changes): it calls `say(text)`, so a repeated line gets the same one-frame clear. `nextAnnouncement` and the announcer's memory are not touched.
 
 `frame`: if a text is pending: when the region already holds exactly that text, clear it this frame (the next frame sets it, so a screen reader announces the repeat, for T pressed twice); otherwise set it and drop the pending text. A message is therefore written one frame after it is requested at the latest. If two are requested in one frame the last one wins (the announcer returns at most one per call, so this happens only if the user presses T twice within one frame).
 
@@ -425,8 +430,12 @@ floorY = Y(900)                           the floor line: candle base, clip line
 | The window pane | x 240..360, y 50..260 (its blur adds a soft edge of about 5 units, not counted) | 5.2 layer 4, `WINDOW` |
 | The floor line and the zone | y 900; the zone is y 900 to 1600 and the whole width; the flame, halo, drips, smoke and pool never enter it | 5.2 layer 7, 5.4, R7.8 |
 | The reserved edge bands | x 0..110 and 490..600 for every y, and everything sideways beyond | 5.4 |
+| `DOOR_RECT` (the Door of `ghosts-and-graveyard`) | x 20..100, y 805..890 | ghosts-and-graveyard design 4.2, CR5 |
+| The ghost cells | x 10..100 and x 500..590, y 215..785 | ghosts-and-graveyard design 4.1, CR5 |
 
-The **keep-clear column** is the union of the candle, the flame, the halo and the idle pool over every wax height: **x 160..440, y 260..900** (the halo's 180..420 and the idle pool's 160..440 are both inside it). The **keep-clear window** is **x 240..360, y 50..260**. These are the two rectangles of R8.3. In `layout.ts` they are constants, and a unit test reads `src/scene/constants.ts` (`WINDOW`, `CANDLE_H`, `FLOOR_Y`, `LIGHT_MIN`, `LIGHT_FULL_UNITS`) and the halo circle in `room.ts`' markup and fails if the scene moves them.
+*(The last two rows were added by ghosts-and-graveyard task 1, CR5.)* Ghosts stay drawn in `burned-out` and `snuffed`, when the setup controls are on screen, so both rectangles are keep-clear for `placeControls` in every phase.
+
+The **keep-clear column** is the union of the candle, the flame, the halo and the idle pool over every wax height: **x 160..440, y 260..900** (the halo's 180..420 and the idle pool's 160..440 are both inside it). The **keep-clear window** is **x 240..360, y 50..260**. These are the two scene rectangles of R8.3; `DOOR_RECT` and the two ghost cells are three further keep-clear rectangles (CR5, below). In `layout.ts` they are constants, and a unit test reads `src/scene/constants.ts` (`WINDOW`, `CANDLE_H`, `FLOOR_Y`, `LIGHT_MIN`, `LIGHT_FULL_UNITS`) and the halo circle in `room.ts`' markup and fails if the scene moves them.
 
 The running light pool (radius up to 700 units) is **not** in the keep-clear column on purpose: it fills the whole stage at the start, so no control above the floor line could avoid it. That is why every persistent control that is shown while a session runs is below the floor line, which the pool never enters (6.4).
 
@@ -451,6 +460,12 @@ export interface Placement {
   readonly settingsPanel: Rect;
   readonly keepClear: { readonly column: Rect; readonly window: Rect };
 }
+// Amended by ghosts-and-graveyard task 1, CR5: `layout.ts` also exports, in room units, the constants
+//   DOOR_RECT   = { x: 20, y: 805, w: 80, h: 85 }                       (x 20..100, y 805..890)
+//   GHOST_CELLS = [{ x: 10, y: 215, w: 90, h: 570 }, { x: 500, y: 215, w: 90, h: 570 }]   (x 10..100 and x 500..590, y 215..785)
+// and `Placement.keepClear` gains their pixel rectangles (`door`, `ghostCells`), computed with the stage rule of 6.1.
+// `src/ui/` does not import src/ghosts/ or src/graveyard/: the numbers are repeated here and a test in the
+// ghosts-and-graveyard spec (geometry.test.ts) asserts they equal the ones in src/graveyard/geometry.ts and src/ghosts/slots.ts.
 export function placeControls(vw: number, vh: number): Placement;
 ```
 
@@ -513,8 +528,9 @@ While running, the upper room has nothing persistent. While idle or ended it has
 | Keep-clear column | 528, 208, 224, 512 | — |
 | Window pane | 592, 40, 96, 168 | — |
 | Chooser (four cells of 82 × 44) | 904, 96, 352, 44 | 24 px right of the stage's right edge (880); 150 px from the column |
-| Intent field | 904, 152, 352, 44 | same |
-| Light | 904, 212, 352, 52 | same |
+| Length message (a 20 px line, 4 px padding, on the control fill) | 904, 144, 352, 28 | 4 px under the chooser; 8 px above the intent field *(second costume pass)* |
+| Intent field | 904, 180, 352, 44 | same |
+| Light | 904, 240, 352, 52 | same |
 | Time text (box about 136 wide, 44 high) | 572, 722, 136, 44 | inside the text area |
 | Status line while running | 488, 766, 304, 20 | the width of the text area |
 | Status line at rest | 312, 766, 656, 20 | 8 px short of Settings (starts 976) |
@@ -614,7 +630,7 @@ The refusal clears as soon as the custom text becomes valid or a preset is chose
 - Light is the submit button of the setup form. The button, Enter in a field and the global Enter all end in the same handler (the key map gives `light` for Enter outside buttons and `dom/events.ts` calls the handler; the form's `submit` event covers the button). Light is always enabled; an invalid length is a refusal, not a disabled button (a disabled button gives no explanation).
 - Pause and Resume are one button whose label and icon change with the phase; the accessible name changes with them. It always means "do the other thing".
 - Let it go dark opens the dialog; it does not snuff.
-- Hover effects exist but nothing depends on them (R8.8). Active (pressed) feedback is a colour and border change, not motion.
+- Hover effects exist but nothing depends on them (R8.8). Hover and pressed feedback is a border change only (colour, then width), never the fill: the selected fill means selected. Hover is asked for only from a pointer that can hover (`@media (hover: hover)`). *(Second costume pass, finding 4.)*
 
 ### 8.5 The snuff dialog
 
@@ -657,6 +673,7 @@ Templates use `{name}` placeholders filled by `fill`. A unit test checks that ev
 
 ### 9.1 Structure
 
+- *(Amended by ghosts-and-graveyard task 1, CR-A1: `announce(text)` of the interface writes one line to this region for `main.ts`, see 4.4; the announcer below is unchanged.)*
 - **One** live region, `div#live[role="status"]` (implicit `aria-live="polite"`, `aria-atomic="true"`), created at build time, visually hidden with the clip technique, never `display: none`, empty at first. It carries only announcements.
 - The time text is `role="timer"` (not live). The scene keeps `role="img"` with its flame-mode label, which never contains the time (candle-scene R12). Overlays are announced by their native `dialog` role and heading.
 - Nothing else is `aria-live`. Error text in the status line is *also* announced once through the live region (the refusal), not through `aria-live` on the status line, so the status line can change quietly otherwise.
@@ -732,7 +749,9 @@ Thresholds are `L · 0.75`, `L · 0.5`, `L · 0.25` (L the length in ms) and `60
 | Settings opened | the Sound switch | `uiStep` `open-settings` |
 | Settings closed | `#settings-button` (or the held `pendingFocus`) | `uiStep` `close-settings` |
 | Light refused | `#custom` | `uiStep` `light` |
-| Tab order | chooser → intent → Light (idle, ended); Pause or Resume → Let it go dark (running); Settings last: equal to the visual order in every layout | DOM order = reading order (12.2) |
+| Graveyard view opened (Door or `g`) | the first Group's Remembered_Item, else the next Tab stop *(added by ghosts-and-graveyard task 1, CR3)* | `ghosts-and-graveyard` focus effect, through the same focus module |
+| Graveyard view left | the Door *(added, CR3)* | same |
+| Tab order | chooser → intent → Light → Door (idle, ended; the Door is absent while running and in the graveyard view); Pause or Resume → Let it go dark (running); Settings last: equal to the visual order in every layout *(Door added, CR1)* | DOM order = reading order (12.2) |
 
 The scripted keyboard walk of E4 checks, after every key, that `document.activeElement` is a visible, connected element inside the viewport (or the document at load), and that the focus ring is drawn (12.1).
 
@@ -767,34 +786,40 @@ The default length sets the initial `UiState.length` the next time the chooser i
 
 ### 12.1 Tokens and contrast
 
-New CSS in `src/ui/ui.css`, covered by `scene.md`. Custom properties on `#ui` (the room's own tokens in `scene.css` are reused where they exist):
+New CSS in `src/ui/ui.css`, covered by `scene.md`. Custom properties on `#ui` (the room's own tokens in `scene.css` are reused where they exist). *(Brought up to date at the close of the spec: the warm palette and the fonts the costume review brought in; every number below is asserted by `src/ui/style.test.ts`, which reads the stylesheet.)*
 
 | Token | Value | Use |
 |---|---|---|
 | `--ui-text` | `#efe6cf` (ivory; the same as `--wax-ivory`) | all text |
-| `--ui-text-subtle` | `#c9c1ad` | counters, hints (never the time text) |
-| `--ui-bg` | `#121826` | control fill |
-| `--ui-bg-selected` | `#2b3552` | selected radio, pressed |
-| `--ui-border` | `#a8afbf` | control border (2 px) |
-| `--ui-focus` | `#efe6cf` | focus ring (3 px outline, 3 px offset) |
-| `--ui-error` | `#ffb4a3` | error text and the invalid border |
+| `--ui-text-subtle` | `#cfc2a2` (the wax shade) | counters, hints, the group label (never the time text) |
+| `--ui-bg` | `#1a130d` (warm black, the wall's low brown darkened) | control and dialog fill; the fill under `#length-error` |
+| `--ui-bg-selected` | `#3a2a1c` (the wall's low brown) | the selected fill (see below) |
+| `--ui-border` | `#e6c27a` (amber wax) | control border (2 px; 3 px on a primary button and on hover; 4 px selected or pressed) |
+| `--ui-focus` | `#efe6cf` | focus ring (3 px outline, 3 px offset; 6 px on an invalid field) |
+| `--ui-error` | `#ffb4a3` | error text and the invalid (double) border |
+| `--ui-font` | `"Alegreya Sans", sans-serif` | everything but the two uses below; Alegreya Sans 400 and 700 |
+| `--ui-font-display` | `"Cormorant Garamond", serif` | the time text and the dialog headings; Cormorant Garamond 700 |
 
-Contrast, computed with the WCAG relative luminance formula (the numbers are checked by a unit test that reads the stylesheet; the zone and room bounds are the published `--zone-bg-darkest #080b12`, `--zone-bg-brightest #4b4358`, `--room-bg-darkest #05070d`, `--room-bg-brightest #566683`):
+Both families are self-hosted latin woff2 subsets in `src/ui/fonts/` (SIL OFL 1.1, licence texts next to them, each file under 30 KB), declared with `font-display: swap` and hashed into `/assets/` by Vite. No system font is named. `#time` and `#status` set `font-variant-numeric: lining-nums tabular-nums` (the display serif's default figures are old-style, and the status line changes every second under the time text); numbers in buttons and counters keep the font's default.
+
+**The selected fill** (`--ui-bg-selected`) means "selected" and nothing else: the selected length stop (a preset, or the custom stop once a length is typed in it), a switch that is On, and the one primary answer of a screen, Light and Keep burning (`#ui .primary`). Close in the settings panel is bold with a 3 px border but on the plain fill (`#settings-dialog .primary`), so it never reads as switched on. Hover and pressed change the border only, and hover is behind `(hover: hover)`.
+
+Contrast, computed with the WCAG relative luminance formula (checked by `style.test.ts`; the zone and room bounds are the published `--zone-bg-darkest #080b12`, `--zone-bg-brightest #4b4358`, `--room-bg-darkest #05070d`, `--room-bg-brightest #566683`):
 
 | Pair | Ratio | Needs |
 |---|---|---|
-| time text ivory on zone darkest / brightest | 15.83 / 7.53 | ivory-bright, ≥ 4.5 |
-| status text ivory on zone darkest / brightest | 15.83 / 7.53 | ≥ 4.5 |
-| ivory on `--ui-bg` / `--ui-bg-selected` | 14.26 / 9.74 | ≥ 4.5 |
-| subtle text on `--ui-bg`; on zone darkest / brightest | 9.89; 10.98 / 5.22 | ≥ 4.5 |
-| error text on `--ui-bg`; on zone darkest / brightest | 10.39; 11.54 / 5.49 | ≥ 4.5 |
-| border on `--ui-bg`; on zone darkest / brightest; on room darkest | 8.06; 8.95 / 4.26; 9.16 | ≥ 3 |
-| control fill against the room's brightest background | 3.06 | ≥ 3 (the border alone is 2.64 there, so the fill carries it; the real dawn wash behind the controls is darker than that bound) |
-| focus ring ivory on zone brightest / room brightest / `--ui-bg` | 7.53 / 4.66 / 14.26 | ≥ 3 |
-| selected fill against the plain fill | 1.46 | not relied on: the check mark and the heavier border show the selection |
+| time text and status text, ivory on zone darkest / brightest | 15.83 / 7.53 | 4.5 |
+| ivory on `--ui-bg` / `--ui-bg-selected` | 14.78 / 11.05 | 4.5 |
+| subtle text on `--ui-bg`; on `--ui-bg-selected`; on zone darkest / brightest | 10.40; 7.78; 11.15 / 5.30 | 4.5 |
+| error text on `--ui-bg`; on `--ui-bg-selected` (the invalid custom stop); on zone darkest / brightest | 10.77; 8.06; 11.54 / 5.49 | 4.5 |
+| error text straight on the room's brightest background (the reason `#length-error` has a fill) | 3.39 | fails 4.5, so the message carries `--ui-bg` and 4 px of padding: 10.77 |
+| placeholder hint of the intent field, subtle on `--ui-bg` | 10.40 | 4.5 |
+| border on `--ui-bg`; on `--ui-bg-selected`; on zone darkest / brightest; on room darkest / brightest | 10.82; 8.09; 11.59 / 5.51; 11.86 / 3.41 | 3 |
+| control fill against the room's brightest background | 3.17 | 3 (the border carries a control against the room; the fill is not relied on) |
+| focus ring ivory on zone brightest / room brightest / `--ui-bg` | 7.53 / 4.66 / 14.78 | 3 |
+| selected fill against the plain fill | 1.34 | not relied on: the check mark and the heavier border (4 px) also show the selection |
 
-Text sizes: body and status 16 px, buttons 16 px, time 36 px (compact) or 44 px (wide), bold. The font is the system font stack in one place (`--ui-font`), so the later font spec replaces it in one line. Forced colours and `prefers-contrast: more`: borders use `CanvasText`, focus uses `Highlight`, and nothing depends on the custom colours.
-
+Text sizes: body and status 16 px, buttons 16 px, dialog headings 24 px, time 36 px (compact) or 32 to 44 px (wide, `--time-size`), bold, in the display serif. The two font stacks are set in one place each (`--ui-font`, `--ui-font-display`). Forced colours and `prefers-contrast: more`: borders use `CanvasText`, focus uses `Highlight`, and nothing depends on the custom colours.
 **Focus ring.** `:focus-visible { outline: 3px solid var(--ui-focus); outline-offset: 3px }` on every control; `outline: none` is never used without a replacement (a unit test scans the CSS). It is also applied to programmatic focus moves (`:focus-visible` matches after keyboard use; after a pointer action the browser does not draw it, which is the standard). No ancestor has `overflow: hidden` around a control (the top row, the chooser and the zone buttons are direct children of `#ui`). The ring is 3 px plus the 3 px offset, so on a 44 px target the visible indicator is 56 px; the 4 px minimum gap of R8.6 is measured between controls, and the ring may touch a neighbour's ring without hiding it (the gap in the layout is 8).
 
 ### 12.2 Tab order equals the visual order
@@ -803,13 +828,16 @@ Review change 2 (D15). DOM order is the Tab order, and it is also the visual rea
 
 | Phase | Visual order = Tab order |
 |---|---|
-| `idle`, `burned-out`, `snuffed` | `#length` (one stop: the selected cell or the custom field), `#intent`, `#light`, then `#settings-button` (in the zone, last) |
-| `lit`, `paused` | `#pause`, `#snuff`, `#settings-button` (left to right in the zone) |
+| `idle`, `burned-out`, `snuffed` | `#length` (one stop: the selected cell or the custom field), `#intent`, `#light`, the Door (`ghosts-and-graveyard`; at the left edge, above the floor line, after Light in reading order), then `#settings-button` (in the zone, last) |
+| `lit`, `paused` | `#pause`, `#snuff`, `#settings-button` (left to right in the zone); the Door is shut and not a Tab stop |
+| any phase, graveyard view open | the view's own stops (Graveyard group, Shelf group, return control), then `#settings-button`; the setup controls are hidden |
+
+*(The Door and the graveyard rows were added by ghosts-and-graveyard task 1, CR1, CR-V1.)*
 
 In the compact `top-row` variant the chooser row is at the top, the intent field and Light are on the next row (intent on the left), and the zone is below, so the reading order is chooser, intent, Light, then the zone. In the `left-region` variant the chooser grid is first, the intent field and Light are on the row under it, intent on the left. In the wide layout the order is the column, top to bottom, then the zone. Within the chooser, arrow keys move between the stops in the reading order of the cells (left to right, and in the 2 × 2 grid row by row). The requirement is checked two ways: P10 compares the DOM order of the visible controls with the order of their rectangles (sorted by row, then column), and E4 presses Tab through every state at 360 × 640 and 1280 × 800 and compares the focus order with the rectangles read from the page. There is no focus trap except in an open overlay, and no positive `tabindex`.
 ### 12.3 Motion
 
-Outside reduced motion, the only transitions are: the dialogs' fade (120 ms opacity), the switches' knob (120 ms), and a button's pressed state (80 ms). No transition touches the time text or the status line. Under `prefers-reduced-motion: reduce`, `#ui, #ui * { transition: none !important; animation: none !important }` is the first rule of the stylesheet, so the still version holds before any script runs (R13.1).
+Outside reduced motion, the only transitions are: the dialogs' fade (120 ms opacity), the switches' knob (120 ms), and a button's hover and pressed border (80 ms, on buttons only). No transition touches the time text or the status line. Under `prefers-reduced-motion: reduce`, `#ui, #ui * { transition: none !important; animation: none !important }` is the first rule of the stylesheet, so the still version holds before any script runs (R13.1).
 
 ### 12.4 The look
 
@@ -824,11 +852,11 @@ Dark, soft, ivory: controls are rounded 10 px rectangles with a 2 px light borde
 | `src/ui/format.test.ts` | `formatTime`, `spokenTime`, `fill` examples (R7.3) |
 | `src/ui/length.test.ts` | `parseLength` examples; `lengthOf`; `nextChoice` |
 | `src/ui/light.test.ts` | `lightRequest` examples (refusal reasons, intent unchanged, empty intent omitted) |
-| `src/ui/keys.test.ts` | the key map, row by row, including the focus kinds |
+| `src/ui/keys.test.ts` | the key map, row by row, including the focus kinds; `view === "graveyard"` gives `null` for every key except Escape with the settings overlay open (CR1) |
 | `src/ui/ui-state.test.ts` | every row of the 3.5 table; invariants |
-| `src/ui/view.test.ts` | status line by phase and condition; time text by phase; hidden/visible flags; the first-visit line |
+| `src/ui/view.test.ts` | status line by phase and condition; time text by phase; hidden/visible flags (with `view === "graveyard"` the setup controls are hidden, the zone controls and Settings stay; CR-V1); the first-visit line |
 | `src/ui/announcer.test.ts` | a 25-minute session at 1 s ticks (exactly six messages: lit, q75, q50, q25, last minute, burned out); the same with one tick every 10 minutes (lit, q25 or the latest crossed, burned out); pause and resume; reload; the first call; T |
-| `src/ui/layout.test.ts` | the exact rectangles of 6.5 at 360 × 640 and 1280 × 800; the rectangles at 768 × 1024 and 1920 × 1080; the constants against `src/scene/constants.ts` and the halo markup |
+| `src/ui/layout.test.ts` | the exact rectangles of 6.5 at 360 × 640 and 1280 × 800; the rectangles at 768 × 1024 and 1920 × 1080; `DOOR_RECT` and the ghost cells (CR5); the constants against `src/scene/constants.ts` and the halo markup |
 | `src/ui/style.test.ts` | reads `ui.css`: the reduced-motion rule is first; no `outline: none` without a replacement; the contrast table of 12.1 from the token values; the focus ring; no `!important` outside the two allowed rules |
 | `src/ui/purity.test.ts` | the pure modules import nothing forbidden (no DOM, `Date`, `Math.random`, `localStorage`); `test-kit.ts` is imported by no source file; the banned calls (`innerHTML`, `insertAdjacentHTML`, `document.write`, `setAttribute("style"`, `style.cssText`) appear nowhere in `src/ui/` |
 | `src/ui/strings.test.ts` | every key used exists and is used; no visible literal outside `strings.ts`; "pomodoro" appears nowhere in `src/` (case-insensitive) |
@@ -842,13 +870,13 @@ Dark, soft, ivory: controls are rounded 10 px rectangles with a 2 px light borde
 | P1 | `src/ui/format.prop.test.ts` | arbitrary `ms` (integers, fractions, negatives, `NaN`, infinities, and 0 to 90 minutes) |
 | P2 (and P2b) | `src/ui/length.prop.test.ts` | generated texts: digit strings, padded, signed, decimal, exponent, other scripts, mixed; and `nextChoice` |
 | P3 | `src/ui/light.prop.test.ts` | arbitrary Unicode intent; `step` from `idle`, `burned-out`, `snuffed` states built with the engine's test kit |
-| P4 | `src/ui/keys.prop.test.ts` | all contexts × generated keys with modifier flags and `repeat` |
+| P4 | `src/ui/keys.prop.test.ts` | all contexts (including `view`) × generated keys with modifier flags and `repeat`; with `view === "graveyard"` and no overlay every key gives `null`, and Escape still closes an open settings overlay (CR1) |
 | P5 | `src/ui/ui-state.prop.test.ts` | scripts of UI inputs, engine events, time gaps and reloads, driven through `uiStep` and `step` together, checking the engine's invariants (`assertInvariants`) after every step |
 | P6 | `src/storage/settings.prop.test.ts` | valid settings; arbitrary text; arbitrary JSON; mutations of valid documents |
 | P7 | `src/ui/announcer.prop.test.ts` | generated sessions, call-time sets (every second, every frame, a few, long gaps) containing at least one call after each engine event |
-| P8 | `src/ui/ui-state.prop.test.ts` | engine scripts with UI-only inputs interleaved, compared by deep equality |
+| P8 | `src/ui/ui-state.prop.test.ts` | engine scripts with UI-only inputs interleaved, compared by deep equality; the ops now include the view switch, the card inputs, focus moves and the ghosts toggle, in the generators and interpreter of `src/ui/test-kit.ts` (CR4) |
 | P9 | `src/engine/selectors.prop.test.ts` | engine scripts and probe times, as in section 2 |
-| P10 | `src/ui/layout.prop.test.ts` | integer viewports from 360 × 640 to 2560 × 1440, plus the four named sizes; every rule of 6.8 (including no persistent control above the floor line while a session runs, and Tab order = visual order) |
+| P10 | `src/ui/layout.prop.test.ts` | integer viewports from 360 × 640 to 2560 × 1440, plus the four named sizes; every rule of 6.8 (including no persistent control above the floor line while a session runs, and Tab order = visual order), and, after CR5, no control rectangle intersects `DOOR_RECT` or either ghost cell |
 
 Shared generators and the reference model of the UI are in `src/ui/test-kit.ts`, test-only.
 
@@ -868,7 +896,7 @@ Setup: the fixtures of `e2e/scene-fixtures.ts` (stored sessions built with the e
 
 **E1b (touch, 360 × 640).** A context with `hasTouch`. Tap the 25 stop's neighbour (50) and Light; the same checks as E1 through taps on the icon buttons: tap the pause icon (paused), tap it again (resumed), tap the snuff icon (dialog), tap **Keep burning**, tap the snuff icon, tap **Snuff it**; tap Light another. At each step the rectangles of the visible controls equal the table of 6.5 within 1 px, and each is at least 44 × 44.
 
-**E3/E14 (layout).** For each viewport and phase the page's rectangles for `#intent`, `#length`, `#light`, `#pause`, `#snuff`, `#settings-button`, `#time`, `#status` and the dialogs are compared with `placeControls`; none intersects the rectangles of `.candle`, `.flame-shape`, `.halo` or the window pane (read from the page); the time text is wholly inside `.zone-text-area`; there is no scrollbar; while a session runs no control rectangle is above the floor line; the dialog, when open, leaves the flame and halo uncovered at the compact size for the whole range of wax heights (checked at `lit-start`, `lit-half`, `lit-last-minute`) and is allowed to cover them only in the settings panel case.
+**E3/E14 (layout).** For each viewport and phase the page's rectangles for `#intent`, `#length`, `#light`, `#pause`, `#snuff`, `#settings-button`, `#time`, `#status` and the dialogs are compared with `placeControls`; none intersects the rectangles of `.candle`, `.flame-shape`, `.halo` or the window pane (read from the page), nor `DOOR_RECT` or a ghost cell (mapped to pixels with the stage rule; amended by ghosts-and-graveyard task 1, CR5); the time text is wholly inside `.zone-text-area`; there is no scrollbar; while a session runs no control rectangle is above the floor line; the dialog, when open, leaves the flame and halo uncovered at the compact size for the whole range of wax heights (checked at `lit-start`, `lit-half`, `lit-last-minute`) and is allowed to cover them only in the settings panel case.
 
 **E6 (accessibility).** `locator.ariaSnapshot()` of `#ui` and of each dialog is compared with a hand-written expected snapshot per state; the live log of a whole 25-minute session is compared with the list of 9.2, once with one-second steps and once with the clock jumped in one run; the scene's label never contains a digit.
 
@@ -895,7 +923,7 @@ By `scene.md`, any change to what a user sees retakes the affected screenshots. 
 | `controls-focus-light` | keyboard focus on Light, the ring visible |
 | `controls-focus-pause` | keyboard focus on Pause during a session |
 
-That is 15 new files (7 screens at two sizes, plus the reduced-motion dialog) and 21 retaken. The first-visit instructions are in `candle-idle-*` (nothing stored); the pause allowance line is in `candle-paused-*`; the ended controls with **Light another** are in `candle-burned-out-*` and `candle-snuffed-*`. Each file is looked at after capture for: its state is clear at its size; no control touches the flame, halo, candle or window; the time text and the status are readable; the focus ring is visible where named.
+That is 15 new files (7 screens at two sizes, plus the reduced-motion dialog) and 21 retaken. *(Amended by the second costume pass: the folder now has 20 controls-* files, the 15 above, controls-settings-off at both sizes, the reduced-motion controls-idle-returning and controls-settings, and controls-invalid-length-dawn-desktop.png, the length message on the dawn; 41 pictures with the 21 candle-*. The phone pictures are taken with the touch fixture, so they show the Tap line; the pointer is moved off the controls before each capture; both families are loaded first and the font and figures of #time are checked for every picture.)* The first-visit instructions are in `candle-idle-*` (nothing stored); the pause allowance line is in `candle-paused-*`; the ended controls with **Light another** are in `candle-burned-out-*` and `candle-snuffed-*`. Each file is looked at after capture for: its state is clear at its size; no control touches the flame, halo, candle or window; the time text and the status are readable; the focus ring is visible where named.
 
 ## 15. Traceability
 
@@ -939,7 +967,7 @@ The review answers Q1 to Q8 are in `requirements.md` Decisions. These are the de
 - **D9. The time text rounds up.** A candle with 0.4 s left reads `00:01`, and `00:00` means the time is up. The page title will use the same text.
 - **D10. `pauseLeftMs` reuses the engine's own `pauseLimitAt`**, so the allowance shown and the instant of the snuff cannot disagree.
 - **D11. No change to the scene.** Its geometry is copied into `layout.ts` as constants and guarded by a test that reads `src/scene/constants.ts`, so a later scene change fails loudly instead of silently putting a control over the flame.
-- **D12. Coordination with `ghosts-and-graveyard`.** The left edge band below y = 300 units is the door's slot. In the ended phases the setup controls are on screen while that session's ghosts may still be; the ghosts spec must keep ghosts clear of the control rectangles (`Placement`), or hide them while the controls are shown. This spec exports `placeControls` for it.
+- **D12. Coordination with `ghosts-and-graveyard`.** The left edge band below y = 300 units is the door's slot. In the ended phases the setup controls are on screen while that session's ghosts may still be; the ghosts spec must keep ghosts clear of the control rectangles (`Placement`), or hide them while the controls are shown. This spec exports `placeControls` for it. *(Amended by ghosts-and-graveyard task 1, CR5: the check is also made from this side. `DOOR_RECT` and the ghost cells are keep-clear rectangles of `placeControls`, and P10 asserts that no control intersects them.)*
 - **D14. Design review change 1: the Settings opener is a zone control.** It sits in the floor-band zone with the time text, Pause or Resume and Let it go dark, rightmost, in every phase and at every size (6.3, 6.5). So no persistent control is ever in the light pool, at any size or wax height, and the pool rule has no exception (R8.4). Re-checked at 360 × 640 with 44 px targets: the zone is 80 px tall, the three buttons are 44 × 44 at y 578..622 (x 8..52, 256..300, 308..352), the time text is 36 px, centred at x 180, and the status line is one line 136 px wide while the buttons are shown and up to two lines 240 px wide at rest. At 1280 × 800 the buttons are labelled and Settings is at x 976..1072. The cost is the narrower status line while running (it was 228 px), so a long intent is cut short with an ellipsis (the full text stays for screen readers). The pool analysis of the first design (6.4) is dropped.
 - **D15. Design review change 2: Tab order equals the visual order in every layout.** In the compact layout the length chooser is drawn above the intent field, as in the wide layout, so the reading order is chooser, intent, Light, then the zone controls (12.2, 6.3). Two compact variants keep that order: `top-row` (the chooser is a row of four cells across the top) and `left-region` (a 2 × 2 grid on the left, for stages limited by height). The cost is a narrow compact intent field (128 px at 360 × 640, 176 px at 480 × 800), because the window pane sits between it and Light; the field scrolls its text, and the engine keeps the first 80 characters. The order is checked by P10 (rectangles against the DOM order) and E4 (Tab through the real page).
 
@@ -964,3 +992,87 @@ Tasks 15 to 22 (strings, announcer, layout, settings, view model). Choices made 
 4. **The announcer** marks the milestones already passed as done on the first call after a load for both `lit` and `paused` (9.3 pseudocode said only `lit`; a paused session reloaded and resumed would otherwise repeat a milestone, against R9.3). A new session starts with none done; a late first call after a light says `lit` and the next call may then say the milestone already crossed.
 5. **Layout names and checks**: `Placement.keepClear.windowPane` (the purity scan forbids the word `window`). P10 treats the time text and the status line as one stack (they touch, as the rectangles of 6.5 do) and requires only that the status line is under the time text; every other pair keeps 4 px. The "left edge band" check covers the rows from 300 room units down to the floor line (the zone controls are below the floor line and are not in the door's slot).
 6. **View model**: `timeWords` is empty for an invalid custom length (there is no time to say); the first-visit line shows only while the phase is `idle` and the history is empty.
+
+### Amendments from ghosts-and-graveyard task 1
+
+`ghosts-and-graveyard` design 6.1 is a batch of change requests to this spec. This task (documents only) applied them in the places marked "Amended by ghosts-and-graveyard task 1" in `requirements.md`, this file and `tasks.md`; the code and tests follow in its tasks 1.2 and 1.3.
+
+- **CR1, CR2.** `KeyContext` gains `view`. With `view === "graveyard"` `keyAction` gives `null` for every key except Escape closing an open settings overlay; the room map is unchanged. The Door and `g` are in the Tab order and key map only in `idle`, `burned-out` and `snuffed` (3.4, 10, 12.2). The second meaning of arrows, Home, End and Escape, and `g`, live in `graveyard`'s `graveKeyAction`.
+- **CR3.** Two rows in the focus table (10; requirements R10.5).
+- **CR4.** The view switch, card inputs, focus moves and the ghosts toggle are UI-only ops in P8 and in `src/ui/test-kit.ts` (13.2).
+- **CR5.** `DOOR_RECT` and the ghost cells are keep-clear rectangles of `placeControls`; P10 and E3 assert no control meets them (6.2, 6.3, 13.2, 13.3; D12).
+- **CR6.** No change: the "ghosts" setting is read as defined (11, requirements R11.7).
+- **CR-A1.** The interface gains `announce(text)`; `nextAnnouncement` is unchanged (4.4, 9.1).
+- **CR-V1.** `viewOf` gets the argument `view`; with `view === "graveyard"` the setup controls are hidden and the zone controls and Settings stay (3.6).
+- **Reading made here.** The design does not say where the Door sits in the room's Tab order. It is placed after Light and before Settings, because the Door (y 805..890 units) is above the floor line and below the setup controls, and the Tab order equals the visual order (D15). `ghosts-and-graveyard` design 4.2 owns the element; this spec only fixes its place in the order.
+
+### 17.1 Costume review of the finished interface (task 39)
+
+Run with the `costume-reviewer` agent on the finished interface and the screenshots. The reviewer's own wording is in its runs, not in this repository, so the reason given for each finding is reconstructed from the fix and may be shorter or plainer than what the reviewer wrote. Four passes are recorded here, the last a PASS on all three rules; task 39 is ticked.
+
+#### First pass: FAIL on rule 1
+
+**Verdict: FAIL on rule 1** (no element is decoration only, R8.11 and the look of the controls), **PASS on rule 2** (reduced motion still shows every state) **and PASS on rule 3** (the time text keeps its contrast). The findings below are the ten changes made for it.
+
+Findings and fixes:
+
+1. **Type.** The interface used system fonts and read as a default page. Fixed: Cormorant Garamond 700 for the display text (time, dialog titles) and Alegreya Sans 400 and 700 for the rest, both self-hosted (see "Font choice" below).
+2. **Cold colours.** The tokens were neutral greys against a warm room. Fixed: warm tokens in `ui.css` (ivory text, amber borders, dark brown fills).
+3. **The Settings icon.** Eight rays round a circle read as a sun or a flame, a control with no state looking like state. Fixed: a gear (eight teeth round a hub) in `build.ts`.
+4. **First-visit line on touch.** "Enter lights. Space pauses..." names keys a phone does not have. Fixed: `status.firstVisitTouch` ("Tap Light to begin. Tap pause to rest.") when the device has no fine pointer (`any-pointer: fine`, asked in `index.ts`, passed to `viewOf` as `env`). *(The first pass took the phone screenshots in desktop Chromium, which has a fine pointer, so they showed the key line even at 360 x 640. The second pass, finding 3, takes them with the touch fixture.)*
+5. **Safe area.** Text sat on the phone's home-bar edge. Fixed: the time text starts at the top of the text area and no text ends within 8 px of the viewport bottom (`layout.ts`, P10 asserts it).
+6. **Keep burning was not the primary action.** Fixed: Keep burning is the filled primary button and the focused one; Snuff it is the plain one.
+7. **The length error was far from its field.** Fixed: in the wide layout the message stands directly under the chooser (`setup.lengthError`, `#length-error`, `aria-describedby` points at it); the compact layout has no rectangle for it and keeps it in the status line.
+8. **The custom field looked like a fourth preset.** Fixed: the cue is "__ min", an underscore to type over, and the compact intent field says "Intent (optional)" so it is not cut.
+9. **The zone edge was a hard line.** Fixed: a soft edge on the floor band in `scene.css`.
+10. **The phone settings panel left a sliver of the chooser above it.** Fixed: the panel starts at the top edge (y 0), and P10 asserts it covers the chooser wholly.
+
+Kept by design (not changed):
+
+- **The snuff dialog stays top right.** It is away from the flame and the zone controls, so the candle stays visible while the user decides and the dialog never covers what it is about; on phones it spans the top above the halo's highest point (6.6).
+- **The crossed-flame icon on Let it go dark.** It shows the action (put the flame out) and is the one icon in the zone that names an effect on the candle rather than a setting; the visible label carries the words in the wide layout and the accessible name in the compact one.
+
+#### Second pass: FAIL on rule 3
+
+**Verdict: FAIL on rule 3** (the time text keeps its contrast, R7.6 and R13.3), PASS on rules 1 and 2. The pass ran on the screenshots taken between 23:00 and 23:05, before the last changes to `src/ui/`, so part of what it saw was the captures and not the page. Four findings, fixed in this order:
+
+1. **`#length-error` on the bare room.** In the wide layout the message stood on the room itself: `--ui-error #ffb4a3` on the room's brightest background `#566683` is 3.39:1, under 4.5. Fixed: `#length-error` has the `--ui-bg` fill (10.77:1) and `padding: 4px`, so its layout rectangle is 28 px tall (the 20 px line and the padding): `lengthError` is 904, 144, 352, 28 at 1280 x 800, the intent field moved to y 180 and Light to y 240, keeping the 8 px gap between the message and the field. P10 now includes the message in the Door and ghost-cell clearance, and in the column and window clearance it already had. `style.test.ts` carries both pairs in the contrast table (the old 3.39 as the reason, the new 10.77 as the shipped pair) and reads the rule. The audit asked for, every other text that can stand on the room: an e2e test (`no text stands directly on the room`) walks six scenarios (first visit with a refused length, settings open, lit with the snuff dialog open, paused, burned out, snuffed) at five viewports (360 x 640, 480 x 800, 768 x 1024, 1280 x 800, 1920 x 1080) and asserts that every visible text is either on a control fill (own, ancestor's, or a filled control under its middle: the intent counter lies over the field) or wholly inside the zone. Result: no text is on the room; the time text and the status line are in the zone (7.53:1 or better, 12.1 table), everything else is on the control fill or the dialog fill (the lowest subtle-on-selected pair is 7.78:1). The test fails when the fill is taken off `#length-error` (checked by hand and reverted). One thing seen and left: in the wide layout the focus ring of an invalid custom cell stands 6 px out (`#ui [aria-invalid="true"]:focus-visible`) and runs about 4 px over the top edge of the message box; it never touches the text. A new screenshot, `controls-invalid-length-dawn-desktop.png`, shows the message on the dawn, the brightest room the setup controls ever stand on.
+2. **Time digits: old-style figures in some screenshots, lining in others.** See "Cause of the digit problem" below. Fixed: every screenshot test and `openApp`/`openScene` wait for both families to be loaded and confirm it; a new e2e test measures the digits (equal width, and lining from the ink rows); the subset was checked and kept.
+3. **The first-visit line on a phone.** The phone screenshots were taken with a fine pointer, so `candle-idle-phone.png` and `controls-focus-light-phone.png` showed the key line. Fixed: every phone shot is taken with the touch fixture (`mobile: true`, so `any-pointer: fine` is false) and shows "Tap Light to begin. Tap pause to rest."; desktop shots keep the key line. An e2e test at 360 x 640 reads the line rectangles of the status text with a `Range` and asserts the last line ends at least 8 px above the bottom edge (and that the text is not cut).
+4. **Hover and selected looked the same.** `button:hover` used the selected fill, so "Ghosts Off" looked half on under the pointer. Fixed: hover changes the border only (ivory `--ui-text`, 3 px) and pressed does the same at 4 px; neither touches the fill. The hover rule sits inside `@media (hover: hover)`, so a tap on a phone leaves no hover behind. The selected fill stays on selected controls (`aria-checked="true"`, the selected custom stop) and on the one primary answer of a screen (Light, Keep burning, Close: `.primary`, kept as designed, it is a main action and not a state). A selected control keeps its fill and its 4 px border under the pointer, because its selector is more specific than the hover rule. The button transition is now `border-color 80ms` on buttons only (a transition on the invalid custom field would fade its error border in). `style.test.ts` asserts that the selected fill appears only under those selectors, that the hover and pressed rules set nothing but `border-color` and `border-width`, and that hover is behind `(hover: hover)`; an e2e test hovers Ghosts Off, Ghosts On and every button of the settings panel and compares the computed fill, border colour and width, and a second one checks a phone context shows no hover look. The screenshot specs move the pointer to (1, 1) before each capture and assert no control is `:hover`.
+
+**Cause of the digit problem.** Two causes, and they explain why the set was mixed:
+
+- (b) The committed `ui.css` set `font-variant-numeric: tabular-nums` only. Cormorant Garamond's default figures are old-style, and its `tnum` feature maps the default figures to the tabular old-style ones (`one.tosf`, `three.tosf`): the 1 is 0.386 em tall (a small capital I), 0, 1 and 2 are x-height, and 3, 4, 5, 7 and 9 drop to 0.276 em below the baseline. `lining-nums` was added to the rule later in the same session (`ui.css` was last written at 23:00), after the first captures. Those captures show the old-style figures.
+- (a) The screenshot tests did not wait for the web fonts. `font-display: swap` shows the fallback serif until a face arrives, and the fallback has lining figures. Measured: right after `openApp` returned, Cormorant Garamond was still `loading` in one of six runs. A capture taken then shows the fallback's lining figures, a capture taken later shows the web font's. With (b) in the stylesheet that gave a mix of old-style (web font) and lining (fallback) pictures.
+
+The subset is not the cause. Checked with fontTools on `cormorant-garamond-latin-700.woff2` (a throwaway script, not kept): the GSUB table has `lnum` (lookup 18, default figures to `.lf`) and `tnum` (lookup 19, `.lf` to `.tf`, default to `.tosf`). Lookups run in index order, so `lining-nums tabular-nums` gives default, then `.lf`, then `.tf`: lining and 491 units wide (0.491 em) for every digit, ink 0 to about 0.64 em. So the subset is kept and `font-variant-numeric: lining-nums tabular-nums` stays. The file is a static Bold instance (no `fvar`, OS/2 weight 700) whose internal family name is "Cormorant Garamond Light" (style Bold), a leftover of instancing; Chromium reports that name for the face, so the tests match the prefix "Cormorant Garamond" and `isCustomFont`.
+
+How the figures are measured (`e2e/font-fixtures.ts`, used by `controls-polish.spec.ts` and by both screenshot specs): `platformFonts` asks Chromium (`CSS.getPlatformFontsForNode`) which font really painted `#time`, which `getComputedStyle` cannot say; `readFigures` photographs the element, takes each digit's x-range from a DOM `Range`, and finds the first and last row of ink in that range (pixels nearer the text colour than the background); `judgeFigures` calls the figures lining when the digits' ink bottoms agree within 0.06 em and none is shorter than 0.55 em. In the screenshots the lining figures measured 0.00 to 0.03 em apart and at least 0.64 em tall; from the font's outlines, old-style figures differ by 0.28 em and 0, 1 and 2 are 0.39 to 0.41 em tall, so the limits sit well between (the e2e test also measures the old-style case and asserts a spread above 0.2 em and a shortest figure under 0.45 em). The e2e test sets ten figures 100 px high in the computed font of `#time`, shows that the shipped variant is lining, that `tabular-nums` alone (the old stylesheet) and `normal` are not, and that `lining-nums` alone is (it is the feature doing the work); it then judges the figures of the real `#time` from its own pixels. A second test asserts each digit 0 to 9 is as wide as the others within 0.5 px, equal to 0.491 em, and that `11:11` and `88:88` are as wide as `00:00`. Every screenshot test now also records, per image, the font that painted `#time` and the verdict, and fails on a fallback or an old-style figure.
+
+#### Third pass: rule 1 FAIL, rule 2 PASS, rule 3 PASS on contrast with one figures finding
+
+**Verdict: rule 1 FAIL on one finding, rule 2 PASS (all four second-pass fixes resolved), rule 3 PASS on contrast with one figures finding.** Two small changes, fixed:
+
+1. **Close read as switched on (rule 1).** In the settings panel Sound On, Ghosts On, the selected length and Close all shared the selected fill, so Close looked like another switch that was on, most of all in the Off shots. Fixed: `#settings-dialog .primary { background: var(--ui-bg); }` in `ui.css`, placed after `#ui .primary` (same specificity, so order decides). Close keeps its bold text and 3 px border; Light and Keep burning keep the selected fill. `style.test.ts`: the allowed-selector list now reads `#ui .primary` (not any selector ending in `.primary`), so an override that gave the selected fill back to Close would fail; a new test reads the override (plain fill, nothing else set, after `#ui .primary`) and asserts that no rule under `#settings-dialog` uses the selected fill. `controls-polish.spec.ts`: the hover test no longer treats `.primary` as selected (selected is `aria-checked="true"` or the selected custom stop; Close must be bold and 3 px under the pointer), and a new test walks Sound and Ghosts through all four On/Off combinations and asserts the selected fill is on exactly the selected controls and never on Close, then that Light still has it.
+2. **Status line figures (rule 3).** "Pause left 09:00" showed the text face's old-style figures directly under the lining time text, and it changes every second. Fixed: `font-variant-numeric: lining-nums tabular-nums` on `#status`, with a matching test in `style.test.ts`. Three e2e tests on the paused fixture: every digit of the status font is as wide as every other (and `11:11`, `88:88` as wide as `00:00`), painted by Alegreya Sans; the figures are lining by the same ink-row measure used for `#time` (a large copy in the status font, the `normal` variant shown to fail it, then the real status pixels); and buttons and counters still compute `font-variant-numeric: normal`.
+
+Three judgements of the reviewer that need no change: (a) old-style figures in buttons and counters stay (they are labels, not a changing readout under the time); (b) the focus ring over the message box, already noted under the second pass, is accepted; (c) Keep burning and Light keep the selected fill (each is the one main answer of its screen, not a state).
+
+Also in this pass: the screenshot captures (`CANDLEWATCH_SHOTS=1` only) launch Chromium with `--disable-lcd-text` (`playwright.config.ts`), so small text has grayscale antialiasing and no teal or pink fringes. Measured on the status line of `candle-paused-desktop.png`: 395 off-colour bright pixels without the flag, 0 with it. The normal run is not changed.
+
+#### Fourth pass: PASS
+
+**Verdict: PASS on all three rules** (no element is decoration only; the reduced-motion version still shows every state; the time text keeps its contrast), with no new finding. The review took four passes: the first found six findings (item list above), the second failed rule 3 with four, the third failed rule 1 and found one figures finding under rule 3, the fourth passed. Task 39 is ticked.
+
+#### Font choice
+
+Rule 7 of `tech.md`: one open-licensed display serif, one open-licensed text face, self-hosted. Cormorant Garamond was kept in the second pass because its subset still carries `lnum` and `tnum` and its lining tabular figures are fixed width (491 units); no other face was needed.
+
+| Face | Use | Licence | File (latin subset, woff2) |
+|---|---|---|---|
+| Cormorant Garamond 700 | display serif: time text, dialog titles | SIL Open Font License 1.1, copyright The Cormorant Project Authors | `cormorant-garamond-latin-700.woff2`, 22 340 bytes |
+| Alegreya Sans 400 | text face | SIL Open Font License 1.1, copyright The Alegreya Sans Project Authors | `alegreya-sans-latin-400.woff2`, 23 708 bytes |
+| Alegreya Sans 700 | text face, buttons | same | `alegreya-sans-latin-700.woff2`, 23 976 bytes |
+
+The files and the two licence texts (`OFL-cormorant-garamond.txt`, `OFL-alegreya-sans.txt`) are in `src/ui/fonts/` and imported from `ui.css`, so Vite hashes them into `/assets/` (dist has all three, same sizes); nothing is in `public/` and no remote font is loaded (CSP `font-src 'self'`). Total 70 024 bytes for three files. Two faces, one display serif and one text face, as the rule says. Alegreya Sans also has `lnum`, `tnum` and `pnum`; the interface sets no figures in it that need them.

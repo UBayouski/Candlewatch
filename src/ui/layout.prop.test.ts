@@ -73,6 +73,7 @@ function sets(p: Placement): { setup: Item[]; running: Item[] } {
   return {
     setup: [
       { name: "chooser", rect: p.setup.chooser },
+      ...(p.setup.lengthError ? [{ name: "lengthError", rect: p.setup.lengthError }] : []),
       { name: "intent", rect: p.setup.intent },
       { name: "light", rect: p.setup.light },
       { name: "settings", rect: p.zoneControls.settings },
@@ -142,6 +143,7 @@ function violations(vw: number, vh: number): string[] {
   // The setup controls: 6 px from the keep-clear column, 1 px from the window pane, above the floor line.
   for (const { name, rect } of [
     { name: "chooser", rect: p.setup.chooser },
+    ...(p.setup.lengthError ? [{ name: "lengthError", rect: p.setup.lengthError }] : []),
     { name: "intent", rect: p.setup.intent },
     { name: "light", rect: p.setup.light },
   ]) {
@@ -151,8 +153,20 @@ function violations(vw: number, vh: number): string[] {
   }
 
   // Reading order: the chooser above the intent field, the intent field before Light.
-  bad("the chooser is above the intent field", bottom(p.setup.chooser) <= p.setup.intent.y + EPS);
+  bad("the chooser is above (or, in the left-region variant, left of) the intent field", bottom(p.setup.chooser) <= p.setup.intent.y + EPS || (p.variant === "left-region" && right(p.setup.chooser) <= p.setup.intent.x + EPS));
   bad("the intent field is before Light", readsBefore(p.setup.intent, p.setup.light));
+  // The length message stands directly under the chooser in the wide layout (the compact layout has none).
+  bad("the length message exists exactly in the wide layout", (p.setup.lengthError !== null) === (p.mode === "wide"));
+  if (p.setup.lengthError) {
+    bad("the length message is directly under the chooser", p.setup.lengthError.y >= bottom(p.setup.chooser) - EPS && p.setup.lengthError.y - bottom(p.setup.chooser) <= 8);
+    bad("the length message is above the intent field", bottom(p.setup.lengthError) <= p.setup.intent.y + EPS);
+  }
+
+  // No text sits within 8 px of the bottom edge of the viewport (a phone's home bar), and the status line ends inside the zone.
+  for (const [name, r] of [["time", p.time], ["statusRunning", p.statusRunning], ["statusResting", p.statusResting]] as const) bad(`${name} ends 8 px above the bottom edge`, bottom(r) <= vh - 8 + EPS);
+
+  // The settings panel covers the chooser underneath wholly (no sliver above or beside it) in the compact layout.
+  if (p.mode === "compact") bad("the settings panel covers the chooser", inside(p.setup.chooser, p.settingsPanel));
 
   // The zone: the buttons, the time text and the status line are wholly inside it, left to right Pause, Let it go dark, Settings.
   const z = p.zoneControls;
@@ -194,6 +208,14 @@ function violations(vw: number, vh: number): string[] {
 
   // The compact snuff dialog stops above the halo's highest point.
   if (p.mode === "compact") bad("the snuff dialog stops above the halo", bottom(p.snuffDialog) + M <= p.stage.oy + HALO_TOP_UNITS * p.stage.scale + EPS);
+
+  // No control covers the Door or a ghost cell (ghosts-and-graveyard P10; the cells stay drawn while the setup controls show).
+  // The length message (a filled box in the wide layout) is covered too: it is not a control, but it is drawn on the room.
+  const clearOf: Item[] = [...controls, ...(p.setup.lengthError ? [{ name: "lengthError", rect: p.setup.lengthError }] : [])];
+  for (const { name, rect } of clearOf) {
+    bad(`${name} keeps clear of the Door`, gap(rect, p.keepClear.door) >= -EPS);
+    p.keepClear.ghostCells.forEach((cell, i) => bad(`${name} keeps clear of ghost cell ${i}`, gap(rect, cell) >= -EPS));
+  }
 
   // The stage and the box agree.
   bad("placement uses the stage box", JSON.stringify(p.stage) === JSON.stringify(stageBox(vw, vh)));

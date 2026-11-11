@@ -8,15 +8,18 @@ import { keyAction } from "./keys";
 import {
   PROP_PARAMS,
   afterEngineStep,
+  INITIAL_SHELL,
   arbControlScript,
   arbNeutralOp,
+  arbShellOp,
   arbUiScript,
   assertInvariants,
   isNeutral,
   runUiScript,
+  shellStep,
   validInPhase,
 } from "./test-kit";
-import type { UiOpStep } from "./test-kit";
+import type { Shell, UiOpStep } from "./test-kit";
 import { DEFAULT_SETTINGS } from "../storage/settings";
 import { initialUi, uiStep } from "./ui-state";
 
@@ -106,11 +109,52 @@ describe("P8 (R14): UI-only inputs never change what the engine does", () => {
             for (const op of extras[i] ?? []) {
               const action =
                 op.kind === "key"
-                  ? keyAction({ phase: engine.phase, overlay: ui.overlay, focus: op.focus }, op.key)
+                  ? keyAction({ phase: engine.phase, overlay: ui.overlay, view: "room", focus: op.focus }, op.key)
                   : op.kind === "action"
                     ? op.action
                     : null;
               // A key that would Light, Pause or Resume is not a UI-only input.
+              if (action === null || !isNeutral(action)) continue;
+              const r = uiStep(ui, { type: "action", action }, engine.phase);
+              expect(r.effects.events).toEqual([]);
+              ui = r.ui;
+            }
+            const next = step(engine, entry.event, entry.now);
+            ui = afterEngineStep(ui, engine.phase, next.phase, typingFlags[i] ?? false);
+            engine = next;
+            expect(engine).toEqual(entry.after);
+          });
+        },
+      ),
+      PROP_PARAMS,
+    );
+  });
+
+  it("gives the same engine states with view switches, card inputs, focus moves and ghosts toggles interleaved (ghosts-and-graveyard R3.16, R6.16)", () => {
+    fc.assert(
+      fc.property(
+        arbT0,
+        arbScript,
+        fc.array(fc.array(fc.oneof(arbNeutralOp.map((op) => ({ ui: op })), arbShellOp.map((op) => ({ shell: op }))), { maxLength: 4 }), { minLength: 60, maxLength: 60 }),
+        fc.array(fc.boolean(), { minLength: 60, maxLength: 60 }),
+        (t0, script, extras, typingFlags) => {
+          const reference = runScript(script, t0);
+          let engine: State = INITIAL_STATE;
+          let ui = initialUi(DEFAULT_SETTINGS);
+          let shell: Shell = INITIAL_SHELL;
+          reference.forEach((entry, i) => {
+            for (const extra of extras[i] ?? []) {
+              if ("shell" in extra) {
+                shell = shellStep(shell, extra.shell);
+                continue;
+              }
+              const op = extra.ui;
+              const action =
+                op.kind === "key"
+                  ? keyAction({ phase: engine.phase, overlay: ui.overlay, view: shell.view, focus: op.focus }, op.key)
+                  : op.kind === "action"
+                    ? op.action
+                    : null;
               if (action === null || !isNeutral(action)) continue;
               const r = uiStep(ui, { type: "action", action }, engine.phase);
               expect(r.effects.events).toEqual([]);

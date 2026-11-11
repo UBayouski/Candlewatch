@@ -13,7 +13,7 @@ const SRC_DIR = join(UI_DIR, "..");
 const ENFORCE_ALL_USED = true;
 
 /** Groups of keys that other specs own and that this spec's files need not use. */
-const NOT_THIS_SPEC = new Set(["title", "tagline", "scene"]);
+const NOT_THIS_SPEC = new Set(["title", "tagline", "scene", "count", "ghosts", "graveyard"]);
 
 function walk(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
@@ -39,6 +39,19 @@ function newKeys(): string[] {
   return Object.entries(STRINGS)
     .filter(([group]) => !NOT_THIS_SPEC.has(group))
     .flatMap(([group, value]) => (typeof value === "string" ? [group] : Object.keys(value).map((key) => `${group}.${key}`)));
+}
+
+/** Every text under one `group.key` of STRINGS: the string itself, or each entry of an array or nested group (months, card). */
+function textsOf(key: string): string[] {
+  const [group, name] = key.split(".") as [keyof typeof STRINGS, string | undefined];
+  const root: unknown = name === undefined ? STRINGS[group] : (STRINGS[group] as Record<string, unknown>)[name];
+  const collect = (value: unknown): string[] => {
+    if (typeof value === "string") return [value];
+    if (Array.isArray(value)) return value.flatMap(collect);
+    if (value !== null && typeof value === "object") return Object.values(value).flatMap(collect);
+    return [];
+  };
+  return collect(root);
 }
 
 /** The keys a source mentions as `STRINGS.group.key`, and the groups it indexes dynamically as `STRINGS.group[...]`. */
@@ -94,9 +107,8 @@ describe("the strings file", () => {
 
   it("has a non-empty text for every key, and the same placeholders in related keys", () => {
     for (const key of newKeys()) {
-      const [group, name] = key.split(".") as [keyof typeof STRINGS, string];
-      const value = (STRINGS[group] as Record<string, string>)[name];
-      expect(typeof value === "string" && value.length > 0, key).toBe(true);
+      const texts = textsOf(key);
+      expect(texts.length > 0 && texts.every((s) => s.length > 0), key).toBe(true);
     }
     // The refusal is said and shown with the same numbers.
     expect(STRINGS.status.lengthRange).toBe(STRINGS.announce.refused);
@@ -125,11 +137,9 @@ describe("the strings file", () => {
     expect(fill(STRINGS.status.lengthRange, { min: 5, max: 90 })).toBe("Choose 5 to 90 minutes.");
     expect(fill(STRINGS.intent.count, { n: 3, max: 80 })).toBe("3 of 80");
     // No template has a placeholder that no value in this list supplies.
-    const known = new Set(["n", "max", "min", "time"]);
+    const known = new Set(["n", "max", "min", "time", "day", "month", "intent", "date"]);
     for (const key of newKeys()) {
-      const [group, name] = key.split(".") as [keyof typeof STRINGS, string];
-      const value = (STRINGS[group] as Record<string, string>)[name] ?? "";
-      for (const m of value.matchAll(/\{([A-Za-z0-9_]+)\}/g)) expect(known.has(m[1] ?? ""), `${key} {${m[1]}}`).toBe(true);
+      for (const value of textsOf(key)) for (const m of value.matchAll(/\{([A-Za-z0-9_]+)\}/g)) expect(known.has(m[1] ?? ""), `${key} {${m[1]}}`).toBe(true);
     }
   });
 

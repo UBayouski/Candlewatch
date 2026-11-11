@@ -3,7 +3,7 @@ import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { keyAction } from "./keys";
 import type { KeyAction, KeyContext, KeyDescriptor } from "./keys";
-import { PROP_PARAMS, arbKeyContext, arbKeyDescriptor, arbPlainKey } from "./test-kit";
+import { PROP_PARAMS, arbKeyContext, arbKeyDescriptor, arbPhase, arbPlainKey, arbFocusKind, arbRoomKeyContext } from "./test-kit";
 
 const isRunning = (phase: string): boolean => phase === "lit" || phase === "paused";
 
@@ -63,7 +63,7 @@ describe("P4: the key map", () => {
 
   it("gives open-snuff only in lit or paused with no overlay open, and closes an open overlay instead (R6.1)", () => {
     fc.assert(
-      fc.property(arbKeyContext, arbPlainKey, (context, key) => {
+      fc.property(arbRoomKeyContext, arbPlainKey, (context, key) => {
         fc.pre(key.key === "Escape");
         const action = keyAction(context, key);
         if (context.overlay === "snuff") expect(action).toEqual({ type: "keep-burning" });
@@ -119,7 +119,7 @@ describe("P4: the key map", () => {
 
   it("gives announce-time only in lit or paused with no overlay, never with a text field focused (R9.5)", () => {
     fc.assert(
-      fc.property(arbKeyContext, arbPlainKey, (context, key) => {
+      fc.property(arbRoomKeyContext, arbPlainKey, (context, key) => {
         fc.pre(key.key === "t" || key.key === "T");
         const action = keyAction(context, key);
         const expected = isRunning(context.phase) && context.overlay === "none" && context.focus !== "text";
@@ -136,6 +136,40 @@ describe("P4: the key map", () => {
         if (action?.type === "light") expect(key.key).toBe("Enter");
         if (action?.type === "toggle-pause") expect(key.key).toBe(" ");
         if (action?.type === "announce-time") expect(["t", "T"]).toContain(key.key);
+      }),
+      PROP_PARAMS,
+    );
+  });
+
+  // ghosts-and-graveyard: the context ranges over the view.
+  it("in the graveyard with no overlay open, gives no action for any key, phase or focus (R3.13, R6.16)", () => {
+    fc.assert(
+      fc.property(arbPhase, arbFocusKind, arbKeyDescriptor, (phase, focus, key) => {
+        expect(keyAction({ phase, overlay: "none", focus, view: "graveyard" }, key)).toBeNull();
+      }),
+      PROP_PARAMS,
+    );
+  });
+
+  it("in the graveyard, only Escape with the settings overlay open acts, and it closes the settings (R6.17)", () => {
+    fc.assert(
+      fc.property(arbKeyContext, arbKeyDescriptor, (context, key) => {
+        fc.pre(context.view === "graveyard");
+        const action = keyAction(context, key);
+        const closes = context.overlay === "settings" && key.key === "Escape" && !key.ctrl && !key.alt && !key.meta && !key.repeat;
+        expect(action).toEqual(closes ? { type: "close-settings" } : null);
+      }),
+      PROP_PARAMS,
+    );
+  });
+
+  it("in the room, the view argument changes nothing else: the room map is the same whatever the other fields (R3.14)", () => {
+    fc.assert(
+      fc.property(arbRoomKeyContext, arbKeyDescriptor, (context, key) => {
+        const action = keyAction(context, key);
+        if (action === null) return;
+        // Every room action is one the room map could give before the view existed.
+        expect(["light", "toggle-pause", "open-snuff", "keep-burning", "close-settings", "announce-time"]).toContain(action.type);
       }),
       PROP_PARAMS,
     );

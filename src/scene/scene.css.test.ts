@@ -149,9 +149,14 @@ describe("one thing per element (F4, F6)", () => {
     expect(rule(".drip-3")).toContain("var(--drips) - 2");
   });
 
-  it("the zone is two flat fills: rest and dawn", () => {
-    expect(rule(".zone-rest")).toBe("fill: var(--zone-bg-darkest);");
+  it("the zone is two flat fills: rest and dawn, each with a soft shadow of itself above the floor line", () => {
+    // The fills are flat (the contrast handoff of R7.8 is unchanged: the shadow lies above y = 900, never over the text area).
+    expect(rule(".zone-rest")).toContain("fill: var(--zone-bg-darkest);");
     expect(rule(".zone-dawn")).toContain("fill: var(--zone-bg-brightest)");
+    // The top edge melts into the room: the shadow is the band's own colour, moved up, so it cannot cover the band.
+    // The rest band's shadow fades out as the dawn band (drawn over it) fades in, so a dark halo never shows at dawn.
+    expect(rule(".zone-rest")).toMatch(/filter:\s*drop-shadow\(0 -\d+px \d+px color-mix\(in srgb, var\(--zone-bg-darkest\) calc\(\(1 - var\(--dawn\)\) \* 100%\), transparent\)\)/);
+    expect(rule(".zone-dawn")).toMatch(/filter:\s*drop-shadow\(0 -\d+px \d+px var\(--zone-bg-brightest\)\)/);
   });
 
   it("has no table, dish or floor in the stylesheet (F1, F2)", () => {

@@ -26,10 +26,13 @@ export const STRINGS = {
     group: "Length",
     preset: "{n} minutes",
     custom: "Custom length in minutes",
-    placeholder: "min",
+    /** The cue in the empty custom field: an underscore to type over, so it does not look like a fourth preset. */
+    placeholder: "__ min",
   },
   intent: {
     label: "What is this candle for? (optional)",
+    /** The visible hint in the compact layout, where the field is 128 px wide at 360 x 640 and the full label would be cut. */
+    placeholderShort: "Intent (optional)",
     hint: "Only the first {max} characters are kept.",
     count: "{n} of {max}",
     overLimit: "{max}+",
@@ -63,6 +66,8 @@ export const STRINGS = {
   /** The status line under the time text (design 7.2). The ones shown while Pause and Let it go dark are on screen are kept short. */
   status: {
     firstVisit: "Enter lights. Space pauses. Esc lets it go dark.",
+    /** The first-visit line when the device has no fine pointer (a phone or tablet): no keys to name. */
+    firstVisitTouch: "Tap Light to begin. Tap pause to rest.",
     idle: "The candle waits.",
     lit: "The wick catches.",
     guttering: "The flame gutters.",
@@ -91,5 +96,31 @@ export const STRINGS = {
   },
   region: {
     watch: "The watch",
+  },
+  /** Distraction counts in words, used by the scene label (ghosts-and-graveyard design 4.7). Placeholder wording. */
+  count: { distraction: "{n} distraction", distractions: "{n} distractions" },
+  ghosts: { overflow: "+{n}" },
+  /** The graveyard and shelf view (ghosts-and-graveyard design 4.7). Placeholder wording, finalised by sound-and-title. */
+  graveyard: {
+    door: "Open the graveyard",
+    back: "Back to the room",
+    title: "The graveyard",
+    graveyardLabel: "Graveyard",
+    shelfLabel: "Shelf",
+    noStones: "No stones yet",
+    noStubs: "No candles on the shelf yet",
+    noIntent: "No intent",
+    itemName: "{intent}, {date}",
+    carvedDate: "{day} {month}",
+    unknownDate: "Unknown date",
+    months: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+    olderStone: "{n} older stone not shown",
+    olderStones: "{n} older stones not shown",
+    olderDay: "{n} older day not shown",
+    olderDays: "{n} older days not shown",
+    more: "+{n} more",
+    card: { planned: "Planned: {time}", distractions: "Distractions: {n}", away: "Time away: {time}" },
+    announceOpen: "The graveyard.",
+    announceLeave: "Back in the room.",
   },
 } as const;

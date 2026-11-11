@@ -18,7 +18,7 @@
 4. The engine only reaches states in the model: `idle` -> `lit` <-> `paused` -> `burned-out` or `snuffed`. Total paused time over 10 minutes snuffs the session.
 5. Distractions never change the time left.
 6. Sound is generated with Web Audio in code. No sound files. Off until the first user gesture.
-7. Fonts: one open-licensed display serif and one open-licensed text face, self-hosted.
+7. Fonts: one open-licensed display serif and one open-licensed text face, self-hosted. Today: Cormorant Garamond 700 (display) and Alegreya Sans 400 and 700 (text), both SIL OFL 1.1, latin woff2 files and licence texts in `src/ui/fonts/`.
 
 ## Scene
 

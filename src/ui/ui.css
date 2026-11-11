@@ -15,16 +15,43 @@
   display: none !important;
 }
 
+/* --- fonts: self-hosted Latin subsets (SIL Open Font License, see src/ui/fonts/), hashed into /assets/ by Vite ---
+   Cormorant Garamond Bold is the display serif (the time text and the dialog headings); Alegreya Sans is the text face. */
+@font-face {
+  font-family: "Cormorant Garamond";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("./fonts/cormorant-garamond-latin-700.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Alegreya Sans";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("./fonts/alegreya-sans-latin-400.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Alegreya Sans";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("./fonts/alegreya-sans-latin-700.woff2") format("woff2");
+}
+
 #ui {
   /* --- tokens (design 12.1; the contrast table is checked by style.test.ts) --- */
   --ui-text: #efe6cf;
-  --ui-text-subtle: #c9c1ad;
-  --ui-bg: #121826;
-  --ui-bg-selected: #2b3552;
-  --ui-border: #a8afbf;
+  --ui-text-subtle: #cfc2a2; /* the wax shade */
+  --ui-bg: #1a130d; /* warm black, the wall's low brown darkened */
+  --ui-bg-selected: #3a2a1c; /* the wall's low brown */
+  --ui-border: #e6c27a; /* amber wax */
   --ui-focus: #efe6cf;
   --ui-error: #ffb4a3;
-  --ui-font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --ui-font: "Alegreya Sans", sans-serif;
+  --ui-font-display: "Cormorant Garamond", serif;
 
   position: fixed;
   inset: 0;
@@ -47,6 +74,7 @@
 #length,
 #length .cell,
 #length .custom-cell,
+#length-error,
 #intent-box,
 #light,
 #time,
@@ -67,16 +95,35 @@
   pointer-events: none;
 }
 
+/* The zone sits above the safe areas of a notched phone (the page covers the whole screen: viewport-fit=cover). */
+#time,
+#status,
+#pause,
+#snuff,
+#settings-button {
+  top: calc(var(--y) - env(safe-area-inset-bottom, 0px));
+}
+
+#pause {
+  left: calc(var(--x) + env(safe-area-inset-left, 0px));
+}
+
+#settings-button {
+  left: calc(var(--x) - env(safe-area-inset-right, 0px));
+}
+
 /* --- the time text --- */
 #time {
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--ui-text);
+  font-family: var(--ui-font-display);
   font-size: var(--time-size, 36px);
   font-weight: 700;
   line-height: 1;
-  font-variant-numeric: tabular-nums;
+  /* Lining figures of one width: the display serif's default figures are old-style, which read badly in a countdown. */
+  font-variant-numeric: lining-nums tabular-nums;
   white-space: nowrap;
   text-align: center;
 }
@@ -87,6 +134,8 @@
   color: var(--ui-text);
   font-size: 16px;
   line-height: 20px;
+  /* Lining figures of one width: "Pause left 09:00" changes every second and stands under the lining time text. */
+  font-variant-numeric: lining-nums tabular-nums;
   text-align: center;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -94,6 +143,7 @@
 }
 
 #status[data-rest="true"] {
+  line-height: 18px;
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -102,6 +152,7 @@
 }
 
 #ui[data-mode="wide"] #status[data-rest="true"] {
+  line-height: 20px;
   -webkit-line-clamp: 1;
   line-clamp: 1;
   white-space: nowrap;
@@ -133,24 +184,40 @@
   border-radius: 10px;
   font: inherit;
   line-height: 20px;
-  transition: background-color 80ms;
 }
 
 #ui button {
   cursor: pointer;
+  /* Only buttons answer the pointer; the invalid border of the custom field must show at once, not fade in. */
+  transition: border-color 80ms;
 }
 
-#ui button:hover {
-  background: var(--ui-bg-selected);
+/* Hover and pressed change the border only. The selected fill (with the heavy border and the check mark) means "selected" and
+   nothing else, so a control under the pointer is never read as switched on. Hover is for pointers that can hover: a tap on a
+   phone leaves no sticky hover behind. Nothing depends on it (R8.8). */
+@media (hover: hover) {
+  #ui button:hover {
+    border-color: var(--ui-text);
+    border-width: 3px;
+  }
 }
 
 #ui button:active {
-  background: var(--ui-bg-selected);
-  border-width: 3px;
+  border-color: var(--ui-text);
+  border-width: 4px;
 }
 
+/* The main answer of a screen (Light, Keep burning, Close): the selected fill, a heavy border and bold type. */
 #ui .primary {
   border-width: 3px;
+  background: var(--ui-bg-selected);
+  font-weight: 700;
+}
+
+/* In the settings panel the selected fill means "switched on / chosen" and nothing else, so Close (the panel's primary answer)
+   keeps its bold type and 3 px border but takes the plain fill. Same specificity as `#ui .primary`, so it must stay after it. */
+#settings-dialog .primary {
+  background: var(--ui-bg);
 }
 
 /* The length chooser: the selected stop has a heavier border, a lighter fill and a check mark. */
@@ -193,6 +260,34 @@
   opacity: 1;
 }
 
+#ui .custom-cell {
+  padding: 0 2px;
+}
+
+/* The empty custom field says "type here" (an underscore to type over), so it does not read as a fourth preset. */
+#ui .custom-cell::placeholder {
+  font-size: 14px;
+  letter-spacing: 0.02em;
+}
+
+/* The length message under the chooser (wide layout; the compact layout has it in the status line). It stands on the room, whose
+   brightest background gives the error colour only 3.39:1, so it carries the control fill (10.77:1) and 4 px of padding. The layout
+   rectangle is 28 px tall: the 20 px line and the padding. */
+#length-error {
+  padding: 4px;
+  color: var(--ui-error);
+  background: var(--ui-bg);
+  border-radius: 10px;
+  font-size: 15px;
+  line-height: 20px;
+  pointer-events: none;
+}
+
+#length-error::before {
+  content: "! ";
+  font-weight: 700;
+}
+
 /* The intent field and its counter. */
 #intent-box {
   pointer-events: none;
@@ -203,6 +298,15 @@
   height: 100%;
   padding-right: 8px;
   text-overflow: clip;
+}
+
+/* The visible hint in the empty intent field: the subtle text colour on the field fill (9.89:1), smaller in the compact layout. */
+#intent-box input::placeholder {
+  color: var(--ui-text-subtle);
+}
+
+#ui[data-mode="compact"] #intent-box input::placeholder {
+  font-size: 14px;
 }
 
 #intent-box .counter {
@@ -315,8 +419,9 @@
 
 #ui dialog h2 {
   margin: 0 0 8px;
-  font-size: 20px;
-  line-height: 24px;
+  font-family: var(--ui-font-display);
+  font-size: 24px;
+  line-height: 26px;
 }
 
 #ui dialog p {
@@ -340,7 +445,13 @@
 #settings-dialog[open] {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+#ui #settings-dialog h2 {
+  margin: 0;
 }
 
 #ui .switch {
@@ -388,6 +499,11 @@
 #ui :focus-visible {
   outline: 3px solid var(--ui-focus);
   outline-offset: 3px;
+}
+
+/* An invalid field keeps its error border visible inside the ring: the ring stands further out. */
+#ui [aria-invalid="true"]:focus-visible {
+  outline-offset: 6px;
 }
 
 /* --- the live region: read aloud, never seen --- */

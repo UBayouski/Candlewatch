@@ -29,8 +29,8 @@ Conventions for every task:
 
 ## Tasks
 
-- [ ] 1. Apply the change-request table (design 6.1) to `controls-and-access`
-  - [ ] 1.1 Update the `controls-and-access` requirements, design and tasks documents where they are now wrong
+- [x] 1. Apply the change-request table (design 6.1) to `controls-and-access`
+  - [x] 1.1 Update the `controls-and-access` requirements, design and tasks documents where they are now wrong
     - Apply CR1 to CR5, CR6, CR-A1 and CR-V1 of design 6.1 to `.kiro/specs/controls-and-access/requirements.md`, `design.md` and `tasks.md`. Read each document first and change only what the table makes wrong; add a short "Amended by ghosts-and-graveyard task 1" note beside every changed passage.
     - Key map and Tab order (CR1, CR2): `KeyContext` gains `view: "room" | "graveyard"`; with `view === "graveyard"` `keyAction` returns no room action, except close-settings while the settings overlay is open; room behaviour is unchanged; the Door and `g` join the Tab order and key map only in `idle`, `burned-out`, `snuffed`; arrows, Home, End and Escape get their second meaning in the graveyard only.
     - Focus table (CR3): add the two rows (opening the view focuses the first Group's Remembered_Item, else the next Tab stop; leaving focuses the Door).
@@ -42,7 +42,7 @@ Conventions for every task:
     - Files: the three `controls-and-access` spec files.
     - _Requirements: R3.3, R3.9, R3.13, R3.14, R3.16, R4.12, R6.15, R6.16, R6.17, R7.10, R9.18_
 
-  - [ ] 1.2 Make the `controls-and-access` code changes
+  - [x] 1.2 Make the `controls-and-access` code changes
     - `src/ui/keys.ts`: add `view` to `KeyContext`; with `view === "graveyard"` return `null` for every key except the close of an open settings overlay; behaviour for `view === "room"` is exactly as before. Update `src/ui/dom/events.ts` to pass `view` (the value comes from `createInterface`; until task 16 it is always `"room"`).
     - `src/ui/view.ts`: `viewOf(state, ui, settings, now, placement, view)` hides the setup controls when `view === "graveyard"`; zone controls and Settings stay visible. Update its callers (`src/ui/index.ts`).
     - `src/ui/dom/live.ts` and `src/ui/index.ts`: expose `announce(text)` (the one-line writer, with the existing one-frame clear for a repeated line) on the interface so `main.ts` can announce view changes. `nextAnnouncement` is not touched.
@@ -50,7 +50,7 @@ Conventions for every task:
     - Files: `src/ui/keys.ts`, `src/ui/view.ts`, `src/ui/layout.ts`, `src/ui/index.ts`, `src/ui/dom/events.ts`, `src/ui/dom/live.ts`.
     - _Requirements: R3.3, R3.9, R3.13, R4.12, R6.16, R6.17, R7.10, R9.18_
 
-  - [ ] 1.3 Extend the `controls-and-access` tests
+  - [x] 1.3 Extend the `controls-and-access` tests
     - Required: P8 ops. In `src/ui/test-kit.ts` add the UI-only ops (open or leave the view, card inputs, focus moves, ghosts toggle) to the UI script generator and interpreter; they change only UI state. Extend P8 in `src/ui/ui-state.prop.test.ts` to interleave them; the engine state after the script must be deeply equal to the plain run.
     - Required: P10. Extend `src/ui/layout.prop.test.ts` so no control rectangle intersects `DOOR_RECT` or any ghost cell, at every generated viewport and the four named sizes. Mutation check: move the Light button onto the left ghost cells and confirm P10 fails, then revert.
     - Required: key-map properties. Extend `src/ui/keys.test.ts` and `src/ui/keys.prop.test.ts` (P4 of that spec) with `view`: with `view === "graveyard"` and no overlay `keyAction` returns `null` for every key; with the settings overlay open Escape still closes it; with `view === "room"` the existing examples and properties are unchanged.
@@ -58,13 +58,14 @@ Conventions for every task:
     - Files: `src/ui/test-kit.ts`, `src/ui/ui-state.prop.test.ts`, `src/ui/layout.prop.test.ts`, `src/ui/keys.test.ts`, `src/ui/keys.prop.test.ts`, `src/ui/view.test.ts`, `src/ui/layout.test.ts`.
     - _Requirements: R3.3, R3.13, R3.16, R4.12, R6.16, R6.17, R9.18. Properties: P8 ops, P10, P4 of controls-and-access (these feed P6, P14 and P22 here)_
 
-  - [ ] 1.4 Add the strings groups needed early
+  - [x] 1.4 Add the strings groups needed early
     - Add the `count`, `ghosts` and `graveyard` groups of design 4.7 to `src/strings.ts` (CR-ST). `label.ts` and `text.ts` need them in the first batch, so they are added now; the wording stays a placeholder for `sound-and-title`.
     - Extend `src/strings.test.ts`: none of the new strings contains "Pomodoro" (spelled in two pieces as the existing check does); `graveyard.months` has 12 entries; every placeholder is one of `n`, `day`, `month`, `intent`, `date`, `time`.
+    - Note (controls-and-access review): `src/ui/strings.test.ts` fails when a new string group is added unless the group is in its `NOT_THIS_SPEC` set; `count`, `ghosts` and `graveyard` are in it now. By the end of this spec (task 17.1) these groups must pass its "every key is used" check, so remove them from `NOT_THIS_SPEC` then. Its non-empty and template checks already read the `months` array and the nested `card` group.
     - Files: `src/strings.ts`, `src/strings.test.ts`.
     - _Requirements: R1.6, R1.8, R2.11_
 
-  - [ ] 1.5 Add the first `KIRO_USAGE.md` entry
+  - [x] 1.5 Add the first `KIRO_USAGE.md` entry
     - Log the CR batch: the passages changed in the three `controls-and-access` documents, the code and tests changed, and the unit counts before and after.
     - Files: `KIRO_USAGE.md`.
     - _Requirements: CR-K_

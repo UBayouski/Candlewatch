@@ -44,7 +44,7 @@ export function createApply(els: Elements, doc: Document): Apply {
     if (force || doc.activeElement !== input) input.value = value;
   };
 
-  const chooser = (key: string, c: ChooserElements, selected: number, customText: string, invalid: boolean): void => {
+  const chooser = (key: string, c: ChooserElements, selected: number, customText: string, invalid: boolean, describedBy = "status"): void => {
     c.presets.forEach((button, i) => {
       attr(`${key}.checked.${i}`, button, "aria-checked", String(selected === i));
       attr(`${key}.tab.${i}`, button, "tabindex", selected === i ? "0" : "-1");
@@ -52,7 +52,7 @@ export function createApply(els: Elements, doc: Document): Apply {
     attr(`${key}.custom.tab`, c.custom, "tabindex", selected === 3 ? "0" : "-1");
     field(c.custom, customText, false);
     attr(`${key}.custom.invalid`, c.custom, "aria-invalid", invalid ? "true" : null);
-    attr(`${key}.custom.describedby`, c.custom, "aria-describedby", invalid ? "status" : null);
+    attr(`${key}.custom.describedby`, c.custom, "aria-describedby", invalid ? describedBy : null);
   };
 
   const toggle = (key: string, s: SwitchElements, checked: boolean, label: string, state: string): void => {
@@ -73,6 +73,7 @@ export function createApply(els: Elements, doc: Document): Apply {
       place("p.length", els.length.group, p.setup.chooser);
       [...els.length.presets, els.length.custom].forEach((el, i) => place(`p.cell.${i}`, el, p.setup.cells[i] ?? p.setup.chooser));
       place("p.intent", els.intentBox, p.setup.intent);
+      if (p.setup.lengthError) place("p.lengthError", els.lengthError, p.setup.lengthError);
       place("p.light", els.light, p.setup.light);
       place("p.time", els.time, p.time);
       place("p.pause", els.pause, p.zoneControls.pause);
@@ -107,8 +108,12 @@ export function createApply(els: Elements, doc: Document): Apply {
     text("settings.label", els.settingsLabel, view.settingsButton.label);
 
     // 4. the chooser, the intent field and its counter
-    chooser("length", els.length, view.chooser.selected, view.chooser.customText, view.chooser.customInvalid);
+    chooser("length", els.length, view.chooser.selected, view.chooser.customText, view.chooser.customInvalid, view.chooser.describedBy);
+    // The length message under the chooser (wide layout only: the compact layout has no rectangle for it and shows it in the status line).
+    text("length.error", els.lengthError, view.chooser.error ?? "");
+    flag("hidden.lengthError", els.lengthError, view.chooser.error === null || view.placement.setup.lengthError === null);
     field(els.intent, view.intent.text, true);
+    attr("intent.placeholder", els.intent, "placeholder", view.intent.placeholder);
     text("intent.counter", els.counter, view.intent.overLimit ? view.intent.overLimitMark : view.intent.counter);
     attr("intent.over", els.intentBox, "data-over", String(view.intent.overLimit));
     text("intent.hint", els.hint, view.intent.hint);

@@ -13,6 +13,8 @@ import {
   HALO_TOP_UNITS,
   KEEP_CLEAR_COLUMN_UNITS,
   KEEP_CLEAR_WINDOW_UNITS,
+  DOOR_RECT,
+  GHOST_CELLS,
   M,
   PAD_COLUMN,
   PAD_WINDOW,
@@ -102,9 +104,11 @@ describe("360 x 640 (compact, top-row), design 6.5", () => {
   });
   it("puts the time, the status and the buttons in the zone", () => {
     expect(p.timeSize).toBe(36);
-    expectRect(p.time, [124, 562, 112, 36], "time");
-    expectRect(p.statusRunning, [112, 598, 136, 20], "status running");
-    expectRect(p.statusResting, [60, 598, 240, 40], "status resting");
+    expectRect(p.time, [124, 560, 112, 36], "time");
+    expectRect(p.statusRunning, [112, 596, 136, 20], "status running");
+    expectRect(p.statusResting, [60, 596, 240, 36], "status resting");
+    // No text within 8 px of the bottom edge (the touch line wraps to two lines at rest).
+    expect(p.statusResting.y + p.statusResting.h).toBeLessThanOrEqual(640 - 8);
     expectRect(p.zoneControls.pause, [8, 578, 44, 44], "pause");
     expectRect(p.zoneControls.snuff, [256, 578, 44, 44], "snuff");
     expectRect(p.zoneControls.settings, [308, 578, 44, 44], "settings");
@@ -113,7 +117,8 @@ describe("360 x 640 (compact, top-row), design 6.5", () => {
   it("places the overlays", () => {
     expectRect(p.snuffDialog, [8, 8, 344, 178], "snuff dialog");
     expect(p.snuffDialog.y + p.snuffDialog.h + M).toBeCloseTo(194, 9); // 8 px above the halo's highest point
-    expectRect(p.settingsPanel, [8, 8, 344, 280], "settings panel");
+    expectRect(p.settingsPanel, [8, 0, 344, 280], "settings panel");
+    expect(p.setup.lengthError).toBeNull();
   });
 });
 
@@ -131,14 +136,15 @@ describe("1280 x 800 (wide, column), design 6.5", () => {
   it("puts the setup controls in the column beside the stage", () => {
     expectRect(p.setup.chooser, [904, 96, 352, 44], "chooser");
     [904, 994, 1084, 1174].forEach((x, i) => expectRect(p.setup.cells[i] as Rect, [x, 96, 82, 44], `cell ${i}`));
-    expectRect(p.setup.intent, [904, 152, 352, 44], "intent");
-    expectRect(p.setup.light, [904, 212, 352, 52], "light");
+    expectRect(p.setup.lengthError as Rect, [904, 144, 352, 28], "length error");
+    expectRect(p.setup.intent, [904, 180, 352, 44], "intent");
+    expectRect(p.setup.light, [904, 240, 352, 52], "light");
   });
   it("puts the time, the status and the labelled buttons in the zone", () => {
     expect(p.timeSize).toBe(44);
-    expectRect(p.time, [572, 722, 136, 44], "time");
-    expectRect(p.statusRunning, [488, 766, 304, 20], "status running");
-    expectRect(p.statusResting, [312, 766, 656, 20], "status resting");
+    expectRect(p.time, [572, 720, 136, 44], "time");
+    expectRect(p.statusRunning, [488, 764, 304, 20], "status running");
+    expectRect(p.statusResting, [312, 764, 656, 20], "status resting");
     expectRect(p.zoneControls.pause, [344, 738, 128, 44], "pause");
     expectRect(p.zoneControls.snuff, [808, 738, 160, 44], "snuff");
     expectRect(p.zoneControls.settings, [976, 738, 96, 44], "settings");
@@ -205,7 +211,7 @@ describe("the switches", () => {
     expect(placeControls(1190, 600).timeSize).toBe(32);
   });
   it("gives the status line at rest two lines only when the compact zone is 80 px or taller", () => {
-    expect(placeControls(360, 640).statusResting.h).toBe(40);
+    expect(placeControls(360, 640).statusResting.h).toBe(36);
     expect(placeControls(700, 640).statusResting.h).toBe(20); // zone 64 px
   });
 });
@@ -220,5 +226,30 @@ describe("the order lists and the pure function", () => {
   });
   it("gives equal outputs for equal inputs", () => {
     expect(placeControls(777, 913)).toEqual(placeControls(777, 913));
+  });
+});
+
+describe("the Door and the ghost cells (ghosts-and-graveyard CR5)", () => {
+  it("are the keep-clear rectangles of the design in room units", () => {
+    expect(DOOR_RECT).toEqual({ x: 20, y: 805, w: 80, h: 85 });
+    expect(GHOST_CELLS).toHaveLength(12);
+    expect(GHOST_CELLS.filter((c) => c.x === 10)).toHaveLength(6);
+    expect(GHOST_CELLS.filter((c) => c.x === 500)).toHaveLength(6);
+    expect(Math.min(...GHOST_CELLS.map((c) => c.y))).toBe(215);
+    expect(Math.max(...GHOST_CELLS.map((c) => c.y + c.h))).toBe(785);
+  });
+  it("are placed in pixels with the stage scale at 360 x 640", () => {
+    const p = placeControls(360, 640);
+    expectRect(p.keepClear.door, [12, 20 + 805 * 0.6, 48, 51], "door");
+    expect(p.keepClear.ghostCells).toHaveLength(12);
+    expectRect(p.keepClear.ghostCells[0] as Rect, [6, 20 + 215 * 0.6, 54, 57], "cell 0");
+  });
+  it("keep clear of the candle column, the window pane and the floor band", () => {
+    const p = placeControls(1280, 800);
+    for (const cell of [p.keepClear.door, ...p.keepClear.ghostCells]) {
+      const col = p.keepClear.column;
+      expect(cell.x + cell.w <= col.x || cell.x >= col.x + col.w).toBe(true);
+      expect(cell.y + cell.h).toBeLessThanOrEqual(p.floorY);
+    }
   });
 });

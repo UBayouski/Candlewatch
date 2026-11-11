@@ -11,11 +11,12 @@ import { viewOf } from "./view";
 const SEC = 1000;
 const MIN = 60 * SEC;
 const T0 = 1_800_000_000_000;
+const FINE = { finePointer: true } as const;
 const placement = placeControls(360, 640);
 const wide = placeControls(1280, 800);
 
 const ui0 = initialUi(DEFAULT_SETTINGS);
-const view = (state: State, now: number, ui: UiState = ui0, settings: Settings = DEFAULT_SETTINGS) => viewOf(state, ui, settings, now, placement);
+const view = (state: State, now: number, ui: UiState = ui0, settings: Settings = DEFAULT_SETTINGS) => viewOf(state, ui, settings, now, placement, FINE);
 const lit = (lengthMin = 25, intent?: string): State =>
   step(INITIAL_STATE, intent === undefined ? { type: "light", length: lengthMin } : { type: "light", length: lengthMin, intent }, T0);
 
@@ -100,6 +101,23 @@ describe("the status line (design 7.2)", () => {
     expect(kind(INITIAL_STATE, T0, refused)).toBe("refusal");
     expect(kind(INITIAL_STATE, T0, { ...refused, refusal: null })).toBe("instructions");
   });
+  it("names the keys on a device with a fine pointer and taps on one without (the view model is told, it never asks)", () => {
+    expect(view(INITIAL_STATE, T0).status.text).toBe("Enter lights. Space pauses. Esc lets it go dark.");
+    const touch = viewOf(INITIAL_STATE, ui0, DEFAULT_SETTINGS, T0, placement, { finePointer: false });
+    expect(touch.status).toMatchObject({ kind: "instructions", text: "Tap Light to begin. Tap pause to rest." });
+    // Only the first-visit line changes with the pointer.
+    expect(viewOf(lit(25), ui0, DEFAULT_SETTINGS, T0, placement, { finePointer: false }).status.text).toBe("The wick catches.");
+  });
+  it("puts the length message under the chooser in the wide layout and in the status line in the compact one", () => {
+    const refused: UiState = { ...ui0, refusal: "range", customTouched: true, length: { kind: "custom", text: "4" } };
+    const compact = viewOf(INITIAL_STATE, refused, DEFAULT_SETTINGS, T0, placement, FINE);
+    expect(compact.status).toMatchObject({ kind: "refusal", text: "Choose 5 to 90 minutes." });
+    expect(compact.chooser).toMatchObject({ error: "Choose 5 to 90 minutes.", describedBy: "status" });
+    const side = viewOf(INITIAL_STATE, refused, DEFAULT_SETTINGS, T0, wide, FINE);
+    expect(side.status.kind).toBe("instructions");
+    expect(side.chooser).toMatchObject({ error: "Choose 5 to 90 minutes.", describedBy: "length-error" });
+    expect(viewOf(INITIAL_STATE, ui0, DEFAULT_SETTINGS, T0, wide, FINE).chooser.error).toBeNull();
+  });
   it("takes the narrow rectangle while Pause and Let it go dark are shown, and the wide one at rest", () => {
     expect(view(lit(25), T0).status.rect).toEqual(placement.statusRunning);
     expect(view(INITIAL_STATE, T0).status.rect).toEqual(placement.statusResting);
@@ -136,7 +154,7 @@ describe("which controls are shown", () => {
   it("lists the Tab order: chooser, intent, Light, Settings at rest; Pause, Let it go dark, Settings while a candle burns", () => {
     expect(view(INITIAL_STATE, T0).tabOrder).toEqual(["chooser", "intent", "light", "settings"]);
     expect(view(lit(25), T0).tabOrder).toEqual(["pause", "snuff", "settings"]);
-    expect(viewOf(lit(25), ui0, DEFAULT_SETTINGS, T0, wide).tabOrder).toEqual(["pause", "snuff", "settings"]);
+    expect(viewOf(lit(25), ui0, DEFAULT_SETTINGS, T0, wide, FINE).tabOrder).toEqual(["pause", "snuff", "settings"]);
   });
 });
 
@@ -159,6 +177,9 @@ describe("the chooser, the intent field and the settings", () => {
     expect(at("\u{1F600}".repeat(80)).codePoints).toBe(80); // 160 UTF-16 units, 80 code points
     expect(at("\u{1F600}".repeat(81)).overLimit).toBe(true);
     expect(at("x").hint).toBe("Only the first 80 characters are kept.");
+    // The visible hint: the full label in the wide layout, a shorter one in the compact layout.
+    expect(at("").placeholder).toBe("Intent (optional)");
+    expect(viewOf(INITIAL_STATE, ui0, DEFAULT_SETTINGS, T0, wide, FINE).intent.placeholder).toBe("What is this candle for? (optional)");
   });
   it("shows the overlay and the settings with On and Off text", () => {
     const v = view(INITIAL_STATE, T0, { ...ui0, overlay: "settings" }, { sound: false, ghosts: true, defaultLength: 40 });
@@ -170,5 +191,30 @@ describe("the chooser, the intent field and the settings", () => {
   });
   it("passes the placement through", () => {
     expect(view(INITIAL_STATE, T0).placement).toBe(placement);
+  });
+});
+
+describe("the graveyard view (ghosts-and-graveyard R3.13, R6.16)", () => {
+  const inGraveyard = (state: State, now: number) => viewOf(state, ui0, DEFAULT_SETTINGS, now, placement, FINE, "graveyard");
+  const burned = step(lit(25), { type: "tick" }, T0 + 25 * MIN);
+  const snuffed = step(lit(25), { type: "snuff" }, T0 + MIN);
+
+  it("hides the setup controls in idle and the ended phases, and keeps Settings", () => {
+    for (const s of [INITIAL_STATE, burned, snuffed]) {
+      const v = inGraveyard(s, T0 + 30 * MIN);
+      expect([v.setupVisible, v.runningVisible, v.settingsVisible]).toEqual([false, false, true]);
+      expect(v.tabOrder).toEqual(["settings"]);
+    }
+  });
+  it("keeps the zone controls and Settings while a candle burns", () => {
+    for (const s of [lit(25), step(lit(25), { type: "pause" }, T0 + MIN)]) {
+      const v = inGraveyard(s, T0 + 2 * MIN);
+      expect([v.setupVisible, v.runningVisible]).toEqual([false, true]);
+      expect(v.tabOrder).toEqual(["pause", "snuff", "settings"]);
+    }
+  });
+  it("is the room view when the view argument is left out or is room", () => {
+    expect(viewOf(INITIAL_STATE, ui0, DEFAULT_SETTINGS, T0, placement, FINE)).toEqual(viewOf(INITIAL_STATE, ui0, DEFAULT_SETTINGS, T0, placement, FINE, "room"));
+    expect(view(INITIAL_STATE, T0).tabOrder).toEqual(["chooser", "intent", "light", "settings"]);
   });
 });

@@ -8,7 +8,7 @@ export interface LiveRegion {
 }
 
 export interface LiveWriter {
-  /** Asks for a message. If two are asked within one frame the last one wins. */
+  /** Asks for a message (one line). If two are asked within one frame the last one wins; a repeat of the current text is cleared for one frame first. */
   say(text: string): void;
   /** Writes the pending message, if any. */
   frame(): void;

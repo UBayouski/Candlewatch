@@ -21,6 +21,12 @@ import type { ControlName, Placement, Rect } from "./layout";
 import { visibleControls } from "./layout";
 import type { UiState } from "./ui-state";
 
+/** What the view needs to know about the device, measured by the DOM layer (the pure modules never ask the browser). */
+export interface ViewEnv {
+  /** True when a mouse or another fine pointer is available (`any-pointer: fine`): keys are named in the first-visit line. */
+  readonly finePointer: boolean;
+}
+
 /** The last minute: the status line says the flame gutters (when there is no intent to show). */
 const LAST_MINUTE_MS = 60_000;
 
@@ -53,9 +59,15 @@ export interface ViewModel {
     readonly customText: string;
     /** The custom text is not a valid length and the user has typed in it or pressed Light. */
     readonly customInvalid: boolean;
+    /** The length message, or null. The wide layout shows it under the chooser; the compact layout shows it in the status line. */
+    readonly error: string | null;
+    /** The element that describes an invalid custom field: the message under the chooser (wide) or the status line (compact). */
+    readonly describedBy: "length-error" | "status";
   };
   readonly intent: {
     readonly label: string;
+    /** The visible hint in the empty field: the full label in the wide layout, a shorter one in the compact layout. */
+    readonly placeholder: string;
     readonly text: string;
     readonly codePoints: number;
     readonly overLimit: boolean;
@@ -110,12 +122,13 @@ function timeOf(state: State, ui: UiState, now: number): { text: string; words: 
 }
 
 /** The status line, first match wins (design 7.2). */
-function statusOf(state: State, ui: UiState, now: number): { kind: StatusKind; text: string } {
-  if (ui.refusal !== null) return { kind: "refusal", text: fill(STRINGS.status.lengthRange, { min: MIN_LENGTH_MIN, max: MAX_LENGTH_MIN }) };
+function statusOf(state: State, ui: UiState, now: number, wide: boolean, env: ViewEnv): { kind: StatusKind; text: string } {
+  // In the wide layout the refusal stands under the chooser; the compact layout has no room there and says it in the status line.
+  if (ui.refusal !== null && !wide) return { kind: "refusal", text: fill(STRINGS.status.lengthRange, { min: MIN_LENGTH_MIN, max: MAX_LENGTH_MIN }) };
   switch (state.phase) {
     case "idle":
       return state.history.length === 0
-        ? { kind: "instructions", text: STRINGS.status.firstVisit }
+        ? { kind: "instructions", text: env.finePointer ? STRINGS.status.firstVisit : STRINGS.status.firstVisitTouch }
         : { kind: "idle", text: STRINGS.status.idle };
     case "lit":
       if (state.session.intent !== null) return { kind: "intent", text: state.session.intent };
@@ -136,11 +149,12 @@ function onOff(checked: boolean): string {
 }
 
 /** What to show for this state, UI state, settings and moment. A pure function: equal arguments give equal views. */
-export function viewOf(state: State, ui: UiState, settings: Settings, now: number, placement: Placement): ViewModel {
+export function viewOf(state: State, ui: UiState, settings: Settings, now: number, placement: Placement, env: ViewEnv, view: "room" | "graveyard" = "room"): ViewModel {
   const phase = state.phase;
   const running = isRunning(phase);
   const time = timeOf(state, ui, now);
-  const status = statusOf(state, ui, now);
+  const wide = placement.mode === "wide";
+  const status = statusOf(state, ui, now, wide, env);
   const codePoints = Array.from(ui.intentText).length;
   const preset = PRESET_LENGTHS_MIN.find((m) => m === settings.defaultLength);
   const defaultChoice: LengthChoice = preset !== undefined ? { kind: "preset", minutes: preset } : { kind: "custom", text: String(settings.defaultLength) };
@@ -150,7 +164,7 @@ export function viewOf(state: State, ui: UiState, settings: Settings, now: numbe
     timeText: time.text,
     timeWords: time.words,
     status: { ...status, rect: running ? placement.statusRunning : placement.statusResting },
-    setupVisible: !running,
+    setupVisible: !running && view === "room",
     runningVisible: running,
     settingsVisible: true,
     light: { label: phase === "idle" ? STRINGS.light.light : STRINGS.light.again },
@@ -165,9 +179,12 @@ export function viewOf(state: State, ui: UiState, settings: Settings, now: numbe
       selected: stopOf(ui.length),
       customText: ui.length.kind === "custom" ? ui.length.text : "",
       customInvalid: ui.customTouched && ui.length.kind === "custom" && !parseLength(ui.length.text).ok,
+      error: ui.refusal === null ? null : fill(STRINGS.status.lengthRange, { min: MIN_LENGTH_MIN, max: MAX_LENGTH_MIN }),
+      describedBy: wide ? "length-error" : "status",
     },
     intent: {
       label: STRINGS.intent.label,
+      placeholder: wide ? STRINGS.intent.label : STRINGS.intent.placeholderShort,
       text: ui.intentText,
       codePoints,
       overLimit: codePoints > INTENT_MAX_CODE_POINTS,
@@ -186,7 +203,9 @@ export function viewOf(state: State, ui: UiState, settings: Settings, now: numbe
         customText: defaultChoice.kind === "custom" ? defaultChoice.text : "",
       },
     },
-    tabOrder: visibleControls(placement, running).map((c) => c.name),
+    tabOrder: visibleControls(placement, running)
+      .map((c) => c.name)
+      .filter((name) => view === "room" || name === "settings" || running),
     placement,
   };
 }

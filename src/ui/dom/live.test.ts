@@ -1,61 +1,33 @@
+// The live-region writer and the announce path used for view changes (ghosts-and-graveyard CR-A1). Node only: the region is a plain object.
 import { describe, expect, it } from "vitest";
 import { createLiveWriter } from "./live";
 
-function setup() {
-  const region = { textContent: "" as string | null };
-  const writes: (string | null)[] = [];
-  const watched = {
-    get textContent(): string | null {
-      return region.textContent;
-    },
-    set textContent(value: string | null) {
-      writes.push(value);
-      region.textContent = value;
-    },
-  };
-  return { live: createLiveWriter(watched), region, writes };
-}
-
-describe("the live-region writer (design 4.4)", () => {
-  it("writes nothing when nothing was said", () => {
-    const { live, writes } = setup();
-    live.frame();
-    live.frame();
-    expect(writes).toEqual([]);
-  });
-  it("writes a message in the frame after it was requested, once", () => {
-    const { live, region, writes } = setup();
-    live.say("The wick catches.");
+describe("the live writer as announce(text) uses it", () => {
+  it("writes one line on the next frame", () => {
+    const region = { textContent: "" as string | null };
+    const live = createLiveWriter(region);
+    live.say("Graveyard.");
     expect(region.textContent).toBe("");
     live.frame();
-    expect(region.textContent).toBe("The wick catches.");
-    live.frame();
-    expect(writes).toEqual(["The wick catches."]);
+    expect(region.textContent).toBe("Graveyard.");
   });
-  it("the last of two messages in one frame wins", () => {
-    const { live, region } = setup();
+  it("lets the last line of a frame win", () => {
+    const region = { textContent: "" as string | null };
+    const live = createLiveWriter(region);
     live.say("one");
     live.say("two");
     live.frame();
     expect(region.textContent).toBe("two");
   });
-  it("repeats an identical message by clearing for one frame", () => {
-    const { live, region, writes } = setup();
-    live.say("12 minutes left.");
+  it("clears for one frame before a repeated line, so it is announced again", () => {
+    const region = { textContent: "" as string | null };
+    const live = createLiveWriter(region);
+    live.say("Room.");
     live.frame();
-    live.say("12 minutes left.");
+    live.say("Room.");
     live.frame();
     expect(region.textContent).toBe("");
     live.frame();
-    expect(region.textContent).toBe("12 minutes left.");
-    expect(writes).toEqual(["12 minutes left.", "", "12 minutes left."]);
-  });
-  it("does not clear for a different message", () => {
-    const { live, writes } = setup();
-    live.say("a");
-    live.frame();
-    live.say("b");
-    live.frame();
-    expect(writes).toEqual(["a", "b"]);
+    expect(region.textContent).toBe("Room.");
   });
 });

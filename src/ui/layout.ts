@@ -37,6 +37,8 @@ export interface Placement {
   readonly statusResting: Rect;
   readonly setup: {
     readonly chooser: Rect;
+    /** The place for the length message directly under the chooser in the wide layout; null in the compact layout (the status line carries it). */
+    readonly lengthError: Rect | null;
     readonly cells: readonly [Rect, Rect, Rect, Rect];
     readonly intent: Rect;
     readonly light: Rect;
@@ -50,7 +52,8 @@ export interface Placement {
   };
   readonly snuffDialog: Rect;
   readonly settingsPanel: Rect;
-  readonly keepClear: { readonly column: Rect; readonly windowPane: Rect };
+  /** Keep-clear rectangles in CSS pixels: the candle column, the window pane, the Door and the 12 ghost cells. */
+  readonly keepClear: { readonly column: Rect; readonly windowPane: Rect; readonly door: Rect; readonly ghostCells: readonly Rect[] };
 }
 
 /** Touch target, gap between controls, margin to the viewport edge, pad around the keep-clear column and the window pane (px). */
@@ -72,6 +75,15 @@ export const HALO_TOP_UNITS = 290;
 export const KEEP_CLEAR_COLUMN_UNITS: Rect = { x: 160, y: 260, w: 280, h: 640 };
 /** The window pane (blur not counted). */
 export const KEEP_CLEAR_WINDOW_UNITS: Rect = { x: 240, y: 50, w: 120, h: 210 };
+
+/** The Door of the graveyard view (x 20..100, y 805..890), in room units. Written here, not imported: src/ui/ does not import src/graveyard. */
+export const DOOR_RECT: Rect = { x: 20, y: 805, w: 80, h: 85 };
+
+/**
+ * The 12 ghost cells in room units: 6 rows of 95 units from y 215 on each side, the left cells x 10..100 and the right cells x 500..590.
+ * Ghosts stay drawn while the setup controls show, so no control may cover a cell. Written here, not imported: src/ui/ does not import src/ghosts.
+ */
+export const GHOST_CELLS: readonly Rect[] = [10, 500].flatMap((x) => [0, 1, 2, 3, 4, 5].map((row) => ({ x, y: 215 + 95 * row, w: 90, h: 95 })));
 
 /** The zone text area (candle-scene): room units. */
 const TEXT_AREA_UNITS = { x: 110, y: 900, w: 380, h: 100 } as const;
@@ -112,13 +124,15 @@ export function placeControls(vw: number, vh: number): Placement {
   const wide = ox >= WIDE_MIN_SIDE;
   const textArea = rect(X(TEXT_AREA_UNITS.x), floorY, TEXT_AREA_UNITS.w * s, TEXT_AREA_UNITS.h * s);
   const windowPx = rect(X(KEEP_CLEAR_WINDOW_UNITS.x), Y(KEEP_CLEAR_WINDOW_UNITS.y), KEEP_CLEAR_WINDOW_UNITS.w * s, KEEP_CLEAR_WINDOW_UNITS.h * s);
+  const toPx = (r: Rect): Rect => rect(X(r.x), Y(r.y), r.w * s, r.h * s);
   const column = rect(X(KEEP_CLEAR_COLUMN_UNITS.x), Y(KEEP_CLEAR_COLUMN_UNITS.y), KEEP_CLEAR_COLUMN_UNITS.w * s, KEEP_CLEAR_COLUMN_UNITS.h * s);
 
   // The zone, both modes: buttons centred vertically, the time text under the floor line, the status line under it.
   const by = floorY + (zoneH - T) / 2;
   const timeSize = wide ? clamp(zoneH - 28, 32, 44) : 36;
   const timeW = Math.round(3.1 * timeSize);
-  const time = rect(cx - timeW / 2, floorY + 2, timeW, timeSize);
+  // The time text starts at the top of the text area, so the two-line status line under it ends at least 8 px above the bottom edge.
+  const time = rect(cx - timeW / 2, floorY, timeW, timeSize);
   const statusY = time.y + time.h;
 
   let pause: Rect;
@@ -140,12 +154,13 @@ export function placeControls(vw: number, vh: number): Placement {
     const runningHalf = Math.max(0, Math.min(cx - (pause.x + T + G), snuff.x - G - cx));
     statusRunning = rect(cx - runningHalf, statusY, 2 * runningHalf, 20);
     const restHalf = Math.max(0, Math.min(cx - M, settings.x - G - cx));
-    statusResting = rect(cx - restHalf, statusY, 2 * restHalf, zoneH >= 80 ? 40 : 20);
+    statusResting = rect(cx - restHalf, statusY, 2 * restHalf, zoneH >= 80 ? 36 : 20);
   }
 
   // The setup controls (idle and the ended phases), always above the floor line.
   let variant: Placement["variant"];
   let chooser: Rect;
+  let lengthError: Rect | null = null;
   let cells: [Rect, Rect, Rect, Rect];
   let intent: Rect;
   let light: Rect;
@@ -158,8 +173,10 @@ export function placeControls(vw: number, vh: number): Placement {
     chooser = rect(x0, 96, cw, T);
     const cell = (cw - 3 * G) / 4;
     cells = [0, 1, 2, 3].map((i) => rect(x0 + i * (cell + G), 96, cell, T)) as [Rect, Rect, Rect, Rect];
-    intent = rect(x0, 152, cw, T);
-    light = rect(x0, 212, cw, 52);
+    // The message sits on a fill (the room behind it is too bright for the error colour): a 20 px line with 4 px padding all round.
+    lengthError = rect(x0, 144, cw, 28);
+    intent = rect(x0, 180, cw, T);
+    light = rect(x0, 240, cw, 52);
     snuffDialog = rect(x0, 96, cw, 260);
     settingsPanel = rect(24, 96, cw, 360);
   } else {
@@ -174,11 +191,21 @@ export function placeControls(vw: number, vh: number): Placement {
       chooser = rect(M, 4, 116, 96);
       cells = [0, 1, 2, 3].map((i) => rect(M + (i % 2) * (54 + G), 4 + Math.floor(i / 2) * (T + G), 54, T)) as [Rect, Rect, Rect, Rect];
     }
-    intent = rect(M, rowY, Math.max(0, windowPx.x - G - M), T);
-    light = rect(width - M - 116, rowY, 116, 52);
+    const rowClears = rowY + 52 <= Y(GHOST_CELLS[0]?.y ?? 215) - EPS;
+    if (topRow || rowClears) {
+      intent = rect(M, rowY, Math.max(0, windowPx.x - G - M), T);
+      light = rect(width - M - 116, rowY, 116, 52);
+    } else {
+      // No room under the chooser: the ghost cells start at y = Y(215), which is above the end of a second row. The intent field
+      // and Light stack right of the window pane instead, above the cells (ghosts-and-graveyard task 1.3, found by P10).
+      const x0 = windowPx.x + windowPx.w + G;
+      intent = rect(x0, 4, Math.max(0, width - M - x0), T);
+      light = rect(width - M - 116, 4 + T + G, 116, 52);
+    }
     // Anchored to the top and no taller than the space above the halo's highest point (design 6.6).
     snuffDialog = rect(M, M, width - 2 * M, Math.max(0, Y(HALO_TOP_UNITS) - 2 * M));
-    settingsPanel = rect(M, M, width - 2 * M, Math.min(280, Math.max(0, height - 2 * M)));
+    // From the top edge, so the chooser row underneath is wholly covered (no sliver above the panel).
+    settingsPanel = rect(M, 0, width - 2 * M, Math.min(280, height));
   }
 
   return {
@@ -192,11 +219,11 @@ export function placeControls(vw: number, vh: number): Placement {
     time,
     statusRunning,
     statusResting,
-    setup: { chooser, cells, intent, light },
+    setup: { chooser, lengthError, cells, intent, light },
     zoneControls: { pause, snuff, settings, labelled: wide },
     snuffDialog,
     settingsPanel,
-    keepClear: { column, windowPane: windowPx },
+    keepClear: { column, windowPane: windowPx, door: toPx(DOOR_RECT), ghostCells: GHOST_CELLS.map(toPx) },
   };
 }
 

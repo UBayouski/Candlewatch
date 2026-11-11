@@ -89,7 +89,61 @@ export const arbKeyDescriptor: fc.Arbitrary<KeyDescriptor> = fc.record({
 /** A key press with no Ctrl, Alt or Meta and no repeat: the case where the map has something to say. */
 export const arbPlainKey: fc.Arbitrary<KeyDescriptor> = arbKeyDescriptor.map((k) => ({ ...k, ctrl: false, alt: false, meta: false, repeat: false }));
 
-export const arbKeyContext: fc.Arbitrary<KeyContext> = fc.record({ phase: arbPhase, overlay: arbOverlay, focus: arbFocusKind });
+export const arbView = fc.constantFrom<KeyContext["view"]>("room", "graveyard");
+
+/** Contexts over every phase, overlay, focus kind and view. */
+export const arbKeyContext: fc.Arbitrary<KeyContext> = fc.record({ phase: arbPhase, overlay: arbOverlay, focus: arbFocusKind, view: arbView });
+
+/** Contexts in the room only: the behaviour that existed before the graveyard. */
+export const arbRoomKeyContext: fc.Arbitrary<KeyContext> = arbKeyContext.map((c) => ({ ...c, view: "room" as const }));
+
+// --- UI-only ops of the graveyard view (ghosts-and-graveyard task 1.3) -------
+
+/**
+ * The state the view, the details card, the roving focus and the ghosts toggle live in. It is kept beside the engine and the UI
+ * state: nothing in it can reach the engine, which is what P8 checks. (The real modules arrive in later tasks; this model
+ * only needs to be a state that the ops change and the engine never sees.)
+ */
+export interface Shell {
+  readonly view: "room" | "graveyard";
+  /** The item whose card is shown, or null. */
+  readonly card: number | null;
+  /** The item that has the roving focus. */
+  readonly focused: number;
+  readonly ghosts: boolean;
+}
+
+export const INITIAL_SHELL: Shell = { view: "room", card: null, focused: 0, ghosts: true };
+
+export type ShellOp =
+  | { readonly kind: "open-view" }
+  | { readonly kind: "leave-view" }
+  | { readonly kind: "card-focus"; readonly item: number }
+  | { readonly kind: "card-hover"; readonly item: number }
+  | { readonly kind: "card-tap"; readonly item: number }
+  | { readonly kind: "card-clear" }
+  | { readonly kind: "focus-move"; readonly delta: number }
+  | { readonly kind: "toggle-ghosts" };
+
+export const arbShellOp: fc.Arbitrary<ShellOp> = fc.oneof(
+  fc.constantFrom<ShellOp>({ kind: "open-view" }, { kind: "leave-view" }, { kind: "card-clear" }, { kind: "toggle-ghosts" }),
+  fc.integer({ min: 0, max: 9 }).chain((item) => fc.constantFrom<ShellOp>({ kind: "card-focus", item }, { kind: "card-hover", item }, { kind: "card-tap", item })),
+  fc.integer({ min: -3, max: 3 }).map((delta): ShellOp => ({ kind: "focus-move", delta })),
+);
+
+/** One UI-only op applied to the shell. Pure; it takes and returns nothing of the engine. */
+export function shellStep(shell: Shell, op: ShellOp): Shell {
+  switch (op.kind) {
+    case "open-view": return { ...shell, view: "graveyard" };
+    case "leave-view": return { ...shell, view: "room", card: null };
+    case "card-focus": return { ...shell, card: op.item, focused: op.item };
+    case "card-hover": return { ...shell, card: op.item };
+    case "card-tap": return { ...shell, card: shell.card === op.item ? null : op.item };
+    case "card-clear": return { ...shell, card: null };
+    case "focus-move": return { ...shell, focused: Math.max(0, shell.focused + op.delta) };
+    case "toggle-ghosts": return { ...shell, ghosts: !shell.ghosts };
+  }
+}
 
 // --- UI scripts (tasks 13 and 14) -------------------------------------------
 
@@ -200,7 +254,7 @@ export function runUiScript(steps: readonly UiOpStep[], t0: number, defaultLengt
     } else {
       action =
         s.op.kind === "key"
-          ? keyAction({ phase: engine.phase, overlay: ui.overlay, focus: s.op.focus }, s.op.key)
+          ? keyAction({ phase: engine.phase, overlay: ui.overlay, view: "room", focus: s.op.focus }, s.op.key)
           : s.op.action;
       if (action !== null) {
         const r = uiStep(ui, { type: "action", action }, engine.phase);

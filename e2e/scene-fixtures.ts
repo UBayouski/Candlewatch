@@ -5,6 +5,7 @@ import type { Browser, Page } from "@playwright/test";
 import { INITIAL_STATE, serializeHistory, serializeSession, step } from "../src/engine";
 import type { State } from "../src/engine";
 import { HISTORY_KEY, SESSION_KEY } from "../src/storage/storage";
+import { fontsLoaded } from "./font-fixtures";
 
 export const T0 = Date.UTC(2026, 10, 10, 20, 0, 0);
 export const MIN = 60_000;
@@ -56,6 +57,8 @@ export const VIEWPORTS = {
 export interface OpenOptions {
   readonly viewport?: { readonly width: number; readonly height: number };
   readonly reducedMotion?: boolean;
+  /** A phone: touch only, no fine pointer (ny-pointer: fine is false), so the first-visit line says Tap, not the keys. */
+  readonly mobile?: boolean;
 }
 
 export interface OpenScene {
@@ -73,6 +76,8 @@ export async function openScene(browser: Browser, fixture: Fixture, options: Ope
   const context = await browser.newContext({
     viewport: options.viewport ?? VIEWPORTS.desktop,
     reducedMotion: options.reducedMotion ? "reduce" : "no-preference",
+    hasTouch: options.mobile === true,
+    isMobile: options.mobile === true,
   });
   const page = await context.newPage();
   if (fixture.state !== null) {
@@ -94,6 +99,8 @@ export async function openScene(browser: Browser, fixture: Fixture, options: Ope
   await page.clock.pauseAt(fixture.now - 100);
   await page.clock.runFor(140);
   await expect(page.locator("#scene")).toHaveAttribute("data-settled", "true");
+  // The web fonts load after the page does; every picture and every measurement is taken with both families in place.
+  await fontsLoaded(page);
   // Wait for CSS transitions only: the smoke sway is an infinite animation and never finishes.
   await page.evaluate(() =>
     Promise.all(

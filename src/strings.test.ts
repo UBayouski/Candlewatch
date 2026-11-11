@@ -28,3 +28,35 @@ describe("scene accessible names (candle-scene R12)", () => {
     for (const mode of modes) expect(STRINGS.scene[mode].toLowerCase()).not.toContain("pomodoro");
   });
 });
+
+describe("ghosts-and-graveyard strings (CR-ST)", () => {
+  const groups = [STRINGS.count, STRINGS.ghosts, STRINGS.graveyard];
+
+  const collect = (value: unknown): string[] => {
+    if (typeof value === "string") return [value];
+    if (Array.isArray(value)) return value.flatMap(collect);
+    if (value !== null && typeof value === "object") return Object.values(value).flatMap(collect);
+    return [];
+  };
+  const all = groups.flatMap(collect);
+
+  it("collects a non-empty set of strings", () => {
+    expect(all.length).toBeGreaterThan(20);
+    for (const s of all) expect(s.length).toBeGreaterThan(0);
+  });
+
+  it("never uses the trademarked word", () => {
+    for (const s of all) expect(s.toLowerCase()).not.toContain("pomo" + "doro");
+  });
+
+  it("has 12 month names", () => {
+    expect(STRINGS.graveyard.months).toHaveLength(12);
+  });
+
+  it("uses only the known placeholders", () => {
+    const allowed = new Set(["n", "day", "month", "intent", "date", "time"]);
+    for (const s of all) {
+      for (const m of s.matchAll(/\{([^}]*)\}/g)) expect(allowed.has(m[1] ?? "")).toBe(true);
+    }
+  });
+});

@@ -27,6 +27,8 @@ export interface KeyContext {
   readonly phase: State["phase"];
   readonly overlay: "none" | "snuff" | "settings";
   readonly focus: FocusKind;
+  /** Which view is shown. In the graveyard no room action applies, except closing an open settings overlay. */
+  readonly view: "room" | "graveyard";
 }
 
 /** What a key can do. There is no snuff here: a key only ever opens the dialog (design 3.4). */
@@ -57,8 +59,11 @@ const ANNOUNCE_TIME: KeyAction = { type: "announce-time" };
  */
 export function keyAction(context: KeyContext, key: KeyDescriptor): KeyAction | null {
   if (key.ctrl || key.alt || key.meta || key.repeat) return null;
-  const { phase, overlay, focus } = context;
+  const { phase, overlay, focus, view } = context;
   const running = phase === "lit" || phase === "paused";
+
+  // The graveyard claims no room key; only an open settings overlay can still be closed.
+  if (view === "graveyard") return key.key === "Escape" && overlay === "settings" ? CLOSE_SETTINGS : null;
 
   if (key.key === "Escape") {
     if (overlay === "snuff") return KEEP_BURNING;

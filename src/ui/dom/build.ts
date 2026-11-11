@@ -22,6 +22,8 @@ export interface Elements {
   readonly root: HTMLElement;
   readonly setup: HTMLFormElement;
   readonly length: ChooserElements;
+  /** The length message under the chooser in the wide layout (the compact layout shows it in the status line). */
+  readonly lengthError: HTMLElement;
   readonly intentBox: HTMLElement;
   readonly intent: HTMLInputElement;
   readonly counter: HTMLElement;
@@ -126,6 +128,7 @@ export function buildInterface(doc: Document, root: HTMLElement): Elements {
   // --- setup: length chooser, intent field, Light ---
   const setup = make(doc, "form", { id: "setup", "aria-label": STRINGS.setup.label, novalidate: "" });
   const length = buildChooser(doc, "length", null);
+  const lengthError = make(doc, "p", { id: "length-error", class: "length-error" });
   const intent = make(doc, "input", {
     id: "intent",
     type: "text",
@@ -140,7 +143,7 @@ export function buildInterface(doc: Document, root: HTMLElement): Elements {
   const intentBox = make(doc, "div", { id: "intent-box", class: "intent-box" });
   intentBox.append(intent, counter, hint);
   const light = make(doc, "button", { id: "light", type: "submit", class: "primary" });
-  setup.append(length.group, intentBox, light);
+  setup.append(length.group, lengthError, intentBox, light);
 
   // --- the watch: time text, status line, Pause, Let it go dark, Settings ---
   const watch = make(doc, "section", { id: "watch", "aria-label": STRINGS.region.watch });
@@ -170,8 +173,9 @@ export function buildInterface(doc: Document, root: HTMLElement): Elements {
   const settingsButton = make(doc, "button", { id: "settings-button", type: "button", class: "zone-button", "aria-haspopup": "dialog" });
   settingsButton.append(
     icon(doc, "icon-settings", [
+      // A gear: eight teeth round a hub. Nothing that looks like a sun or a flame on a control that shows no state.
+      ["path", { d: "M19.16 9.47 L21.80 10.01 L21.80 13.99 L19.16 14.53 L18.86 15.27 L20.33 17.53 L17.53 20.33 L15.27 18.86 L14.53 19.16 L13.99 21.80 L10.01 21.80 L9.47 19.16 L8.73 18.86 L6.47 20.33 L3.67 17.53 L5.14 15.27 L4.84 14.53 L2.20 13.99 L2.20 10.01 L4.84 9.47 L5.14 8.73 L3.67 6.47 L6.47 3.67 L8.73 5.14 L9.47 4.84 L10.01 2.20 L13.99 2.20 L14.53 4.84 L15.27 5.14 L17.53 3.67 L20.33 6.47 L18.86 8.73 Z" }],
       ["circle", { cx: "12", cy: "12", r: "3.2" }],
-      ["path", { d: "M12 2.5 V6 M12 18 V21.5 M2.5 12 H6 M18 12 H21.5 M5.3 5.3 L7.8 7.8 M16.2 16.2 L18.7 18.7 M18.7 5.3 L16.2 7.8 M7.8 16.2 L5.3 18.7" }],
     ]),
     settingsLabel,
   );
@@ -206,6 +210,7 @@ export function buildInterface(doc: Document, root: HTMLElement): Elements {
     root,
     setup,
     length,
+    lengthError,
     intentBox,
     intent,
     counter,

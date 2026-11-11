@@ -18,7 +18,7 @@ const press = (key: string, extra: Partial<KeyDescriptor> = {}): KeyDescriptor =
   repeat: false,
   ...extra,
 });
-const ctx = (phase: Phase, focus: FocusKind = "body", overlay: KeyContext["overlay"] = "none"): KeyContext => ({ phase, overlay, focus });
+const ctx = (phase: Phase, focus: FocusKind = "body", overlay: KeyContext["overlay"] = "none"): KeyContext => ({ phase, overlay, focus, view: "room" });
 
 describe("Enter lights (R4.2, R10.3)", () => {
   it("lights in idle, burned-out and snuffed when the focus is on the body, a text field or something else", () => {
@@ -141,5 +141,32 @@ describe("no key ever snuffs, and other keys do nothing", () => {
 
   it("ignores Tab, arrows and letters", () => {
     for (const key of ["Tab", "ArrowLeft", "ArrowDown", "a", "s", "Backspace", "Delete", "Home"]) expect(keyAction(ctx("lit"), press(key))).toBeNull();
+  });
+});
+
+describe("the graveyard view (ghosts-and-graveyard R3.13, R6.16, R6.17)", () => {
+  const inGraveyard = (phase: Phase, focus: FocusKind = "body", overlay: KeyContext["overlay"] = "none"): KeyContext => ({ phase, overlay, focus, view: "graveyard" });
+
+  it("gives no action for Enter, Space, Escape, t or T with no overlay open", () => {
+    for (const phase of PHASES) for (const focus of FOCUS) for (const key of ["Enter", " ", "Escape", "t", "T", "g", "ArrowLeft"]) {
+      expect(keyAction(inGraveyard(phase, focus), press(key)), `${phase} ${focus} ${key}`).toBeNull();
+    }
+  });
+
+  it("still closes an open settings overlay with Escape", () => {
+    for (const phase of PHASES) for (const focus of FOCUS) {
+      expect(keyAction(inGraveyard(phase, focus, "settings"), press("Escape"))).toEqual({ type: "close-settings" });
+    }
+  });
+
+  it("gives nothing else with the settings overlay open, nor for the snuff dialog, nor for a held or modified Escape", () => {
+    expect(keyAction(inGraveyard("lit", "body", "settings"), press("Enter"))).toBeNull();
+    expect(keyAction(inGraveyard("lit", "body", "snuff"), press("Escape"))).toBeNull();
+    expect(keyAction(inGraveyard("lit", "body", "settings"), press("Escape", { repeat: true }))).toBeNull();
+    expect(keyAction(inGraveyard("lit", "body", "settings"), press("Escape", { ctrl: true }))).toBeNull();
+  });
+
+  it("leaves the room as before: Escape still opens the snuff dialog while lit", () => {
+    expect(keyAction(ctx("lit"), press("Escape"))).toEqual({ type: "open-snuff" });
   });
 });

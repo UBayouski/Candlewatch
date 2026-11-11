@@ -19,6 +19,8 @@ export interface EventDeps {
   readonly now: () => number;
   readonly phase: () => State["phase"];
   readonly overlay: () => UiState["overlay"];
+  /** Which view is shown (always the room until the graveyard view is wired). */
+  readonly view: () => KeyContext["view"];
   /** Runs one UI action at the moment `now` (the state machine, the engine events, the effects). */
   readonly handle: (action: UiAction, now: number) => void;
   /** Applies a change made in the settings panel and stores it. */
@@ -61,10 +63,37 @@ export function attachEvents(deps: EventDeps): void {
     return true;
   };
 
+  /**
+   * An open dialog keeps Tab inside it (R10.3, design 4.2). The browser lets a modal dialog's focus order leave for its own
+   * interface, so the last control wraps to the first and the first, with Shift, to the last.
+   */
+  const trapTab = (e: KeyboardEvent): boolean => {
+    const overlay = deps.overlay();
+    if (e.key !== "Tab" || overlay === "none" || e.ctrlKey || e.altKey || e.metaKey) return false;
+    const dialog = overlay === "snuff" ? els.snuffDialog : els.settingsDialog;
+    const stops = [...dialog.querySelectorAll<HTMLElement>("button, input")].filter((el) => el.tabIndex >= 0 && el.getClientRects().length > 0);
+    const first = stops[0];
+    const last = stops[stops.length - 1];
+    if (first === undefined || last === undefined) return false;
+    const active = doc.activeElement;
+    if (!e.shiftKey && (active === last || !dialog.contains(active))) {
+      e.preventDefault();
+      first.focus();
+      return true;
+    }
+    if (e.shiftKey && (active === first || !dialog.contains(active))) {
+      e.preventDefault();
+      last.focus();
+      return true;
+    }
+    return false;
+  };
+
   doc.addEventListener("keydown", (e: KeyboardEvent) => {
     if (e.isComposing) return;
+    if (trapTab(e)) return;
     if (onArrow(e)) return;
-    const context: KeyContext = { phase: deps.phase(), overlay: deps.overlay(), focus: focusKindOf(doc.activeElement, sceneRoot) };
+    const context: KeyContext = { phase: deps.phase(), overlay: deps.overlay(), view: deps.view(), focus: focusKindOf(doc.activeElement, sceneRoot) };
     const action = keyAction(context, { key: e.key, ctrl: e.ctrlKey, alt: e.altKey, meta: e.metaKey, shift: e.shiftKey, repeat: e.repeat });
     if (action === null) return;
     e.preventDefault();

@@ -3,7 +3,7 @@
 import { expect, test } from "@playwright/test";
 import { STRINGS } from "../src/strings";
 import { FIXTURES, STATES, VIEWPORTS, boxOf, colourAt, maxPixelDistance, openScene, paletteColour, readScene, stopColour } from "./scene-fixtures";
-import type { Fixture } from "./scene-fixtures";
+import type { Box, Fixture } from "./scene-fixtures";
 
 test.describe.configure({ mode: "parallel" });
 
@@ -209,8 +209,63 @@ test.describe("the time-text zone stays clear of flame, halo and light pool (F5)
         await scene.close();
       }
     });
+
+    // With the interface shown, the same area holds only the zone colour, the interface's own colours, and blends of them
+    // (anti-aliased text and borders): the layer cannot hide a leak of the scene's light into the zone.
+    test(`${title}, with the interface shown`, async ({ browser }) => {
+      const scene = await openScene(browser, fixture, { viewport: VIEWPORTS[size], reducedMotion });
+      try {
+        const dawn = ["burned-out", "burned-out-after-break", "lit-past-completion"].includes(fixture.name);
+        const zone = await paletteColour(scene.page, dawn ? "--zone-bg-brightest" : "--zone-bg-darkest");
+        const own = await scene.page.evaluate(() => {
+          const style = getComputedStyle(document.querySelector("#ui") as Element);
+          return ["--ui-text", "--ui-text-subtle", "--ui-error", "--ui-bg", "--ui-bg-selected", "--ui-border"].map((name) => style.getPropertyValue(name).trim());
+        });
+        const palette = [zone, ...own.map((hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)) as [number, number, number])];
+        const area = await boxOf(scene.page, ".zone-text-area");
+        const stray = await offPalette(scene.page, area, palette);
+        expect(stray, "pixels that are neither the zone, the interface nor a blend of them").toBe(0);
+      } finally {
+        await scene.close();
+      }
+    });
   }
 });
+
+/** How many pixels of the page region `box` are not, channel by channel, between two palette colours. */
+async function offPalette(page: import("@playwright/test").Page, box: Box, palette: [number, number, number][]): Promise<number> {
+  const png = await page.screenshot({ clip: box, animations: "disabled" });
+  return page.evaluate(
+    async ({ base64, colours }) => {
+      const bitmap = await createImageBitmap(await (await fetch(`data:image/png;base64,${base64}`)).blob());
+      const canvas = document.createElement("canvas");
+      canvas.width = bitmap.width;
+      canvas.height = bitmap.height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("no 2d context");
+      ctx.drawImage(bitmap, 0, 0);
+      const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+      // Text is anti-aliased per colour channel (sub-pixel), so a pixel is on palette when, in every channel, it lies between the
+      // two colours of some pair (the zone colour and a text colour, or two interface colours), give or take 6.
+      const between = (px: number[], a: number[], b: number[]): boolean =>
+        [0, 1, 2].every((i) => (px[i] ?? 0) >= Math.min(a[i] ?? 0, b[i] ?? 0) - 6 && (px[i] ?? 0) <= Math.max(a[i] ?? 0, b[i] ?? 0) + 6);
+      const seen = new Map<number, boolean>();
+      let stray = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        const key = ((data[i] ?? 0) << 16) | ((data[i + 1] ?? 0) << 8) | (data[i + 2] ?? 0);
+        let ok = seen.get(key);
+        if (ok === undefined) {
+          const px = [data[i] ?? 0, data[i + 1] ?? 0, data[i + 2] ?? 0];
+          ok = colours.some((a, ai) => colours.some((b, bi) => bi >= ai && between(px, a, b)));
+          seen.set(key, ok);
+        }
+        if (!ok) stray++;
+      }
+      return stray;
+    },
+    { base64: png.toString("base64"), colours: palette },
+  );
+}
 
 const near = (a: [number, number, number], b: [number, number, number], tolerance: number): boolean =>
   a.every((v, i) => Math.abs(v - (b[i] ?? 0)) <= tolerance);
