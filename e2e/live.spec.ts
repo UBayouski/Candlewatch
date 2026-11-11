@@ -135,6 +135,18 @@ test.describe("B. headers (a live URL)", () => {
     expect((await request.get(root ?? "/")).headers()["cache-control"], "/ Cache-Control").toBe("no-cache");
     expect((await request.get(script ?? "/")).headers()["cache-control"], `${script} Cache-Control`).toBe("public, max-age=31536000, immutable");
   });
+
+  // Render sets Strict-Transport-Security itself and the Blueprint does not (design Decision P10), so B1 cannot cover it.
+  test("B4 Strict-Transport-Security is sent once, with a max-age of at least a year", async ({ request }) => {
+    for (const path of ["/", "/index.html"]) {
+      const response = await request.get(path);
+      const sent = response.headersArray().filter((h) => h.name.toLowerCase() === "strict-transport-security");
+      expect(sent.length, `${path} sends Strict-Transport-Security once`).toBe(1);
+      const maxAge = /max-age=(\d+)/i.exec(sent[0]?.value ?? "");
+      expect(maxAge, `${path} Strict-Transport-Security has a max-age`).not.toBeNull();
+      expect(Number(maxAge?.[1]), `${path} max-age`).toBeGreaterThanOrEqual(31_536_000);
+    }
+  });
 });
 
 test.describe("C. live-only", () => {

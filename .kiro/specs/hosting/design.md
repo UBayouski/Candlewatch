@@ -19,7 +19,7 @@ When this design was first written in a Kiro Web session, Render's documentation
 | `headers` entries have the shape `path`, `name`, `value` | Render docs, [HTTP Headers for Static Sites](https://render.com/docs/static-site-headers) (path, name and value are the three parts of a rule) and the API schema `headerInput`, where `path`, `name` and `value` are the three required fields ([Add header rule](https://api-docs.render.com/reference/add-headers)); the [Blueprint reference](https://render.com/docs/blueprint-spec) lists `headers` under static sites ("Configuration details for a static site's HTTP response headers"), but its example code was not in the text that could be read | **Confirmed** (task 1, 2026-11-10) |
 | How `*` matches in `path` | Same docs page: `/*` "Matches all request paths" (so it covers `/`); `/blog/*` matches `/blog/`, `/blog/latest-post/` "and all other paths under /blog/" (so `/assets/*` covers `/assets/x.js`); `/*.css` matches `/tokens.css` but not `/assets/theme.css`; `/**/*` matches paths with at least two slashes. The page does not say what a path with no `*` matches; it is treated as an exact match, which `headersFor` implements and smoke checks B1 on `/` and `/index.html` confirm | **Confirmed** for `*`; **still unverified** for a path without `*` (the page is silent), checked live by smoke B1 |
 | What happens when two header rules match one path and set the same header name | The docs pages read say only that "the header key is normalized and the value is appended to it to form the response" and that Render "preserves any existing header rules that are not included in the Blueprint file". Neither says whether a second rule for the same name replaces, is merged with, or is sent next to the first | **Still unverified**: the docs are silent. The Blueprint avoids the question: no two rules set the same header name for the same path (`/*` sets only the eight security headers; `Cache-Control` is set only by `/assets/*`, `/` and `/index.html`, which do not overlap). Smoke B2 shows what Render really sends |
-| Whether Render adds its own `Cache-Control` or `Strict-Transport-Security` | The pages read do not mention it. They do say Render redirects HTTP to HTTPS and caches site content on a global CDN | **Still unverified**: the docs are silent. Smoke B1 and B2 show the live result |
+| Whether Render adds its own `Cache-Control` or `Strict-Transport-Security` | The pages read do not mention it. They do say Render redirects HTTP to HTTPS and caches site content on a global CDN | **Strict-Transport-Security: observed live on 2026-11-10** (Render sets `max-age=315360000; includeSubdomains; preload` itself; Decision P10). `Cache-Control`: no Render value seen on the paths checked (smoke B1 and B3 passed live except for HSTS) |
 | `pullRequestPreviewsEnabled: false` is accepted and turns previews off | The [Blueprint reference](https://render.com/docs/blueprint-spec) calls `pullRequestPreviewsEnabled` a **deprecated** field (`pullRequestPreviewsEnabled: true` equals `previews.generation: automatic`) and says that if `previews.generation` is omitted, pull request previews are disabled for the service. So `false` is the same as omitting the key | **Documented as deprecated, not as rejected.** The design keeps the key as written (R2.2 only asks that previews be off, and the tests assert the key); omitting it is equally correct and avoids a deprecated name. Recorded as a point for the owner in the task 1 report; the owner checks the preview in step 3 (section 9) |
 | A failed build leaves the last deploy live | The [Static Sites](https://render.com/docs/static-sites) page: "zero-downtime deploys", "each build is fully atomic", and the new version replaces the old one only "as soon as a build succeeds" | **Documented**; not tested here. Observed only if a build ever fails |
 | `npm ci` installs dev dependencies in the Render build | The same `&&` chain pattern | Confirmed by the first deploy's build log (task 9) |
@@ -88,9 +88,6 @@ services:
       - path: /*
         name: Cross-Origin-Resource-Policy
         value: same-origin
-      - path: /*
-        name: Strict-Transport-Security
-        value: max-age=31536000
       - path: /assets/*
         name: Cache-Control
         value: public, max-age=31536000, immutable
@@ -109,7 +106,7 @@ Choices:
 - **No `routes`.** There is no client-side router, so no rewrite (R7). An unknown path gets Render's 404.
 - **`NODE_VERSION: "22"`** names the major version only, as the sibling Blueprint does (verified). `package.json` requires `>=22`. The trade-off: Render picks the current 22.x, so the Node patch version can change between deploys; every package version is still fixed by `npm ci` and the lock file. The sandbox runs v22.23.4 for the local dry run (task 8).
 - **`PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD`** is belt and braces. Installing `@playwright/test` is not expected to download browsers (they come from `npx playwright install`), but the variable costs nothing and makes the guarantee in R3.2 independent of that. Task 8 checks that a clean `npm ci` downloads nothing.
-- **Header values are plain strings.** The Permissions-Policy value and the HSTS value contain no characters that need quoting in YAML; the CSP value is quoted because it contains `;` and `'`.
+- **Header values are plain strings.** The Permissions-Policy value contains no characters that need quoting in YAML; the CSP value is quoted because it contains `;` and `'`.
 
 ## 3. The build
 
@@ -154,7 +151,7 @@ Properties of this command:
 | `Permissions-Policy` | `camera=(), microphone=(), geolocation=(), payment=(), usb=()` | The app needs none of these. Web Audio output needs no permission, so audio is not restricted. |
 | `Cross-Origin-Opener-Policy` | `same-origin` | Isolates the page from other windows. |
 | `Cross-Origin-Resource-Policy` | `same-origin` | Other sites cannot load the app's files as subresources. |
-| `Strict-Transport-Security` | `max-age=31536000` | One year. No `includeSubDomains` and no `preload`: the host is a shared `onrender.com` subdomain, and the app does not own the parent domain. Render may set this itself (task 1 reads the docs; smoke checks B1 and B2 show the live result); R5.4 requires exactly one value either way. |
+| `Strict-Transport-Security` | **not set by the Blueprint** | Render sets it on every response: `max-age=315360000; includeSubdomains; preload`, observed on 2026-11-10, sent once and stronger than the `max-age=31536000` this design first chose. Render controls HSTS on its domain, so a value of ours would be replaced. Smoke B4 checks that it is present, once, with a max-age of at least a year (Decision P10). |
 
 ### 5.2 The Content Security Policy
 
@@ -227,6 +224,7 @@ The `yaml` package is a new dev dependency, pinned to an exact version (task 4 l
 - `buildCommand` equals the exact string, and does not contain `verify`, `e2e`, `playwright` or `||`.
 - `envVars` are exactly the two allowed names; neither uses `sync: false`; no variable name or value matches `/key|token|secret|password/i` (neither allowed name does).
 - Headers: the exact table of section 5.1 for `/*`; `Cache-Control` rules for `/assets/*`, `/` and `/index.html` with the exact values; and for any sample path, at most one `Cache-Control` rule matches (R6.4).
+- The Blueprint does not define `Strict-Transport-Security` anywhere (Render sets it; Decision P10).
 - The CSP has no `unsafe-inline`, no `unsafe-eval`, no `*`, and every source is `'self'` or `'none'` (R5.2).
 - No `routes` key.
 
@@ -281,6 +279,7 @@ Group B, **headers** (skipped when the base URL host is `localhost` or `127.0.0.
 | B1 | For `/`, `/index.html`, the first `<script src>` and the first stylesheet `<link href>` found in the page, every header that `headersFor(blueprint, pathname)` returns is present with exactly that value. Header names compare case-insensitively. |
 | B2 | No response carries two values for any header the Blueprint defines (a merge with Render's own value would show as `a, b`). |
 | B3 | The hashed script's `Cache-Control` is the immutable value and `/` is `no-cache`. (B1 covers it; this names it for the error message.) |
+| B4 | `Strict-Transport-Security` is sent once on `/` and `/index.html`, with a `max-age` of at least 31536000. The Blueprint does not define it (Decision P10), so B1 cannot cover it. |
 
 Group C, **live-only**:
 
@@ -365,3 +364,4 @@ None open. All nine were answered; the answers are in section 13.
 - **P7. What could not be verified:** settled in large part by evidence. A working Blueprint in a sibling project by the same author, on Render since 2026-11-06 and serving 200, uses `type: web`, `runtime: static`, `branch: main`, `autoDeployTrigger: commit`, an `&&` build chain, `staticPublishPath: dist`, `NODE_VERSION: "22"`, no `plan` and no `routes`. Those fields are marked verified (section 0) and dropped from task 1. Free static sites on Render do not sleep. **Changes that follow:** `NODE_VERSION` is `"22"` (the major only) instead of an exact patch version, the Blueprint has no `plan` field, and the tests assert both. **Still open, and not part of task 1:** `pullRequestPreviewsEnabled` (checked at owner step 3), that a failed build keeps the last deploy live (not tested), and free-tier bandwidth and build-minute limits (the owner reports what the dashboard shows). **Task 1 now only** confirms the `headers` block syntax (`path`, `name`, `value`, and how `*` matches in `path`) and how several header rules for the same path combine, including whether Render adds its own value for the same header, before `render.yaml` is written. The repo still cannot guarantee a provider's free tier (R12.3); the dated smoke runs remain the evidence.
 - **P8. Header checks only off localhost:** accepted as recommended. Groups B and C of the smoke test skip themselves on localhost; `headers-local.spec.ts` exercises the Blueprint's headers locally (R9.4).
 - **P9. No build id:** accepted as recommended. The smoke test cannot say which commit is live (section 7.3); the owner reads the commit in the Render dashboard.
+- **P10. Strict-Transport-Security is Render's, not ours (finding of task 10, 2026-11-10).** The first smoke run against `https://candlewatch.onrender.com` passed 10 of 11 checks. B1 failed only on this header, on all four paths checked (`/`, `/index.html`, the hashed script, the stylesheet): the Blueprint said `max-age=31536000`, Render sent `max-age=315360000; includeSubdomains; preload`, once. Render terminates TLS for `onrender.com` and controls HSTS on its domain, so a value in `render.yaml` is replaced, and Render's is stronger (ten years, subdomains, preload). We defer to Render: the `Strict-Transport-Security` rule is removed from `render.yaml` (seven security headers remain), the Blueprint test asserts that no such rule exists, and smoke B4 checks that the live header is present once with a `max-age` of at least a year, so HSTS stays verified. This supersedes the `Strict-Transport-Security` row of requirements R5.1; R5.4 (exactly one value) still holds and is what B2 and B4 check. The requirements file was not edited in this step.

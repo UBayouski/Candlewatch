@@ -16,8 +16,11 @@ const SECURITY_HEADERS: Readonly<Record<string, string>> = {
   "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
   "Cross-Origin-Opener-Policy": "same-origin",
   "Cross-Origin-Resource-Policy": "same-origin",
-  "Strict-Transport-Security": "max-age=31536000",
 };
+
+// Strict-Transport-Security is deliberately absent: Render sets it on every response and its value
+// ("max-age=315360000; includeSubdomains; preload", seen live on 2026-11-10) replaces ours (design Decision P10).
+const FORBIDDEN_HEADERS = ["Strict-Transport-Security"];
 
 const CACHE_RULES: readonly (readonly [string, string])[] = [
   ["/assets/*", "public, max-age=31536000, immutable"],
@@ -82,13 +85,18 @@ function problems(blueprint: Blueprint): string[] {
     }
   }
 
-  // R5.1: the rules for /* are exactly the eight security headers
+  // R5.1: the rules for /* are exactly the seven security headers
   const rules: readonly HeaderRule[] = s.headers ?? [];
   const star = rules.filter((r) => r.path === "/*");
   const starTable = Object.fromEntries(star.map((r) => [r.name, r.value]));
   if (star.length !== Object.keys(SECURITY_HEADERS).length) out.push(`/* has ${star.length} rules, not ${Object.keys(SECURITY_HEADERS).length}`);
   for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
     if (starTable[name] !== value) out.push(`/* ${name} is ${JSON.stringify(starTable[name])}`);
+  }
+
+  // Render sets HSTS on every response; the Blueprint must not define it (Decision P10)
+  for (const r of rules) {
+    if (FORBIDDEN_HEADERS.some((name) => name.toLowerCase() === r.name.toLowerCase())) out.push(`${r.name} is defined for ${r.path}; Render sets it`);
   }
 
   // R6
@@ -160,10 +168,16 @@ describe("render.yaml", () => {
     expect(typeof env[0]?.value).toBe("string");
   });
 
-  it("sends exactly the eight security headers on every path, with the exact values (R5.1)", () => {
+  it("sends exactly the seven security headers on every path, with the exact values (R5.1)", () => {
     const rules = blueprint.services?.[0]?.headers ?? [];
     const star = Object.fromEntries(rules.filter((r) => r.path === "/*").map((r) => [r.name, r.value]));
     expect(star).toEqual(SECURITY_HEADERS);
+  });
+
+  it("does NOT define Strict-Transport-Security: Render sets it on every response (Decision P10)", () => {
+    const rules = blueprint.services?.[0]?.headers ?? [];
+    expect(rules.filter((r) => r.name.toLowerCase() === "strict-transport-security")).toEqual([]);
+    for (const path of SAMPLE_PATHS) expect(Object.keys(headersFor(blueprint, path)).map((n) => n.toLowerCase())).not.toContain("strict-transport-security");
   });
 
   it("caches hashed assets for a year and revalidates index.html (R6.1, R6.2)", () => {
@@ -204,6 +218,7 @@ describe("the checks are not vacuous: each mutant of render.yaml is caught", () 
     ["the CSP gets unsafe-inline", (b) => withService(b, (s) => (s["headers"] = (s["headers"] as HeaderRule[]).map((h) => (h.name === "Content-Security-Policy" ? { ...h, value: h.value.replace("style-src 'self'", "style-src 'self' 'unsafe-inline'") } : h)))), /unsafe-|Content-Security-Policy/],
     ["the CSP gets an origin", (b) => withService(b, (s) => (s["headers"] = (s["headers"] as HeaderRule[]).map((h) => (h.name === "Content-Security-Policy" ? { ...h, value: h.value.replace("connect-src 'self'", "connect-src 'self' https://example.com") } : h)))), /example\.com|Content-Security-Policy/],
     ["index.html is cached for a year", (b) => withService(b, (s) => (s["headers"] = (s["headers"] as HeaderRule[]).map((h) => (h.path === "/index.html" ? { ...h, value: "public, max-age=31536000" } : h)))), /\/index\.html/],
+    ["Strict-Transport-Security is put back", (b) => withService(b, (s) => (s["headers"] = [...(s["headers"] as HeaderRule[]), { path: "/*", name: "Strict-Transport-Security", value: "max-age=31536000" }])), /Strict-Transport-Security/],
     ["a second service is added", (b) => ({ ...clone(b), services: [...(b.services ?? []), ...(b.services ?? [])] }), /services/],
     ["a top-level key is added", (b) => ({ ...clone(b), databases: [] }), /top-level/],
   ];
@@ -252,7 +267,7 @@ describe("pathMatches and headersFor", () => {
 
   it("/ matches /* and /", () => {
     const rules = rulesFor(blueprint, "/");
-    expect(rules.filter((r) => r.path === "/*")).toHaveLength(8);
+    expect(rules.filter((r) => r.path === "/*")).toHaveLength(7);
     expect(rules.filter((r) => r.path === "/")).toHaveLength(1);
     expect(rules.some((r) => r.path === "/assets/*" || r.path === "/index.html")).toBe(false);
   });
@@ -270,7 +285,7 @@ describe("pathMatches and headersFor", () => {
   it("/other matches only /*", () => {
     const paths = new Set(rulesFor(blueprint, "/other").map((r) => r.path));
     expect([...paths]).toEqual(["/*"]);
-    expect(Object.keys(headersFor(blueprint, "/other"))).toHaveLength(8);
+    expect(Object.keys(headersFor(blueprint, "/other"))).toHaveLength(7);
   });
 
   it("headersFor throws when two matching rules set the same header", () => {

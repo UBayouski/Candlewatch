@@ -33,7 +33,7 @@ Build order note: the Blueprint comes before its tests (tasks 2 and 3 before 4),
   - Done when `npm run verify` passes and the file is checked against the sibling Blueprint's shape (same field names and the same `NODE_VERSION` form), and, if task 1 used a validator, against that validator too (say which).
 
 - [x] 3. The Blueprint: security and cache headers
-  - Add the `headers` list from design sections 2 and 5 to `render.yaml`: the eight security headers on `/*`, and `Cache-Control` on `/assets/*`, `/` and `/index.html`. `/*` must not set `Cache-Control` (R6.4). Quote the CSP value.
+  - Add the `headers` list from design sections 2 and 5 to `render.yaml`: the security headers on `/*` (eight when this task was written, seven since Decision P10: Render sets `Strict-Transport-Security`), and `Cache-Control` on `/assets/*`, `/` and `/index.html`. `/*` must not set `Cache-Control` (R6.4). Quote the CSP value.
   - Apply any change task 1 found for how header rules are matched or merged.
   - Files: `render.yaml`.
   - Requirements: R5.1, R5.2, R5.5, R6.1, R6.2, R6.3, R6.4. Properties: none.
@@ -94,11 +94,12 @@ Build order note: the Blueprint comes before its tests (tasks 2 and 3 before 4),
   - Requirements: R1.5, R2.1, R2.2, R11.2. Properties: none.
   - Done when the owner has confirmed the first deploy succeeded and has given the URL.
 
-- [ ] 10. First smoke run against the live site
+- [x] 10. First smoke run against the live site
   - Run `BASE_URL=<owner's URL> npm run smoke` (or plain `npm run smoke` if the URL is the expected one). Report the full result, group by group.
   - On failure: report the failing check with the live header values next to the Blueprint's. Likely causes are in design section 10 (Render merged or duplicated a header, did not apply a path rule, or added its own `Strict-Transport-Security`). Fix the Blueprint with a small pull request, **[owner]** merges it and waits for the redeploy, and the smoke run is repeated until it passes. Do not edit the smoke test to match Render without saying why the live behaviour is acceptable.
   - If the actual URL differs from the expected one (R1.5), change the default in `playwright.live.config.ts` and the spec files in this pull request.
   - Record in `KIRO_USAGE.md`: the result, any header that Render changed, and the deploy build time (R3.6).
+  - Result (2026-11-10): the first run against `https://candlewatch.onrender.com` passed 10 of 11; B1 failed only on `Strict-Transport-Security` (Render sets its own; design Decision P10). The Blueprint rule was removed, the Blueprint test now asserts its absence, and B4 was added. Re-run after the change: 12 of 12 passed. The redeploy of the Blueprint is the owner's step; Render keeps header rules that are no longer in the Blueprint, so the old HSTS rule may stay in the dashboard (harmless: Render's own value is the one sent).
   - Files: `render.yaml` and `playwright.live.config.ts` only if a fix is needed; `KIRO_USAGE.md`.
   - Requirements: R5.4, R9, R11.3, R11.4, R12.2. Properties: none.
   - Done when `npm run smoke` passes against the live URL with groups A, B and C all run (none skipped), and the result is in `KIRO_USAGE.md`.
