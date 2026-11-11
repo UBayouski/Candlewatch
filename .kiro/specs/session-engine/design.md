@@ -175,18 +175,17 @@ export function step(state: State, event: Event, now: number): State {
   const t = Math.floor(now);
 
   switch (event.type) {
-    case 'hide':
-    case 'show':   return state;                      // R8.2: no field changes, and no settling either
     case 'reload': return settle(event.state, t);     // R9.2; event.state comes from restoreState (validated)
     case 'tick':   return settle(state, t);           // R5.3: same reference when nothing is due
   }
 
-  const s = settle(state, t);                         // R5.4: settle BEFORE handling any other event
+  const s = settle(state, t);                         // R5.4: settle BEFORE handling any other event, hide and show included
   switch (event.type) {
     case 'light':  return light(s, event, t);
     case 'pause':  return s.phase === 'lit' ? pause(s, t) : s;
     case 'resume': return s.phase === 'paused' ? resume(s, t) : s;
     case 'snuff':  return s.phase === 'lit' || s.phase === 'paused' ? snuff(s, t) : s;
+    // hide and show: handled by the distraction-tracking spec (openHide / closeHide, only while lit)
     default:       return s;                          // unknown event at runtime: unchanged, never throws (R12.2)
   }
 }
@@ -228,7 +227,7 @@ How each rule falls out of the structure:
 - R5.4 and `light`: if a candle finished while the page was away and the user presses Light, settle ends it (history gets its entry at the true instant) and then `light` starts the new session.
 - R6.1: if the session had already ended before `now`, settle runs first and `snuff` is ignored.
 - R7.1 / R7.4: only `endBurnedOut` sets `breakEndsAt`. `SnuffedState` has no such field.
-- R8.2: `hide` and `show` return the input reference and skip settling. This follows R8.2's "return the state unchanged" literally; a session due to end is settled by the next `tick`, which the UI sends anyway. (R5.4 exempts `hide` and `show` for this reason.)
+- R8.2: `hide` and `show` settle first like every other event except `tick` and `reload`, and are then handled by the `distraction-tracking` spec (`openHide` / `closeHide`, only while lit). They never change a timer field. (Originally they returned the input reference and skipped settling; superseded, see Decisions items 2, 8 and 9.)
 - R9.5: see 4.5.
 
 ### 4.4 Selectors (R4.4, R4.6, R7.2)
@@ -417,7 +416,7 @@ src/engine/
   time.ts              (covered by step/selectors tests)
   history.ts           history.test.ts
   settle.ts
-  step.ts              step.test.ts           step.prop.test.ts     (P1 P2 P3 P4 P7 P9 P10)
+  step.ts              step.test.ts           step.prop.test.ts     (P1 P2 P3 P4 P7 P10)
   selectors.ts         selectors.test.ts      selectors.prop.test.ts (P5 P11)
   validate.ts
   serialize.ts         serialize.test.ts      serialize.prop.test.ts (P6 P8)
@@ -486,13 +485,13 @@ Each property runs `numRuns: 300` (raise in CI if time allows) and prints the se
 |---|---|---|
 | P1 | `arbT0`, `arbScript` (non-decreasing times). | For consecutive trace entries where both states are `lit` or `paused` and share `session.startedAt`: `timeLeftMs(after, now_i+1) <= timeLeftMs(before, now_i)`. |
 | P2 | `arbLength`; `pairs`: up to 10 `{ burn, pause }` with each `burn` in `[1, floor((L-1)/10)]` and each `pause` in `[0, 60_000]` (total pause <= 10 min by construction). Script: light, then per pair: advance `burn`, pause, advance `pause`, resume. | With `P = sum(pause)`: at `t0 + L + P - 1`, a tick leaves the state `lit` with `timeLeftMs = 1`; at `t0 + L + P`, a tick gives `burned-out` with `endedAt = t0 + L + P` and `pausedTotalMs = P`. A pause-free run of the same length ends at `t0 + L`. |
-| P3 | A base script from `arbScript`, plus `extras: fc.array(fc.tuple(fc.nat(), fc.double({min:0,max:1})))`: each extra `tick` is inserted after step `i % n` at a time interpolated between its neighbours (so time stays non-decreasing). A second variant inserts a tick every `period` ms between events (`period` in 1..60_000, capped at 500 ticks). | The state after every original event is deep-equal (`toStrictEqual`) in the base run and in the run with extra ticks, except after `hide` and `show`: they never settle (R5.4, R8.2), so those two runs are compared once both are settled at that time. |
+| P3 | A base script from `arbScript`, plus `extras: fc.array(fc.tuple(fc.nat(), fc.double({min:0,max:1})))`: each extra `tick` is inserted after step `i % n` at a time interpolated between its neighbours (so time stays non-decreasing). A second variant inserts a tick every `period` ms between events (`period` in 1..60_000, capped at 500 ticks). | The state after every original event is deep-equal (`toStrictEqual`) in the base run and in the run with extra ticks. (`hide` and `show` settle like every other event, so there is no exception; see Decisions items 8 and 9.) |
 | P4 | `arbScript` with weights that include invalid steps (`arbBadLength`, `pause` in `idle`, etc.), small negative gaps allowed, and raw junk `reload` events built with `restoreState(fc.string() or fc.json(), fc.string())`. | `step` never throws; `assertInvariants(after)`; each non-`reload` step is an allowed move: `idle -> {idle, lit}`, `lit -> {lit, paused, burned-out, snuffed}`, `paused -> {paused, lit, snuffed}`, `burned-out -> {burned-out, lit}`, `snuffed -> {snuffed, lit}`. Any move into `lit` from `burned-out`/`snuffed`/`idle` has `litSince = startedAt = now` (a new session), and `paused -> lit` keeps the same `startedAt`. Nothing moves to `idle`. |
 | P5 | `arbT0`, a script using `arbSignedGap`, and for each state a probe `now` from `fc.integer` around the anchor (`anchor - 120_000 .. anchor + 4h`). | `waxFraction` is in `[0, 1]` at every probe; for probes `<= anchor` it equals the fraction at the anchor (the clamp), and for probes past the anchor it is `<=` that value. The anchor is `litSince` when lit and `pausedAt` when paused. |
 | P6 | `arbEntry = fc.record({...})` with valid ranges and `intent: arbIntent.map(normalizeIntent)`, `arbHistory = fc.array(arbEntry, { maxLength: 40 })`. | `parseHistory(serializeHistory(h))` `toStrictEqual` `h`; the JSON has `"v": SCHEMA_VERSION`. Also: `parseHistory(anyString)` never throws and returns an array; injecting invalid entries between valid ones returns exactly the valid ones in order. |
 | P7 | Light a session of `arbLength`, then `pause` after a random burn; sample the pause duration `d` from `{allowance - 1, allowance, allowance + 1, ...}` plus `fc.integer(0, 20 min)`, and the noticing event from `{tick, resume, snuff, pause, light, reload}` at `pausedAt + d + extra`, `extra` in `[0, 1h]`. Also multi-pause sequences. | If `d <= allowance`, the next `resume` gives `lit` with `pausedTotalMs` increased by `d`. Otherwise the result is `snuffed` with `endedAt === pausedAt + allowance` **whichever event noticed it and however late**. In every trace state `pausedTotalMs <= PAUSE_LIMIT_MS`. |
 | P8 | `arbScript`, then for each running state in the trace (`lit`, `paused`, `burned-out`) a probe `T = now + fc.integer(0, 6h)`. | `restoreState(serializeSession(s), serializeHistory(s.history))` `toStrictEqual` `s`; and `step(s, {reload, state: restored}, T)` `toStrictEqual` `step(s, {tick}, T)`. |
-| P9 | Every state in any trace, plus `fc.integer` for `now`. | `step(s, hide, now) === s` and `step(s, show, now) === s` (same reference). |
+| P9 | Replaced by D1 and D5 of the `distraction-tracking` spec (`hide` and `show` now count distractions while lit and settle like other events). | The test was removed; see that spec's design 10.4. |
 | P10 | `arbScript`. | For each step: `after.history.length >= before.history.length`; the old entries are the same objects in the same positions after every event except `reload`, where they are deep-equal (`toStrictEqual`) because reload rebuilds the state from text; length grows by 1 exactly when the step moved `lit`/`paused` to `burned-out`/`snuffed` (including via settle inside `light`/`reload`), else 0. At the end, `history.length` equals the number of sessions ended in the trace. Reload twice at a late `T` on one running state adds exactly one entry in total (R9.5). |
 | P11 | `arbScript` plus probe times `fc.integer` around `endedAt` and `breakEndsAt`. | For every state: `isBreak(s, p) === (s.phase === 'burned-out' && p < s.breakEndsAt)`; `'breakEndsAt' in s` iff `phase === 'burned-out'`; and, using an independent reference (`endedAt` taken from the script's own arithmetic `t0 + L + P`), `breakEndsAt === that + 300_000`. |
 
@@ -507,7 +506,7 @@ Each property runs `numRuns: 300` (raise in CI if time allows) and prints the se
 | R5 | 4.2 `settle`, 4.3 order of `settle` before events, P3, P8 |
 | R6 | 4.3 `snuff` |
 | R7 | 3 (`breakEndsAt`), 4.2 `endBurnedOut`, 4.4 `isBreak`, P11 |
-| R8 | 3 (`distractions`, `timeAwayMs`), 4.3 `hide`/`show`, P9 |
+| R8 | 3 (`distractions`, `timeAwayMs`), 4.3 (`hide`/`show` handled by distraction-tracking), D1 and D5 of that spec |
 | R9 | 5.3, 5.4 `reload`, P8, P10 |
 | R10 | 4.5 `appendEntry`, 5 formats, P6, P10 |
 | R11 | 6 adapter, 6.1 unreadable-text backup (R11.4), `purity.test.ts` |
@@ -518,11 +517,11 @@ Each property runs `numRuns: 300` (raise in CI if time allows) and prints the se
 Review outcomes. Items applied to `requirements.md` or to this document are marked; the rest are accepted as designed.
 
 1. **P5 wording (applied).** `requirements.md` P5 now says what the design guarantees: the wax fraction is always in [0, 1], equals the fraction at the anchor (`litSince` or `pausedAt`) for any probe time at or before it, and never exceeds it past the anchor. The claim about remembering an earlier `now` is removed.
-2. **`hide` / `show` do not settle (accepted).** `requirements.md` R5.4 now exempts them, so it no longer conflicts with R8.2.
+2. **`hide` / `show` do not settle (reversed by distraction-tracking, applied).** This held while they were no-ops. They now settle first like every other event except `tick` and `reload`, because counting a distraction needs the session settled (item 9). The R5.4 exemption is removed.
 3. **Selectors do not settle (accepted).** After a late discovery a `lit` state reads as `0` left and `isBreak` false until the next `tick`.
 4. **`litSince` field on `LitState` (accepted).** It makes the clock-backwards clamp (R4.5) monotone after a resume.
 5. **`now` is floored and a non-finite `now` returns the state unchanged (accepted).** `requirements.md` R12.4 now states this, and that selectors return 0 (or `false`) for a non-finite `now`.
 6. **Unknown schema version and other unreadable text (resolved, changed).** The earlier text claimed the adapter would not overwrite such text; it would have, because `save` writes the in-memory history after a failed parse. Section 6.1 now copies the raw text once to `candlewatch:history:unreadable` (or `candlewatch:session:unreadable`) before the first write to that key, only if the backup key is empty, and leaves the key untouched if the backup cannot be written. Section 5.3 rule 4 and the `storage.test.ts` list are updated to match.
 7. **`idle` and `snuffed` selectors return 0 (accepted).** The scene spec can read the phase if it needs more.
-8. **P3 and P10 narrowed (applied).** Both rows in the section 8.2 table were narrowed after property runs found the original wording too strict: P3 for hide and show (settled-state comparison), P10 for `reload` (deep equality instead of identity).
-9. **`hide` / `show` exemption superseded (approved, applied by distraction-tracking tasks).** Item 2 and the P3 narrowing in item 8 hold for this spec as built, until those tasks run. The `distraction-tracking` requirements, now approved, make `hide` and `show` settle again, because counting a distraction needs the session settled first (a `hide` after the true end must not count; a `show` after it must date the away time to the end). When its tasks run, item 2 is reversed, R5.4's exemption and R8.2 are replaced, P9 is replaced by that spec's D1 and D5, and P3 returns to strict equality after every event. No code or test here changes before then.
+8. **P3 and P10 narrowed (applied; the P3 part is now reverted).** Both rows in the section 8.2 table were narrowed after property runs found the original wording too strict: P3 for hide and show (settled-state comparison), P10 for `reload` (deep equality instead of identity). The P3 narrowing existed only because of the `hide`/`show` exemption; with the exemption gone (item 9) P3 is strict again. The P10 narrowing stays.
+9. **`hide` / `show` exemption superseded (approved, applied by distraction-tracking tasks 3 and 6).** The `distraction-tracking` spec makes `hide` and `show` settle first, because counting a distraction needs the session settled (a `hide` after the true end must not count; a `show` after it must date the away time to the end). Applied: item 2 is reversed, R5.4's exemption and R8.2 are replaced, P9 is replaced by that spec's D1 and D5, and P3 is strict after every event again.

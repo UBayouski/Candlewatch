@@ -19,7 +19,8 @@ const FORBIDDEN: readonly { name: string; pattern: RegExp }[] = [
 
 /** Engine files may not import from these layers. */
 const FORBIDDEN_IMPORT = /\b(?:from|import)\s*\(?\s*["'][^"']*\/(?:storage|ui|scene|audio)(?:\/[^"']*)?["']/;
-const TEST_KIT_IMPORT = /\b(?:from|import)\s*\(?\s*["'][^"']*\/test-kit(?:\.[a-z]+)?["']/;
+/** Test-only helpers: no non-test source file may import them. */
+const TEST_ONLY_IMPORT = /\b(?:from|import)\s*\(?\s*["'][^"']*\/(?:test-kit|fake-document)(?:\.[a-z]+)?["']/;
 
 /** Removes // and block comments, leaving string contents alone. */
 export function stripComments(source: string): string {
@@ -56,7 +57,8 @@ export function stripComments(source: string): string {
   return out;
 }
 
-const isTestFile = (name: string): boolean => /\.(?:prop\.)?test\.ts$/.test(name) || name === "test-kit.ts";
+const isTestFile = (name: string): boolean =>
+  /\.(?:prop\.)?test\.ts$/.test(name) || name === "test-kit.ts" || name === "fake-document.ts";
 
 function engineSources(): { name: string; code: string }[] {
   return readdirSync(ENGINE_DIR)
@@ -90,6 +92,12 @@ describe("stripComments (the scanner itself)", () => {
     expect(FORBIDDEN.some((f) => f.pattern.test(ok))).toBe(false);
   });
 
+  it("catches imports of the test-only helpers", () => {
+    expect(TEST_ONLY_IMPORT.test('import { x } from "./test-kit";')).toBe(true);
+    expect(TEST_ONLY_IMPORT.test('import { x } from "../distraction/fake-document";')).toBe(true);
+    expect(TEST_ONLY_IMPORT.test('import { x } from "./visibility";')).toBe(false);
+  });
+
   it("catches forbidden imports", () => {
     expect(FORBIDDEN_IMPORT.test('import { x } from "../storage/storage";')).toBe(true);
     expect(FORBIDDEN_IMPORT.test("import { x } from '../ui';")).toBe(true);
@@ -119,11 +127,11 @@ describe("engine purity", () => {
   });
 });
 
-describe("test-kit is test-only", () => {
-  it("no non-test source file in src imports it", () => {
+describe("test helpers are test-only", () => {
+  it("no non-test source file in src imports test-kit or fake-document", () => {
     const offenders = allSourceFiles(SRC_DIR)
       .filter((file) => !isTestFile(file.split(/[\\/]/).pop() ?? ""))
-      .filter((file) => TEST_KIT_IMPORT.test(stripComments(readFileSync(file, "utf8"))))
+      .filter((file) => TEST_ONLY_IMPORT.test(stripComments(readFileSync(file, "utf8"))))
       .map((file) => file.slice(SRC_DIR.length + 1));
     expect(offenders).toEqual([]);
   });

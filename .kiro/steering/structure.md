@@ -1,6 +1,6 @@
 # Candlewatch - Structure
 
-The project is scaffolded. `src/engine/` and `src/storage/` are implemented (the `session-engine` spec); the other source folders are empty (`.gitkeep`) until their specs run. Vitest and fast-check tests are colocated next to the source as `*.test.ts` and `*.prop.test.ts`; Playwright tests stay in `e2e/`. Root config files: `package.json`, `tsconfig.json`, `vite.config.ts`, `vitest.config.ts`, `playwright.config.ts`, `eslint.config.js` (flat), `index.html`. Playwright runs against `vite preview` on port 4173. TypeScript is pinned to 6.0.x because typescript-eslint does not yet support 7.
+The project is scaffolded. `src/engine/`, `src/storage/` and `src/distraction/` are implemented (the `session-engine` and `distraction-tracking` specs); the other source folders are empty (`.gitkeep`) until their specs run. Vitest and fast-check tests are colocated next to the source as `*.test.ts` and `*.prop.test.ts`; Playwright tests stay in `e2e/`. Root config files: `package.json`, `tsconfig.json`, `vite.config.ts`, `vitest.config.ts`, `playwright.config.ts`, `eslint.config.js` (flat), `index.html`. Playwright runs against `vite preview` on port 4173. TypeScript is pinned to 6.0.x because typescript-eslint does not yet support 7.
 
 ```
 candlewatch/
@@ -14,10 +14,12 @@ candlewatch/
     screenshots/       current screenshots of every state
   src/
     engine/            pure session engine: types, step/settle, selectors, serialization (no DOM);
-                       test-kit.ts holds shared test arbitraries (test-only, never imported by source);
+                       distraction.ts (openHide/closeHide) and ghosts.ts (ghost selectors) hold the distraction logic;
+                       test-kit.ts holds shared test arbitraries and the reference interpreter (test-only, never imported by source);
                        index.ts is the public surface
     storage/           localStorage adapter (the only code that touches it); imports the engine's index
-    distraction/       visibility event handling feeding the engine
+    distraction/       Page Visibility wiring: visibility.ts turns visibilitychange into hide/show events
+                       (document, clock and send are injected); fake-document.ts is test-only
     scene/             inline SVG room: candle, wax, flame, light, ghosts, graveyard, shelf, dawn
     ui/                controls, dialogs, settings, keyboard handling, views
     audio/             Web Audio cues
@@ -35,7 +37,8 @@ candlewatch/
 
 ## Boundaries
 
-- `src/engine/` imports nothing from the DOM, `scene/`, `ui/`, `audio/` or `storage/`.
+- `src/engine/` imports nothing from the DOM, `scene/`, `ui/`, `audio/`, `storage/` or `distraction/`.
+- `src/distraction/` and `src/storage/` import from `src/engine/` (its index), never the other way. Test-only helpers (`test-kit.ts`, `fake-document.ts`) are never imported by source files.
 - Only `main.ts` and `ui/` own the clock source and pass `now` into the engine.
 - All user-visible text lives in `src/strings.ts`.
 - Never add `.kiro/` to `.gitignore`.

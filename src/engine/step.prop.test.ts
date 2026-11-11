@@ -1,4 +1,4 @@
-// Property tests for `step`: P1, P2, P3, P4, P7, P9, P10 (design.md section 8.2).
+// Property tests for `step`: P1, P2, P3, P4, P7, P10 (design.md section 8.2). P9 was replaced by D1 and D5 (distraction-tracking).
 import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { MS_PER_MINUTE, PAUSE_LIMIT_MS } from "./constants";
@@ -108,22 +108,14 @@ describe("P3: the tick rate does not matter", () => {
   function replay(
     trace: readonly TraceEntry[],
     extras: readonly { slot: number; time: number }[],
-    strict: boolean,
   ): void {
     let state: State = INITIAL_STATE;
     for (let k = 0; k < trace.length; k++) {
       const entry = at(trace, k);
       state = step(state, entry.event, entry.now);
-      const isHideOrShow = entry.event.type === "hide" || entry.event.type === "show";
-      if (strict && !isHideOrShow) {
-        expect(state).toStrictEqual(entry.after);
-      } else {
-        // hide and show never settle (R5.4 exemption), so a run that ticked earlier may already
-        // have settled what the base run has not yet. Compare after settling both at `now`.
-        // Found by fast-check on the strict form (seed -507689219, shrunk: light 5 min, hide at +5 min,
-        // one extra tick at that instant): the base run stays `lit`, the other is `burned-out`.
-        expect(step(state, TICK, entry.now)).toStrictEqual(step(entry.after, TICK, entry.now));
-      }
+      // hide and show settle like every other event, so the states agree strictly (the earlier
+      // hide/show exception, found at seed -507689219, is gone with the exemption).
+      expect(state).toStrictEqual(entry.after);
       const slotTicks = extras.filter((x) => x.slot === k).sort((x, y) => x.time - y.time);
       for (const x of slotTicks) state = step(state, TICK, x.time);
     }
@@ -145,7 +137,7 @@ describe("P3: the tick rate does not matter", () => {
           const next = k + 1 < trace.length ? at(trace, k + 1).now : here + HOUR;
           return { slot: k, time: here + Math.floor(frac * (next - here)) };
         });
-        replay(trace, placed, true);
+        replay(trace, placed);
       }),
       PROP_PARAMS,
     );
@@ -163,7 +155,7 @@ describe("P3: the tick rate does not matter", () => {
             placed.push({ slot: k, time });
           }
         }
-        replay(trace, placed, true);
+        replay(trace, placed);
       }),
       PROP_PARAMS,
     );
@@ -288,27 +280,6 @@ describe("P7: the pause limit", () => {
           }
         }
       }),
-      PROP_PARAMS,
-    );
-  });
-});
-
-describe("P9: hide and show never change state", () => {
-  it("returns the same reference in every phase at any time", () => {
-    fc.assert(
-      fc.property(
-        arbT0,
-        arbWildScript,
-        fc.array(fc.integer({ min: -1_000_000, max: 4_000_000_000_000 }), { minLength: 60, maxLength: 60 }),
-        (t0, script, nows) => {
-          const trace = runScript(script, t0);
-          trace.forEach(({ after }, i) => {
-            const now = at(nows, i);
-            expect(step(after, { type: "hide" }, now)).toBe(after);
-            expect(step(after, { type: "show" }, now)).toBe(after);
-          });
-        },
-      ),
       PROP_PARAMS,
     );
   });

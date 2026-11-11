@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { BREAK_MS, MS_PER_MINUTE, PAUSE_LIMIT_MS } from "./constants";
 import { settle } from "./settle";
+import { timeLeftMs } from "./selectors";
 import { step } from "./step";
 import { burnMs, completionAt, pauseLimitAt } from "./time";
 import { INITIAL_STATE } from "./types";
@@ -16,6 +17,7 @@ const session = (over: Partial<Session> = {}): Session => ({
   pausedTotalMs: 0,
   distractions: 0,
   timeAwayMs: 0,
+  awaySpansMs: [],
   ...over,
 });
 
@@ -24,6 +26,7 @@ const lit = (over: Partial<Session> = {}, litSince: number = over.startedAt ?? T
   history: [],
   session: session(over),
   litSince,
+  awaySince: null,
 });
 
 const paused = (over: Partial<Session> = {}, pausedAt: number = T0 + 5 * MIN): PausedState => ({
@@ -171,6 +174,7 @@ describe("step: light", () => {
       pausedTotalMs: 0,
       distractions: 0,
       timeAwayMs: 0,
+      awaySpansMs: [],
     });
     expect(s.litSince).toBe(T0);
   });
@@ -390,23 +394,34 @@ describe("step: snuff", () => {
 });
 
 describe("step: hide, show and non-finite now", () => {
-  it("returns the same reference for hide and show in every phase", () => {
-    const states: State[] = [
-      INITIAL_STATE,
-      litAtT0(),
-      step(litAtT0(), PAUSE, T0 + MIN),
-      step(litAtT0(), TICK, T0 + 25 * MIN),
-      step(litAtT0(), SNUFF, T0 + MIN),
+  it("returns the settled state unchanged for hide and show outside lit", () => {
+    const states: [State, number][] = [
+      [INITIAL_STATE, T0 + 50 * MIN],
+      [step(litAtT0(), PAUSE, T0 + MIN), T0 + 5 * MIN], // still inside the pause allowance
+      [step(litAtT0(), TICK, T0 + 25 * MIN), T0 + 50 * MIN],
+      [step(litAtT0(), SNUFF, T0 + MIN), T0 + 50 * MIN],
     ];
-    for (const s of states) {
-      expect(step(s, HIDE, T0 + 50 * MIN)).toBe(s);
-      expect(step(s, SHOW, T0 + 50 * MIN)).toBe(s);
+    for (const [s, now] of states) {
+      expect(step(s, HIDE, now)).toBe(s);
+      expect(step(s, SHOW, now)).toBe(s);
     }
   });
 
-  it("does not settle on hide or show", () => {
+  it("returns the same reference for a duplicate hide and for a stray show while lit", () => {
     const l = litAtT0();
-    expect(step(l, HIDE, T0 + 90 * MIN)).toBe(l);
+    expect(step(l, SHOW, T0 + MIN)).toBe(l); // nothing open
+    const hidden = step(l, HIDE, T0 + MIN);
+    expect(hidden).not.toBe(l);
+    expect(step(hidden, HIDE, T0 + 2 * MIN)).toBe(hidden); // already open
+  });
+
+  it("settles on hide and show: after the due time they return the settled state", () => {
+    const afterHide = step(litAtT0(), HIDE, T0 + 90 * MIN);
+    expect(afterHide.phase).toBe("burned-out");
+    expect(afterHide.history).toHaveLength(1);
+    const afterShow = step(litAtT0(), SHOW, T0 + 90 * MIN);
+    expect(afterShow.phase).toBe("burned-out");
+    expect(afterShow.history).toHaveLength(1);
   });
 
   it("returns the same reference for a non-finite now", () => {
@@ -420,6 +435,127 @@ describe("step: hide, show and non-finite now", () => {
   it("floors now to an integer", () => {
     const s = step(INITIAL_STATE, LIGHT(25), T0 + 0.9);
     expect(s.phase === "lit" && s.session.startedAt).toBe(T0);
+  });
+});
+
+describe("step: distractions", () => {
+  const sessionOf = (s: State) => {
+    if (s.phase === "idle") throw new Error("no session");
+    return s.session;
+  };
+
+  it("counts a hide and show in the middle of a candle, with an exact span", () => {
+    let s = litAtT0();
+    s = step(s, HIDE, T0 + 5 * MIN);
+    expect(s.phase === "lit" && s.awaySince).toBe(T0 + 5 * MIN);
+    expect(sessionOf(s).distractions).toBe(0); // counted when it is closed
+    s = step(s, SHOW, T0 + 8 * MIN);
+    expect(s.phase === "lit" && s.awaySince).toBeNull();
+    expect(sessionOf(s).distractions).toBe(1);
+    expect(sessionOf(s).timeAwayMs).toBe(3 * MIN);
+    expect(sessionOf(s).awaySpansMs).toEqual([3 * MIN]);
+    expect(timeLeftMs(s, T0 + 8 * MIN)).toBe(17 * MIN); // the timer is untouched
+  });
+
+  it("hide at minute 20 of 25, show at minute 40: one 5-minute distraction, ended at minute 25", () => {
+    let s = litAtT0();
+    s = step(s, HIDE, T0 + 20 * MIN);
+    const late = step(s, SHOW, T0 + 40 * MIN);
+    expect(late.phase).toBe("burned-out");
+    expect(late.phase === "burned-out" && late.endedAt).toBe(T0 + 25 * MIN);
+    expect(sessionOf(late).distractions).toBe(1);
+    expect(sessionOf(late).timeAwayMs).toBe(5 * MIN);
+    expect(late.history).toHaveLength(1);
+    expect(late.history[0]).toMatchObject({ distractions: 1, timeAwayMs: 5 * MIN, endedAt: T0 + 25 * MIN });
+    // The page noticing the end by tick first changes nothing.
+    const viaTick = step(s, TICK, T0 + 41 * MIN);
+    expect(viaTick).toStrictEqual(late);
+    // A show after the end is ignored.
+    expect(step(late, SHOW, T0 + 50 * MIN)).toBe(late);
+  });
+
+  it("ignores a hide at the exact completion instant", () => {
+    const out = step(litAtT0(), HIDE, T0 + 25 * MIN);
+    expect(out.phase).toBe("burned-out");
+    expect(sessionOf(out).distractions).toBe(0);
+    expect(out.history[0]).toMatchObject({ distractions: 0, timeAwayMs: 0 });
+  });
+
+  it("a hide at completion minus 1 ms is closed at the completion instant with span 1", () => {
+    const hidden = step(litAtT0(), HIDE, T0 + 25 * MIN - 1);
+    const out = step(hidden, TICK, T0 + 25 * MIN);
+    expect(out.phase).toBe("burned-out");
+    expect(sessionOf(out).awaySpansMs).toEqual([1]);
+    expect(out.history[0]).toMatchObject({ distractions: 1, timeAwayMs: 1 });
+  });
+
+  it("pause while hidden closes and counts the hide at the pause instant, leaving pausedAt as it was", () => {
+    const hidden = step(litAtT0(), HIDE, T0 + 5 * MIN);
+    const p = step(hidden, PAUSE, T0 + 7 * MIN);
+    expect(p.phase).toBe("paused");
+    expect(p.phase === "paused" && p.pausedAt).toBe(T0 + 7 * MIN);
+    expect(sessionOf(p).awaySpansMs).toEqual([2 * MIN]);
+    expect(sessionOf(p).distractions).toBe(1);
+    expect(timeLeftMs(p, T0 + 20 * MIN)).toBe(18 * MIN);
+    // A show while paused has nothing to close.
+    expect(step(p, SHOW, T0 + 9 * MIN)).toBe(p);
+    // Resuming gives a lit state with no open hide and the same spans.
+    const r = step(p, RESUME, T0 + 10 * MIN);
+    expect(r.phase === "lit" && r.awaySince).toBeNull();
+    expect(sessionOf(r).awaySpansMs).toEqual([2 * MIN]);
+  });
+
+  it("snuff while hidden counts the hide up to the snuff instant", () => {
+    const hidden = step(litAtT0(), HIDE, T0 + 5 * MIN);
+    const out = step(hidden, SNUFF, T0 + 9 * MIN);
+    expect(out.phase === "snuffed" && out.endedAt).toBe(T0 + 9 * MIN);
+    expect(sessionOf(out).awaySpansMs).toEqual([4 * MIN]);
+    expect(out.history[0]).toMatchObject({ outcome: "snuffed", distractions: 1, timeAwayMs: 4 * MIN });
+  });
+
+  it("ignores a hide while paused and the later show", () => {
+    const p = step(litAtT0(), PAUSE, T0 + MIN);
+    const hidden = step(p, HIDE, T0 + 2 * MIN);
+    expect(hidden).toBe(p);
+    expect(step(hidden, SHOW, T0 + 3 * MIN)).toBe(p);
+    expect(sessionOf(p).distractions).toBe(0);
+  });
+
+  it("a pause-limit snuff keeps exactly the counts it had when paused", () => {
+    let s = step(litAtT0(), HIDE, T0 + MIN);
+    s = step(s, SHOW, T0 + 3 * MIN); // 2 minutes away, counted
+    s = step(s, PAUSE, T0 + 4 * MIN);
+    const out = step(s, TICK, T0 + 4 * MIN + PAUSE_LIMIT_MS + 1);
+    expect(out.phase).toBe("snuffed");
+    expect(out.history[0]).toMatchObject({ distractions: 1, timeAwayMs: 2 * MIN });
+  });
+
+  it("counts a hide and show in the same millisecond with span 0", () => {
+    let s = litAtT0();
+    s = step(s, HIDE, T0 + MIN);
+    s = step(s, SHOW, T0 + MIN);
+    expect(sessionOf(s).distractions).toBe(1);
+    expect(sessionOf(s).awaySpansMs).toEqual([0]);
+  });
+
+  it("a second light starts with no spans and no open hide", () => {
+    let s = step(litAtT0(), HIDE, T0 + 5 * MIN);
+    s = step(s, SNUFF, T0 + 6 * MIN);
+    const next = step(s, LIGHT(15), T0 + 7 * MIN);
+    expect(next.phase === "lit" && next.awaySince).toBeNull();
+    expect(sessionOf(next).distractions).toBe(0);
+    expect(sessionOf(next).awaySpansMs).toEqual([]);
+    expect(next.history).toHaveLength(1);
+  });
+
+  it("a hide never moves a timer field", () => {
+    const before = litAtT0();
+    const after = step(before, HIDE, T0 + 5 * MIN);
+    if (before.phase !== "lit" || after.phase !== "lit") throw new Error("setup");
+    expect(after.litSince).toBe(before.litSince);
+    expect(after.session.startedAt).toBe(before.session.startedAt);
+    expect(after.session.pausedTotalMs).toBe(before.session.pausedTotalMs);
+    expect(after.session.lengthMin).toBe(before.session.lengthMin);
   });
 });
 

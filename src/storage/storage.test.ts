@@ -275,3 +275,40 @@ describe("storage: readable or absent text makes no backup", () => {
     expect(log.some((l) => l.includes("unreadable"))).toBe(false);
   });
 });
+
+describe("storage: session document version 2 (distraction-tracking)", () => {
+  it("backs up a session text that is unreadable under the version 2 rules before the first session write", () => {
+    const doc = JSON.parse(serializeSession(lit()) ?? "") as { session: Record<string, unknown> };
+    const raw = JSON.stringify({ ...doc, session: { ...doc.session, distractions: 2, awaySpansMs: [1000] } });
+    const { store, data, log } = fakeStore({ initial: { [SESSION_KEY]: raw } });
+    const storage = createStorage(store);
+    const loaded = storage.load();
+    expect(loaded).toStrictEqual(INITIAL_STATE);
+    storage.save(loaded, lit());
+    expect(data.get(SESSION_BACKUP_KEY)).toBe(raw);
+    expect(log.indexOf(`set ${SESSION_BACKUP_KEY}`)).toBeLessThan(log.indexOf(`set ${SESSION_KEY}`));
+    expect(data.get(SESSION_KEY)).toBe(serializeSession(lit()));
+  });
+
+  it("saves and loads a lit session with spans and an open hide", () => {
+    const { store } = fakeStore();
+    let s = step(lit(), { type: "hide" }, T0 + MIN);
+    s = step(s, { type: "show" }, T0 + 2 * MIN);
+    s = step(s, { type: "hide" }, T0 + 4 * MIN); // still open
+    createStorage(store).save(lit(), s);
+    expect(createStorage(store).load()).toStrictEqual(s);
+  });
+
+  it("loads a version 1 session text without a backup", () => {
+    const l = lit();
+    const doc = JSON.parse(serializeSession(l) ?? "") as { v: number; session: Record<string, unknown> };
+    delete doc.session["awaySpansMs"];
+    const v1 = JSON.stringify({ ...doc, v: 1, awaySince: undefined });
+    const { store, log } = fakeStore({ initial: { [SESSION_KEY]: v1 } });
+    const storage = createStorage(store);
+    const loaded = storage.load();
+    expect(loaded).toStrictEqual(l);
+    storage.save(loaded, step(l, { type: "pause" }, T0 + MIN));
+    expect(log.some((entry) => entry.includes("unreadable"))).toBe(false);
+  });
+});

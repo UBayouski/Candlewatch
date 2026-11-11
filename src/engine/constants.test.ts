@@ -7,7 +7,10 @@ import {
   MS_PER_MINUTE,
   PAUSE_LIMIT_MS,
   PRESET_LENGTHS_MIN,
-  SCHEMA_VERSION,
+  GHOST_FULL_SIZE_MS,
+  GHOST_MIN_SIZE,
+  HISTORY_SCHEMA_VERSION,
+  SESSION_SCHEMA_VERSION,
 } from "./constants";
 import { INITIAL_STATE } from "./types";
 
@@ -19,7 +22,10 @@ describe("constants", () => {
     expect(INTENT_MAX_CODE_POINTS).toBe(80);
     expect(PAUSE_LIMIT_MS).toBe(10 * 60_000);
     expect(BREAK_MS).toBe(5 * 60_000);
-    expect(SCHEMA_VERSION).toBe(1);
+    expect(HISTORY_SCHEMA_VERSION).toBe(1);
+    expect(SESSION_SCHEMA_VERSION).toBe(2);
+    expect(GHOST_MIN_SIZE).toBe(0.25);
+    expect(GHOST_FULL_SIZE_MS).toBe(5 * 60_000);
   });
 
   it("offers the presets 15, 25 and 50, all valid lengths", () => {

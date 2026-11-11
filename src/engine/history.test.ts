@@ -9,6 +9,7 @@ const session = (startedAt: number): Session => ({
   pausedTotalMs: 0,
   distractions: 0,
   timeAwayMs: 0,
+  awaySpansMs: [],
 });
 
 describe("entryOf", () => {

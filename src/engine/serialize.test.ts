@@ -122,7 +122,7 @@ describe("session serialization", () => {
 
   it("writes the documented lit format", () => {
     expect(JSON.parse(serializeSession(lit) ?? "")).toEqual({
-      v: 1,
+      v: 2,
       phase: "lit",
       session: {
         startedAt: T0,
@@ -131,8 +131,10 @@ describe("session serialization", () => {
         pausedTotalMs: 0,
         distractions: 0,
         timeAwayMs: 0,
+        awaySpansMs: [],
       },
       litSince: T0,
+      awaySince: null,
     });
   });
 
@@ -192,7 +194,7 @@ describe("restoreState", () => {
       "null",
       "[]",
       "123",
-      withDoc({ v: 2 }),
+      withDoc({ v: 3 }),
       withDoc({ v: undefined }),
       withDoc({ phase: "dancing" }),
       withDoc({ phase: undefined }),
@@ -260,5 +262,153 @@ describe("readSession status", () => {
     expect(readSession("{")).toEqual({ state: null, status: "unreadable" });
     expect(readSession('{"v":1,"phase":"lit"}')).toEqual({ state: null, status: "unreadable" });
     expect(readSession('{"v":9,"phase":"lit"}')).toEqual({ state: null, status: "unreadable" });
+  });
+});
+
+describe("session document version 2 (distraction-tracking)", () => {
+  /** Lit at T0 with two completed distractions (30 s and 65 s) and an open hide. */
+  const withGhosts = (): State => {
+    let s = step(INITIAL_STATE, LIGHT(25, "write the report"), T0);
+    s = step(s, { type: "hide" }, T0 + 1 * MIN);
+    s = step(s, { type: "show" }, T0 + 1 * MIN + 30_000);
+    s = step(s, { type: "hide" }, T0 + 3 * MIN);
+    s = step(s, { type: "show" }, T0 + 3 * MIN + 65_000);
+    return step(s, { type: "hide" }, T0 + 6 * MIN); // open
+  };
+
+  const doc = (s: State): Record<string, unknown> => JSON.parse(serializeSession(s) ?? "") as Record<string, unknown>;
+  const text = (d: Record<string, unknown>): string => JSON.stringify(d);
+  const withSession = (d: Record<string, unknown>, over: Record<string, unknown>): Record<string, unknown> => ({
+    ...d,
+    session: { ...(d["session"] as Record<string, unknown>), ...over },
+  });
+
+  it("writes version 2 with the spans and, for lit, the open hide", () => {
+    const d = doc(withGhosts());
+    expect(d).toMatchObject({
+      v: 2,
+      phase: "lit",
+      session: { distractions: 2, timeAwayMs: 95_000, awaySpansMs: [30_000, 65_000] },
+      awaySince: T0 + 6 * MIN,
+    });
+  });
+
+  it("round-trips a lit state with spans and an open hide", () => {
+    const s = withGhosts();
+    expect(restoreState(serializeSession(s), serializeHistory(s.history))).toStrictEqual(s);
+  });
+
+  it("round-trips spans through paused, burned-out and snuffed", () => {
+    const base = withGhosts();
+    const paused = step(base, { type: "pause" }, T0 + 7 * MIN); // closes and counts the open hide
+    const burned = step(base, { type: "tick" }, T0 + 40 * MIN);
+    const snuffed = step(base, { type: "snuff" }, T0 + 8 * MIN);
+    for (const s of [paused, burned, snuffed]) {
+      expect(s.phase === "idle" ? 0 : s.session.distractions).toBe(3);
+      expect(roundTrip(s)).toStrictEqual(s);
+      expect("awaySince" in doc(s)).toBe(false);
+    }
+  });
+
+  it("keeps an open hide open across a reload that settles nothing", () => {
+    const s = withGhosts();
+    const out = step(INITIAL_STATE, { type: "reload", state: roundTrip(s) }, T0 + 10 * MIN);
+    expect(out.phase === "lit" && out.awaySince).toBe(T0 + 6 * MIN);
+    expect(out).toStrictEqual(s);
+  });
+
+  it("closes an open hide at the true completion instant when the reload finds the candle done", () => {
+    const out = step(INITIAL_STATE, { type: "reload", state: roundTrip(withGhosts()) }, T0 + 90 * MIN);
+    expect(out.phase).toBe("burned-out");
+    expect(out.history[0]).toMatchObject({ distractions: 3, timeAwayMs: 95_000 + 19 * MIN });
+  });
+
+  describe("version 1 migration", () => {
+    const lit = step(INITIAL_STATE, LIGHT(25, "x"), T0);
+    const v1 = (s: State): string => {
+      const d = doc(s);
+      const session = { ...(d["session"] as Record<string, unknown>) };
+      delete session["awaySpansMs"];
+      const out: Record<string, unknown> = { ...d, v: 1, session };
+      delete out["awaySince"];
+      return text(out);
+    };
+
+    it("reads a version 1 lit document as a state with no spans and no open hide", () => {
+      expect(restoreState(v1(lit), null)).toStrictEqual(lit);
+    });
+
+    it("reads version 1 paused, burned-out and snuffed documents", () => {
+      const paused = step(lit, { type: "pause" }, T0 + 5 * MIN);
+      const snuffed = step(lit, { type: "snuff" }, T0 + MIN);
+      const burned = step(lit, { type: "tick" }, T0 + 25 * MIN);
+      for (const s of [paused, snuffed, burned]) {
+        expect(restoreState(v1(s), serializeHistory(s.history))).toStrictEqual(s);
+      }
+    });
+
+    it("reports version 1 text as ok, and writes version 2 afterwards", () => {
+      expect(readSession(v1(lit)).status).toBe("ok");
+      expect(doc(restoreState(v1(lit), null))["v"]).toBe(2);
+    });
+
+    it("rejects a version 1 document that claims distractions it has no spans for", () => {
+      const d = JSON.parse(v1(lit)) as Record<string, unknown>;
+      const bad = text(withSession(d, { distractions: 1, timeAwayMs: 5000 }));
+      expect(readSession(bad)).toEqual({ state: null, status: "unreadable" });
+      expect(restoreState(bad, null)).toStrictEqual(INITIAL_STATE);
+    });
+  });
+
+  describe("validation of the new fields", () => {
+    const s = withGhosts();
+    const d = doc(s);
+    const paused = doc(step(s, { type: "pause" }, T0 + 7 * MIN));
+
+    it("requires awaySpansMs in a version 2 document, even when there are no distractions", () => {
+      const session = { ...(d["session"] as Record<string, unknown>) };
+      delete session["awaySpansMs"];
+      expect(readSession(text({ ...d, session })).status).toBe("unreadable");
+      const none = doc(step(INITIAL_STATE, LIGHT(25), T0)); // zero distractions: [] and a missing list would otherwise agree
+      const noneSession = { ...(none["session"] as Record<string, unknown>) };
+      delete noneSession["awaySpansMs"];
+      expect(readSession(text({ ...none, session: noneSession })).status).toBe("unreadable");
+      expect(readSession(text({ ...none, v: 1, session: noneSession })).status).toBe("ok"); // version 1: absent means []
+    });
+
+    const bad: [string, Record<string, unknown>][] = [
+      ["a negative span", withSession(d, { awaySpansMs: [30_000, -1], timeAwayMs: 29_999 })],
+      ["a fractional span", withSession(d, { awaySpansMs: [30_000.5, 64_999.5] })],
+      ["a non-number span", withSession(d, { awaySpansMs: ["30000", 65_000] })],
+      ["spans that are not an array", withSession(d, { awaySpansMs: 95_000 })],
+      ["a span count that differs from distractions", withSession(d, { distractions: 3 })],
+      ["a span sum that differs from timeAwayMs", withSession(d, { timeAwayMs: 95_001 })],
+      ["awaySince on a paused document", { ...paused, awaySince: T0 + 6 * MIN }],
+      ["awaySince before litSince", { ...d, awaySince: T0 - 1 }],
+      ["awaySince at the completion instant", { ...d, awaySince: T0 + 25 * MIN }],
+      ["awaySince after the completion instant", { ...d, awaySince: T0 + 26 * MIN }],
+      ["a non-integer awaySince", { ...d, awaySince: T0 + 6 * MIN + 0.5 }],
+      ["a string awaySince", { ...d, awaySince: "soon" }],
+    ];
+
+    for (const [name, document] of bad) {
+      it(`falls back to idle with the history intact for ${name}`, () => {
+        const history = [entry()];
+        expect(readSession(text(document))).toEqual({ state: null, status: "unreadable" });
+        expect(() => restoreState(text(document), serializeHistory(history))).not.toThrow();
+        expect(restoreState(text(document), serializeHistory(history))).toStrictEqual({ phase: "idle", history });
+      });
+    }
+
+    it("accepts a missing or null awaySince on a lit document", () => {
+      const noKey = { ...d };
+      delete noKey["awaySince"];
+      expect(readSession(text(noKey)).status).toBe("ok");
+      expect(readSession(text({ ...d, awaySince: null })).status).toBe("ok");
+    });
+
+    it("accepts awaySince at litSince", () => {
+      expect(readSession(text({ ...d, awaySince: d["litSince"] })).status).toBe("ok");
+    });
   });
 });

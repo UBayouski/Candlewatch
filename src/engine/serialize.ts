@@ -1,4 +1,4 @@
-import { SCHEMA_VERSION } from "./constants";
+import { HISTORY_SCHEMA_VERSION, SESSION_SCHEMA_VERSION } from "./constants";
 import { appendEntry, entryOf } from "./history";
 import { isRecord, parseEntry, parseSessionDoc } from "./validate";
 import type { HistoryEntry, Session, State } from "./types";
@@ -18,7 +18,7 @@ function tryParse(json: string): { ok: true; value: unknown } | { ok: false } {
   }
 }
 
-function sessionFields(s: Session): Session {
+function sessionFields(s: Session) {
   return {
     startedAt: s.startedAt,
     lengthMin: s.lengthMin,
@@ -26,6 +26,7 @@ function sessionFields(s: Session): Session {
     pausedTotalMs: s.pausedTotalMs,
     distractions: s.distractions,
     timeAwayMs: s.timeAwayMs,
+    awaySpansMs: [...s.awaySpansMs],
   };
 }
 
@@ -36,21 +37,22 @@ export function serializeSession(state: State): string | null {
       return null;
     case "lit":
       return JSON.stringify({
-        v: SCHEMA_VERSION,
+        v: SESSION_SCHEMA_VERSION,
         phase: "lit",
         session: sessionFields(state.session),
         litSince: state.litSince,
+        awaySince: state.awaySince,
       });
     case "paused":
       return JSON.stringify({
-        v: SCHEMA_VERSION,
+        v: SESSION_SCHEMA_VERSION,
         phase: "paused",
         session: sessionFields(state.session),
         pausedAt: state.pausedAt,
       });
     case "burned-out":
       return JSON.stringify({
-        v: SCHEMA_VERSION,
+        v: SESSION_SCHEMA_VERSION,
         phase: "burned-out",
         session: sessionFields(state.session),
         endedAt: state.endedAt,
@@ -58,7 +60,7 @@ export function serializeSession(state: State): string | null {
       });
     case "snuffed":
       return JSON.stringify({
-        v: SCHEMA_VERSION,
+        v: SESSION_SCHEMA_VERSION,
         phase: "snuffed",
         session: sessionFields(state.session),
         endedAt: state.endedAt,
@@ -68,7 +70,7 @@ export function serializeSession(state: State): string | null {
 
 export function serializeHistory(history: readonly HistoryEntry[]): string {
   return JSON.stringify({
-    v: SCHEMA_VERSION,
+    v: HISTORY_SCHEMA_VERSION,
     entries: history.map((e) => ({
       startedAt: e.startedAt,
       endedAt: e.endedAt,
@@ -93,7 +95,7 @@ export function readHistory(json: string | null | undefined): {
   const parsed = tryParse(json);
   if (!parsed.ok) return { entries: [], status: "unreadable" };
   const doc = parsed.value;
-  if (!isRecord(doc) || doc["v"] !== SCHEMA_VERSION) return { entries: [], status: "unreadable" };
+  if (!isRecord(doc) || doc["v"] !== HISTORY_SCHEMA_VERSION) return { entries: [], status: "unreadable" };
   const raw = doc["entries"];
   if (!Array.isArray(raw)) return { entries: [], status: "unreadable" };
   const entries: HistoryEntry[] = [];

@@ -1,4 +1,5 @@
 import { MAX_LENGTH_MIN, MIN_LENGTH_MIN } from "./constants";
+import { closeHide, openHide } from "./distraction";
 import { normalizeIntent } from "./intent";
 import { endSnuffed, settle } from "./settle";
 import type { Event, LightEvent, LitState, PausedState, State } from "./types";
@@ -6,9 +7,10 @@ import type { Event, LightEvent, LitState, PausedState, State } from "./types";
 /**
  * The session engine: (state, event, now) -> state. Pure and DOM-free.
  * - A non-finite `now` returns the state unchanged; `now` is floored (R12.4).
- * - `hide` and `show` return the same reference and never settle (R8.2, R5.4).
  * - `tick` and `reload` only settle (R5.3, R9.2).
- * - Every other event settles first, then is handled in the settled phase (R5.4).
+ * - Every other event, `hide` and `show` included, settles first, then is handled in the
+ *   settled phase (R5.4; distraction-tracking R6.1).
+ * - `hide` opens a hide and `show` closes it, only while lit (distraction-tracking R1 to R3).
  * - An event that is not valid in the current phase returns the (settled) state (R1.3).
  */
 export function step(state: State, event: Event, now: number): State {
@@ -16,9 +18,6 @@ export function step(state: State, event: Event, now: number): State {
   const t = Math.floor(now);
 
   switch (event.type) {
-    case "hide":
-    case "show":
-      return state;
     case "reload":
       return isStateLike(event.state) ? settle(event.state, t) : state;
     case "tick":
@@ -37,6 +36,10 @@ export function step(state: State, event: Event, now: number): State {
       return s.phase === "paused" ? resume(s, t) : s;
     case "snuff":
       return s.phase === "lit" || s.phase === "paused" ? snuff(s, t) : s;
+    case "hide":
+      return s.phase === "lit" ? openHide(s, t) : s;
+    case "show":
+      return s.phase === "lit" ? closeHide(s, t) : s;
     default: {
       // Exhaustive at compile time; at run time an unknown event leaves the state alone (R12.2).
       const unreachable: never = event;
@@ -57,6 +60,7 @@ function light(s: State, e: LightEvent, t: number): State {
     phase: "lit",
     history: s.history,
     litSince: t,
+    awaySince: null,
     session: {
       startedAt: t,
       lengthMin: e.length,
@@ -64,12 +68,15 @@ function light(s: State, e: LightEvent, t: number): State {
       pausedTotalMs: 0,
       distractions: 0,
       timeAwayMs: 0,
+      awaySpansMs: [],
     },
   };
 }
 
 function pause(s: LitState, t: number): PausedState {
-  return { phase: "paused", history: s.history, session: s.session, pausedAt: Math.max(t, s.litSince) };
+  const pausedAt = Math.max(t, s.litSince); // the timer value; distractions never change it (R5.1)
+  const closed = closeHide(s, pausedAt); // an open hide is closed and counted at the pause instant (R7.1)
+  return { phase: "paused", history: s.history, session: closed.session, pausedAt };
 }
 
 function resume(s: PausedState, t: number): LitState {
@@ -79,6 +86,7 @@ function resume(s: PausedState, t: number): LitState {
     phase: "lit",
     history: s.history,
     litSince: at,
+    awaySince: null,
     session: { ...s.session, pausedTotalMs: s.session.pausedTotalMs + span },
   };
 }

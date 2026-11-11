@@ -10,10 +10,12 @@ export interface Session {
   readonly intent: string | null;
   /** Closed pause spans only, 0..PAUSE_LIMIT_MS. */
   readonly pausedTotalMs: number;
-  /** Field only (R8); always 0 in this spec. */
+  /** Number of completed distractions (distraction-tracking R4.2). */
   readonly distractions: number;
-  /** Field only (R8); always 0 in this spec. */
+  /** Total time away in ms: the sum of `awaySpansMs`. */
   readonly timeAwayMs: number;
+  /** Completed distraction spans in ms, oldest first (R9.1). Length equals `distractions`, sum equals `timeAwayMs`. */
+  readonly awaySpansMs: readonly number[];
 }
 
 export interface HistoryEntry {
@@ -40,6 +42,8 @@ export interface LitState extends WithHistory {
   readonly session: Session;
   /** Start of the current burning segment: startedAt, or the instant of the last resume. */
   readonly litSince: number;
+  /** Instant of the open hide (the page went hidden and has not come back yet), or null. */
+  readonly awaySince: number | null;
 }
 
 export interface PausedState extends WithHistory {

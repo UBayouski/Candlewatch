@@ -67,7 +67,7 @@ The session engine is the pure core of Candlewatch. It holds the life of one foc
 1. WHEN `tick` is received in `lit` and burn time has reached the session length, THE engine SHALL enter `burned-out` with the end time set to the instant of completion (start time plus total paused time plus length), not to `now`.
 2. WHEN `tick` is received in `paused` and the pause limit has been passed, THE engine SHALL enter `snuffed` as in R3.5.
 3. In every other case `tick` SHALL return the state unchanged, and it SHALL be safe to send any number of times (idempotent for a fixed `now`).
-4. Any event other than `tick`, `hide` and `show` that arrives after a session's completion instant or pause-limit instant but before the engine has seen it SHALL first settle the session (R5.1, R5.2) and then be handled in the settled phase. `hide` and `show` are exempt: they never settle and return the state unchanged (R8.2).
+4. Any event other than `tick` that arrives after a session's completion instant or pause-limit instant but before the engine has seen it SHALL first settle the session (R5.1, R5.2) and then be handled in the settled phase. `hide` and `show` settle like any other event (distraction-tracking R6.1).
 
 ### R6. Snuff
 
@@ -92,7 +92,7 @@ The session engine is the pure core of Candlewatch. It holds the life of one foc
 **User story:** As a future spec author, I want a place for distractions without the engine doing anything with them yet.
 
 1. The session state and each history entry SHALL include a distraction count (integer, starting at 0) and a total time away in ms (starting at 0).
-2. The engine SHALL accept `hide` and `show` events. In this spec they SHALL NOT change any field, including the timer, and SHALL return the state unchanged.
+2. The engine SHALL accept `hide` and `show` events. Their effect is specified by the `distraction-tracking` spec (R1 to R6): they settle first, count distractions only while `lit`, and never change the timer. (This replaces the earlier rule that they return the state unchanged.)
 3. Counting distractions is out of scope here and belongs to the `distraction-tracking` spec.
 
 ### R9. Reload recovery
@@ -145,7 +145,7 @@ Each property uses generated event sequences with non-decreasing (and, where sta
 | P6 | History serialize then deserialize is the identity, for generated histories with arbitrary intents. | R10.3 |
 | P7 | Total paused time never exceeds 10 minutes in a non-snuffed session; any session that would exceed it ends `snuffed` with end time at the limit instant. | R3.4, R3.5 |
 | P8 | Reload equivalence: serializing a running state, then `reload` at time T, equals feeding a `tick` at T to the original state. | R9.2, R9.3 |
-| P9 | `hide` and `show` never change state. | R8.2 |
+| P9 | Replaced by D1 and D5 of the `distraction-tracking` spec: `hide` and `show` now count distractions while lit and never change the timer. | R8.2 |
 | P10 | Every session that ends adds exactly one history entry; history length never decreases. | R10.1, R10.2 |
 | P11 | The break selector is true exactly when the phase is `burned-out` and `now` is earlier than `breakEndsAt`, for any event sequence. In every other phase it is false, and `breakEndsAt` is present only on `burned-out` states. | R7.1, R7.2, R7.4 |
 
@@ -161,3 +161,4 @@ Distraction counting and ghosts, the confirm dialog, keyboard bindings, renderin
 - **Q2. Intent limits:** trim, flatten line breaks, 80 characters, counted as Unicode code points so a surrogate pair (emoji) is never split. An example test covers it.
 - **Q3. Break model:** no new events and no sixth phase. On entering `burned-out` the state records `breakEndsAt` (end time plus 5 minutes). The break is in progress while `now < breakEndsAt`, via a pure selector. Skipping is lighting a new session at any time, or ignoring it. It cannot be paused, never enters history, and is never offered after `snuffed`. R7 rewritten, old R7.7 dropped, property P11 added.
 - **Q4. End time on late discovery:** confirmed. Ends are dated to the true instant, not the late `now`.
+- **Superseded by distraction-tracking:** `hide` and `show` settle like every other event except `tick` (R5.4 no longer exempts them), their effect is defined by that spec (R8.2 replaced), and P9 is replaced by its D1 and D5.

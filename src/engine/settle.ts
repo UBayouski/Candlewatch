@@ -1,26 +1,36 @@
 import { BREAK_MS } from "./constants";
+import { closeHide } from "./distraction";
 import { appendEntry, entryOf } from "./history";
 import { completionAt, pauseLimitAt } from "./time";
 import type { BurnedOutState, LitState, PausedState, SnuffedState, State } from "./types";
 
-/** Ends a lit session as burned-out at `end`, with its break window (R5.1, R7.1). */
+/**
+ * Ends a lit session as burned-out at `end`, with its break window (R5.1, R7.1).
+ * An open hide is closed and counted at `end`, the true completion instant, before
+ * the history entry is built (distraction-tracking R6.2, R7.1, R8.1).
+ */
 export function endBurnedOut(s: LitState, end: number): BurnedOutState {
+  const session = closeHide(s, end).session;
   return {
     phase: "burned-out",
-    session: s.session,
+    session,
     endedAt: end,
     breakEndsAt: end + BREAK_MS,
-    history: appendEntry(s.history, entryOf(s.session, end, "burned-out")),
+    history: appendEntry(s.history, entryOf(session, end, "burned-out")),
   };
 }
 
-/** Ends a lit or paused session as snuffed at `end` (R3.5, R6.1). */
+/**
+ * Ends a lit or paused session as snuffed at `end` (R3.5, R6.1). For a lit session an
+ * open hide is closed and counted at `end`; a paused session has none (distraction-tracking R6.5, R7.1).
+ */
 export function endSnuffed(s: LitState | PausedState, end: number): SnuffedState {
+  const session = s.phase === "lit" ? closeHide(s, end).session : s.session;
   return {
     phase: "snuffed",
-    session: s.session,
+    session,
     endedAt: end,
-    history: appendEntry(s.history, entryOf(s.session, end, "snuffed")),
+    history: appendEntry(s.history, entryOf(session, end, "snuffed")),
   };
 }
 
