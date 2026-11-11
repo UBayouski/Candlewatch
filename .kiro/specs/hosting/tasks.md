@@ -156,3 +156,23 @@ Property-based testing is not enabled for this spec (requirements R13.4). The mu
 ## Decisions
 
 See `design.md` section 13 (P1 to P10). P10, found by task 10: Render sets `Strict-Transport-Security` itself.
+
+## Task Dependency Graph
+
+```json
+{
+  "waves": [
+    { "id": 0, "tasks": ["1"] },
+    { "id": 1, "tasks": ["2"] },
+    { "id": 2, "tasks": ["3"] },
+    { "id": 3, "tasks": ["4", "5"] },
+    { "id": 4, "tasks": ["6", "7"] },
+    { "id": 5, "tasks": ["8"] },
+    { "id": 6, "tasks": ["9"] },
+    { "id": 7, "tasks": ["10"] },
+    { "id": 8, "tasks": ["11", "13"] },
+    { "id": 9, "tasks": ["12"] },
+    { "id": 10, "tasks": ["14"] }
+  ]
+}
+```

@@ -165,3 +165,23 @@ Build order note: the version constants and the type changes come first and fix 
 | D6 | 14 |
 | D7 | 15 |
 | D8 | 16 |
+
+## Task Dependency Graph
+
+```json
+{
+  "waves": [
+    { "id": 0, "tasks": ["1"] },
+    { "id": 1, "tasks": ["2", "4", "7"] },
+    { "id": 2, "tasks": ["3"] },
+    { "id": 3, "tasks": ["5", "8"] },
+    { "id": 4, "tasks": ["6", "9", "14", "16"] },
+    { "id": 5, "tasks": ["10"] },
+    { "id": 6, "tasks": ["11"] },
+    { "id": 7, "tasks": ["12"] },
+    { "id": 8, "tasks": ["13"] },
+    { "id": 9, "tasks": ["15"] },
+    { "id": 10, "tasks": ["17"] }
+  ]
+}
+```

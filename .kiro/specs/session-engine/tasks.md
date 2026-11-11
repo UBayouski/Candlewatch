@@ -201,3 +201,27 @@ Build order note: `history` comes before `settle` (task 3 before 4) because `set
 | P9 | 20 |
 | P10 | 21 |
 | P11 | 22 |
+
+## Task Dependency Graph
+
+```json
+{
+  "waves": [
+    { "id": 0, "tasks": ["1", "2"] },
+    { "id": 1, "tasks": ["3"] },
+    { "id": 2, "tasks": ["4"] },
+    { "id": 3, "tasks": ["5", "6", "7"] },
+    { "id": 4, "tasks": ["8"] },
+    { "id": 5, "tasks": ["9", "10", "23"] },
+    { "id": 6, "tasks": ["11"] },
+    { "id": 7, "tasks": ["12", "16", "17"] },
+    { "id": 8, "tasks": ["13", "19", "22"] },
+    { "id": 9, "tasks": ["14"] },
+    { "id": 10, "tasks": ["15"] },
+    { "id": 11, "tasks": ["18"] },
+    { "id": 12, "tasks": ["20"] },
+    { "id": 13, "tasks": ["21"] },
+    { "id": 14, "tasks": ["24"] }
+  ]
+}
+```
