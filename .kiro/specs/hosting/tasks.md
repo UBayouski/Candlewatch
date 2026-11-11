@@ -15,7 +15,7 @@ Build order note: the Blueprint comes before its tests (tasks 2 and 3 before 4),
 
 ## Tasks
 
-- [ ] 1. Confirm the `headers` block (design section 0)
+- [x] 1. Confirm the `headers` block (design section 0)
   - Most Render fields are already verified by a working sibling Blueprint (design section 0, Decision P7): `type: web`, `runtime: static`, `branch`, `autoDeployTrigger: commit`, the `&&` build chain, `staticPublishPath`, `NODE_VERSION: "22"`, no `plan`, no `routes`. Do not re-check them.
   - Confirm only these, from Render's Blueprint reference and static-site header documentation (from a session that can reach them, or from the owner's browser), or with Render's Blueprint validator if the CLI is available:
     1. The `headers` block syntax: a list of entries with `path`, `name` and `value`, and how `*` matches in `path` (does `/*` cover `/`; does `/assets/*` cover `/assets/x.js`; is a path without `*` an exact match).
@@ -25,21 +25,21 @@ Build order note: the Blueprint comes before its tests (tasks 2 and 3 before 4),
   - Requirements: R5.1, R5.4, R6.4. Properties: none.
   - Done when both items are answered or honestly marked unverified, section 2 matches, and `npm run verify` still passes.
 
-- [ ] 2. The Blueprint: service, build and publish
+- [x] 2. The Blueprint: service, build and publish
   - Create `render.yaml` at the repo root from design section 2, **without** the `headers` list yet: one `type: web`, `runtime: static` service named `candlewatch`, `branch: main`, `autoDeployTrigger: commit`, previews off, the exact build command, `staticPublishPath: dist`, and the two environment variables (`NODE_VERSION` with the value `"22"`, and `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD` with `"1"`). Write no `plan` field.
   - Do not add `plan`, `routes`, `repo`, a disk, a database or any other key.
   - Files: `render.yaml`.
   - Requirements: R1.1, R1.2, R1.3, R1.6, R2.1, R2.2, R3.1, R3.2, R3.4, R4.1, R7.1. Properties: none.
   - Done when `npm run verify` passes and the file is checked against the sibling Blueprint's shape (same field names and the same `NODE_VERSION` form), and, if task 1 used a validator, against that validator too (say which).
 
-- [ ] 3. The Blueprint: security and cache headers
+- [x] 3. The Blueprint: security and cache headers
   - Add the `headers` list from design sections 2 and 5 to `render.yaml`: the eight security headers on `/*`, and `Cache-Control` on `/assets/*`, `/` and `/index.html`. `/*` must not set `Cache-Control` (R6.4). Quote the CSP value.
   - Apply any change task 1 found for how header rules are matched or merged.
   - Files: `render.yaml`.
   - Requirements: R5.1, R5.2, R5.5, R6.1, R6.2, R6.3, R6.4. Properties: none.
   - Done when `npm run verify` passes.
 
-- [ ] 4. Blueprint parser and the configuration test
+- [x] 4. Blueprint parser and the configuration test
   - Run `npm view yaml version`, then `npm install --save-exact --save-dev yaml@<that version>`, and commit the lock file change (Decision P3, accepted).
   - Create `src/hosting/blueprint.ts` (test-only, never imported by shipped code): `readBlueprint()` reads `render.yaml` from the repo root and parses it; `headersFor(blueprint, pathname)` returns every header whose `path` matches, using the matching rule verified in task 1.
   - Create `src/hosting/render-blueprint.test.ts` with the assertions in design 6.2: the service fields; `plan` absent; `NODE_VERSION` exactly `"22"`; no extra top-level keys; the exact build command and its absences (`verify`, `e2e`, `playwright`, `||`); exactly the two environment variables with no `sync: false` and no secret-looking name or value; the exact security header table; the cache rules; at most one `Cache-Control` rule per sample path; a CSP made only of `'self'` and `'none'` with no `unsafe-*` and no `*`; no `routes`.
@@ -49,7 +49,7 @@ Build order note: the Blueprint comes before its tests (tasks 2 and 3 before 4),
   - Requirements: R8.1, R8.4, R8.5, R5.5. Properties: none.
   - Done when `npm run verify` passes and every mutation was caught.
 
-- [ ] 5. The "static only" source scan
+- [x] 5. The "static only" source scan
   - Create `src/hosting/static-only.test.ts` from design 6.2: scan the non-test `.ts`, `.css` and `.html` files under `src/` (excluding `src/hosting/`) and `index.html` for `fetch(`, `XMLHttpRequest`, `WebSocket`, `sendBeacon`, `EventSource`, `importScripts`, and any `http://` or `https://` that is not `http://www.w3.org/2000/svg`. The scan does not strip comments.
   - Example tests prove the scanner: a string containing each forbidden word is caught; the SVG namespace alone is not.
   - Mutation check: add a `fetch("/x")` call to a scratch copy in the test's own fixture string (not to real source) and confirm the scan reports it. No shipped file is edited.
@@ -57,7 +57,7 @@ Build order note: the Blueprint comes before its tests (tasks 2 and 3 before 4),
   - Requirements: R1.4, R8.2. Properties: none.
   - Done when `npm run verify` passes. If the scan finds something real in shipped source, stop and report it; do not edit the source in this spec.
 
-- [ ] 6. The smoke test and its config
+- [x] 6. The smoke test and its config
   - Create `playwright.live.config.ts` (design 7.1): `testDir: "e2e"`, `testMatch: "live.spec.ts"`, `retries: 0`, `use.baseURL = process.env.BASE_URL ?? "https://candlewatch.onrender.com"`, no `webServer`. Leave `playwright.config.ts` unchanged.
   - Add the script `"smoke": "playwright test --config playwright.live.config.ts"` to `package.json`.
   - Create `e2e/live.spec.ts` with groups A, B and C from design 7.2. Group A runs on any base URL. Groups B and C skip themselves when the base URL host is `localhost` or `127.0.0.1`, with a skip message that says why. Group B reads the expected headers with `readBlueprint()` and `headersFor()` from task 4 (the e2e file may import from `../src/hosting/blueprint`; the existing `e2e/fixtures-imports.spec.ts` proves Playwright resolves such imports). All requests are GET or HEAD.
@@ -67,7 +67,7 @@ Build order note: the Blueprint comes before its tests (tasks 2 and 3 before 4),
   - Requirements: R9.1 to R9.7. Properties: none.
   - Done when `npm run verify` passes.
 
-- [ ] 7. The local header test
+- [x] 7. The local header test
   - Create `e2e/headers-local.spec.ts` from design 6.2: route every request through `page.route`, add `headersFor(readBlueprint(), pathname)` to each response, and fulfil it. Install a `securitypolicyviolation` recorder before load.
   - Case 1: a fresh page draws the idle scene (`data-flame="unlit"`, `--wax-height` 1), with no violation, no console error and no failed request, and the real hashed script and `/` carry the cache values from the Blueprint.
   - Case 2: seed a lit session with the existing helpers in `e2e/scene-fixtures.ts` (built with `serializeSession`, never hand-written JSON) and confirm `data-flame="steady"`. This exercises `style.setProperty` and animation frames under the policy.
@@ -77,7 +77,7 @@ Build order note: the Blueprint comes before its tests (tasks 2 and 3 before 4),
   - Requirements: R5.3, R5.5, R8.3, R8.4. Properties: none.
   - Done when `npm run verify` passes.
 
-- [ ] 8. Dry-run the exact Render build
+- [x] 8. Dry-run the exact Render build
   - In a clean copy of the repo (`git worktree` or a fresh clone in a temporary folder, never in the working tree), run with a Node 22 (the Blueprint says `"22"`, the major only; record the exact version that ran): `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm ci && npm run check && npm test && npm run build`.
   - Confirm: no browser download happened (no "Downloading" lines, nothing new under the Playwright browser cache); `dist/` holds `index.html` and `assets/` with hashed names and nothing else (list it); every `assets/` file name contains a hash (R6.5); the whole command exits 0. Record the time of each step and the number of unit tests (R3.6).
   - Then break each of `check`, `test` and `build` on purpose in the clean copy (one type error, one failing test, one missing import), confirm the command exits non-zero at that step and later steps do not run, and discard the copy.
