@@ -1,0 +1,206 @@
+/* The candle scene (candle-scene design sections 5, 7 and 8).
+   The renderer writes only custom properties and data attributes on .candle-scene;
+   everything below turns those numbers into shapes. Room units: the stage is 600 x 1000,
+   the floor line is y = 900, the candle is 420 tall at full height. */
+
+html,
+body {
+  margin: 0;
+  overflow: hidden;
+  background: #05070d;
+}
+
+/* The placeholder heading and tagline stay readable by screen readers but are not seen (design 10.1). */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.candle-scene {
+  /* --- palette (design 7.1) --- */
+  --room-night: #05070d;
+  --room-bg-darkest: #05070d; /* handoff (R7.7): the darkest room background */
+  --room-bg-brightest: #566683; /* handoff (R7.7): the brightest room background */
+  --zone-bg-darkest: #080b12; /* handoff (R7.8): the time-text zone at rest */
+  --zone-bg-brightest: #4b4358; /* handoff (R7.8): the time-text zone at dawn */
+  --wall-top: #14192a;
+  --wall-low: #3a2a1c;
+  --wax-ivory: #efe6cf;
+  --wax-shade: #cfc2a2;
+  --wick: #1b1510;
+  --flame-amber-outer: #ff9b2f;
+  --flame-amber-mid: #ffc25a;
+  --flame-core: #ffe9b0;
+  --flame-blue-outer: #4b86e8;
+  --flame-blue-core: #cfe3ff;
+  --halo: #ffb347;
+  --smoke-colour: #8a93a6;
+  --ember: #ff7a2e;
+  --window-night: #233152;
+  --window-dawn: #566683;
+  --dawn-cool: #4a5a78;
+  --dawn-warm: #5a4a52;
+  --dawn-alpha: 0.85;
+
+  /* --- what the renderer writes (defaults for the instant before the first model) --- */
+  --wax-height: 1;
+  --drips: 0;
+  --flame-height: 0;
+  --flame-blue: 0;
+  --flame-ragged: 0;
+  --flame-glow: 0;
+  --smoke: 0;
+  --stub: 0;
+  --light-radius: 0.2;
+  --dawn: 0;
+  --cooling: 0;
+  --flicker-lean: 0;
+  --flicker-height: 0;
+  --flicker-glow: 0;
+
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: var(--room-night);
+}
+
+.candle-scene svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* --- gradient stops --- */
+.st-wall-top { stop-color: var(--wall-top); }
+.st-wall-low { stop-color: var(--wall-low); }
+.st-dawn-top { stop-color: var(--dawn-cool); stop-opacity: var(--dawn-alpha); }
+.st-dawn-low { stop-color: var(--dawn-warm); stop-opacity: var(--dawn-alpha); }
+.st-wax-shade { stop-color: var(--wax-shade); }
+.st-wax-ivory { stop-color: var(--wax-ivory); }
+.st-flame-core { stop-color: var(--flame-core); }
+.st-amber-mid { stop-color: var(--flame-amber-mid); }
+.st-amber-outer { stop-color: var(--flame-amber-outer); }
+.st-blue-core { stop-color: var(--flame-blue-core); }
+.st-blue-outer { stop-color: var(--flame-blue-outer); }
+.st-halo-in { stop-color: var(--halo); stop-opacity: 0.6; }
+.st-halo-out { stop-color: var(--halo); stop-opacity: 0; }
+.st-ember-in { stop-color: var(--ember); stop-opacity: 1; }
+.st-ember-out { stop-color: var(--ember); stop-opacity: 0; }
+
+/* --- the room --- */
+.night { fill: var(--room-night); }
+
+/* The light pool: moved down the candle with the flame and scaled by the light radius.
+   Constant intensity: it shows progress only, by its radius. */
+.pool {
+  transform: translate(300px, calc(400px + (1 - var(--wax-height)) * 420px)) scale(var(--light-radius));
+}
+
+.window-rest { fill: var(--window-night); }
+.window-dawn { fill: var(--window-dawn); opacity: var(--dawn); }
+.dawn-wash { opacity: var(--dawn); }
+
+/* --- the candle: height is exactly 420 * wax-height, the stub only after the end --- */
+.body {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  transform: scaleY(var(--wax-height));
+}
+.stub { opacity: var(--stub); }
+
+.head {
+  transform: translateY(calc((1 - var(--wax-height)) * 420px));
+}
+.rim { fill: var(--wax-shade); }
+.melt { fill: var(--wax-ivory); opacity: 0.85; }
+.wick { fill: var(--wick); }
+
+.drip {
+  fill: none;
+  stroke: var(--wax-shade);
+  stroke-width: 7;
+  stroke-linecap: round;
+  transform-box: fill-box;
+  transform-origin: 50% 0%;
+}
+.drip-1 { transform: scaleY(clamp(0, calc(var(--drips) - 0), 1)); }
+.drip-2 { transform: scaleY(clamp(0, calc(var(--drips) - 1), 1)); }
+.drip-3 { transform: scaleY(clamp(0, calc(var(--drips) - 2), 1)); }
+
+/* --- the flame --- */
+.flame-flicker {
+  transform-origin: 300px 460px;
+  transform: rotate(calc(var(--flicker-lean) * 1deg)) scaleY(calc(1 + var(--flicker-height)));
+}
+.flame-shape {
+  transform-origin: 300px 460px;
+  transform: scale(var(--flame-height));
+}
+.flame-amber { opacity: calc(1 - var(--flame-blue)); }
+.flame-blue { opacity: var(--flame-blue); }
+.flame .teardrop { opacity: calc(1 - var(--flame-ragged)); }
+.flame .ragged { opacity: var(--flame-ragged); }
+.flame-amber .core { fill: var(--flame-core); }
+.flame-blue .core { fill: var(--flame-blue-core); }
+
+.halo {
+  opacity: clamp(0, calc(var(--flame-glow) + var(--flicker-glow)), 1);
+  transform-origin: 300px 410px;
+  transform: scale(calc(0.5 + 0.5 * clamp(0, calc(var(--flame-glow) + var(--flicker-glow)), 1)));
+}
+
+.smoke-wisp {
+  fill: none;
+  stroke: var(--smoke-colour);
+  stroke-width: 3;
+  stroke-linecap: round;
+  opacity: var(--smoke);
+}
+.ember { opacity: var(--cooling); }
+
+/* --- the zone: the reserved time-text band below the floor line --- */
+.zone-rest { fill: var(--zone-bg-darkest); }
+.zone-dawn { fill: var(--zone-bg-brightest); opacity: var(--dawn); }
+
+/* --- easing and motion, only after the first paint (design 6.5) --- */
+.candle-scene[data-settled="true"][data-animate-drips="true"] .drip {
+  transition: transform 3.5s ease-in;
+}
+.candle-scene[data-settled="true"][data-ease="true"] .flame-shape {
+  transition: transform 500ms ease;
+}
+.candle-scene[data-settled="true"][data-ease="true"] .ember {
+  transition: opacity 800ms ease;
+}
+.candle-scene[data-settled="true"][data-ease="true"] .window-dawn,
+.candle-scene[data-settled="true"][data-ease="true"] .dawn-wash,
+.candle-scene[data-settled="true"][data-ease="true"] .zone-dawn {
+  transition: opacity 3s ease;
+}
+.candle-scene[data-settled="true"][data-animate-smoke="true"] .smoke-wisp {
+  transform-origin: 300px 456px;
+  animation: cw-sway 7s ease-in-out infinite alternate;
+}
+
+@keyframes cw-sway {
+  from { transform: rotate(-3deg); }
+  to { transform: rotate(3deg); }
+}
+
+/* --- reduced motion: the still version, even before the first model is applied (R9.5) --- */
+@media (prefers-reduced-motion: reduce) {
+  .candle-scene,
+  .candle-scene * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
