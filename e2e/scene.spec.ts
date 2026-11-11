@@ -195,6 +195,9 @@ test.describe("the time-text zone stays clear of flame, halo and light pool (F5)
     test(title, async ({ browser }) => {
       const scene = await openScene(browser, fixture, { viewport: VIEWPORTS[size], reducedMotion });
       try {
+        // The interface draws the time text and the status line in this zone (controls-and-access R15.2): hide it, so the test
+        // keeps checking the scene's own pixels.
+        await scene.page.addStyleTag({ content: "#ui { visibility: hidden; }" });
         const dawn = ["burned-out", "burned-out-after-break", "lit-past-completion"].includes(fixture.name);
         const colour = await paletteColour(scene.page, dawn ? "--zone-bg-brightest" : "--zone-bg-darkest");
         const area = await boxOf(scene.page, ".zone-text-area");

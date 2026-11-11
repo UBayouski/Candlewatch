@@ -10,7 +10,7 @@ Candlewatch is a static site on Render's free tier: https://candlewatch.onrender
 
 It has no accounts, no tracking and no server. It is rebuilt and redeployed from `main` on every push. To check the live site, run `npm run smoke`.
 
-**What you will see today:** the candle scene, with an unlit candle in a dark room. There are no controls yet, so you cannot light it. See Status below.
+**What you will see today:** a dark room with an unlit candle, a length chooser (15, 25, 50 or a custom 5 to 90 minutes), an optional one-line intent, and a Light button. Light a focus session, pause and resume it, and let it go dark, with the keyboard (Enter, Space, Esc) or by touch. No ghosts, graveyard, shelf or sound yet. See Status below.
 
 ## The rule
 
@@ -31,14 +31,15 @@ It has no accounts, no tracking and no server. It is rebuilt and redeployed from
 Built and tested:
 
 - A pure session engine (`src/engine/`), with serialization and validation, and a storage adapter (`src/storage/`).
-- Distraction tracking: the engine counts each time the page goes hidden and comes back, and `src/distraction/` turns the Page Visibility API into events. It is not connected to the page yet.
+- Distraction tracking: the engine counts each time the page goes hidden and comes back, and `src/distraction/` turns the Page Visibility API into events. The page now sends them to the engine, but nothing is drawn for them yet.
+- The controls (`src/ui/`): choose a length, add an intent, Light, Pause and Resume, "Let it go dark" with a confirm that starts on "Keep burning", and a settings panel. The time left is shown as text, with a status line under it, and a live region speaks the state changes. A pure layer decides everything (key map, state machine, view model, layout, announcements) and is property-tested; a thin DOM layer draws it.
 - The candle scene (`src/scene/`): the room, the candle with wax height and a drip at each quarter, the flame in its five looks, the pool of light, the dawn and the break glow, with a still version for reduced motion. Screenshots of every state are in `docs/screenshots/`.
 - Hosting: a Blueprint (`render.yaml`) with security and cache headers, tests that keep it honest, and a smoke test for the live site.
 - Unit tests and property-based tests for the engine and the scene, and end-to-end tests with a faked clock.
 
-**What a visitor sees today:** the candle scene draws, but it is always an unlit candle. The page has no buttons, no keyboard controls, no timer text and no sound, so a session cannot be started from the page. The scene does show a session that is already stored in the browser, which is how the end-to-end tests and the screenshots reach each state.
+**What a visitor sees today:** they can light a focus session, watch the candle burn down with the time left in text, pause and resume it, and let it go dark, by keyboard or touch. A session survives a reload. When it ends, the room fills with early light and "Light another" appears.
 
-Not built yet: the controls (choosing a length, Light, pause, snuff, settings and the time text; the spec is written, the code is not), ghosts, the graveyard and the shelf, sound, and the page-title countdown. The table above describes the finished app, not the page that is live today.
+Not built yet: ghosts (the page counts distractions but draws none), the graveyard and the shelf, sound, and the page-title countdown. The end-to-end tests for the controls and their new screenshots are still to come. The table above describes the finished app: the candle, flame, light and dawn rows are live today; the ghosts, graveyard and shelf rows are not.
 
 ## Quick start
 
@@ -73,7 +74,7 @@ Scripts from `package.json`:
 Kiro wrote most of this repo from the brief in `docs/BRIEF.md`.
 
 - **Steering.** `.kiro/steering/` holds `product.md`, `tech.md` and `structure.md`. They are always loaded. `scene.md` loads only when work touches `src/scene/**` or CSS.
-- **Specs.** `.kiro/specs/` has requirements, design and tasks for `session-engine`, `distraction-tracking`, `candle-scene`, `controls-and-access` and `hosting`. The first three are built, and so is `hosting` apart from two dated smoke checks that are still to be run. `controls-and-access` is written but not built. `ghosts-and-graveyard` and `sound-and-title` are not written yet.
+- **Specs.** `.kiro/specs/` has requirements, design and tasks for `session-engine`, `distraction-tracking`, `candle-scene`, `controls-and-access` and `hosting`. The first three are built, and so is `hosting` apart from two dated smoke checks that are still to be run. `controls-and-access` is built in code (the pure modules, the DOM layer and the stylesheet) but its end-to-end tests and screenshots are not done. `ghosts-and-graveyard` and `sound-and-title` are not written yet.
 - **Hooks.** One runs `npm test` when a file under `src/` is saved. One runs `npm run check` when the agent stops. One plays a chime when the agent stops.
 - **MCP.** `.kiro/settings/mcp.json` configures the Playwright MCP server. It is used to look at the scene in a real browser and to capture screenshots.
 - **Custom agent.** `costume-reviewer` is a read-only agent. It checks scene changes against the table above. It has reviewed the finished scene.

@@ -556,7 +556,7 @@ What the check shows about the requirements:
 | `lit`, `paused` | the time left, e.g. `12:31` | `formatTime(timeLeftMs(state, now))` |
 | `burned-out`, `snuffed` | `00:00` | `formatTime(0)` |
 
-- The element is `div#time[role="timer"]`. `role="timer"` has an implicit `aria-live="off"`, so a screen reader reads it when visited and does not read it every second (R9.1). Its text is the digits; the words come from the live region and the T key.
+- The element is `div#time[role="timer"]`. `role="timer"` has an implicit `aria-live="off"`, so a screen reader reads it when visited and does not read it every second (R9.1). Its text is the digits. It also carries an `aria-label` with the spoken form from the view model (`timeWords`, for example "12 minutes 31 seconds left"; none for an invalid custom length). The label sits on the same `role="timer"` element and it is not a live region, so changing it every second announces nothing; the announcements still come from the live region and the T key.
 - It lies in the text area (6.5), is `timeSize` px high (36 compact; 32 to 44 wide, by the zone height, 6.3), bold, with `font-variant-numeric: tabular-nums` so digits do not jitter, and uses `--ui-text` (ivory).
 - It is written only when the string changes (`apply` compares), which is once a second in a running session and never in a paused one.
 - It is the same value the page title will show; `sound-and-title` calls `formatTime`.

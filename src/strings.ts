@@ -90,7 +90,6 @@ export const STRINGS = {
     limit: "Only the first {max} characters are kept.",
   },
   region: {
-    setup: "Light a candle",
     watch: "The watch",
   },
 } as const;

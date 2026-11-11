@@ -9,8 +9,8 @@ import { fill } from "./format";
 const UI_DIR = dirname(fileURLToPath(import.meta.url));
 const SRC_DIR = join(UI_DIR, "..");
 
-/** Turn on in task 24, when the DOM layer exists: then every new key must be used by some file in src/ui/. */
-const ENFORCE_ALL_USED = false;
+/** On since task 24, when the DOM layer exists: every new key must be used by some file in src/ui/. */
+const ENFORCE_ALL_USED = true;
 
 /** Groups of keys that other specs own and that this spec's files need not use. */
 const NOT_THIS_SPEC = new Set(["title", "tagline", "scene"]);
