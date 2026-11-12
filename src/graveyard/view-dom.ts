@@ -34,12 +34,12 @@ import type { HistoryEntry, State } from "../engine";
 import { STRINGS } from "../strings";
 import { stageBox } from "../ui/layout";
 import type { KeyDescriptor } from "../ui/keys";
-import { cardStep, NO_CARD } from "./card";
+import { cardMarker, cardStep, NO_CARD } from "./card";
 import type { CardInput, CardState } from "./card";
 import type { DayKeyFn } from "./days";
 import { navigate, NO_MEMORY, remember, tabStops } from "./focus";
 import type { FocusMemory, GroupId } from "./focus";
-import { COUNT_LINE_Y, DOOR_RECT, EMPTY_LINE_Y, LABEL_Y, PANEL_FADE, PANEL_RECT, placeCard } from "./geometry";
+import { CARD_RIM_PX, COUNT_LINE_Y, DOOR_RECT, EMPTY_LINE_Y, LABEL_Y, PANEL_FADE, PANEL_RECT, TEXT_LINE_H, placeCard } from "./geometry";
 import type { Rect } from "./geometry";
 import { graveKeyAction } from "./keys";
 import type { GraveKeyContext } from "./keys";
@@ -78,7 +78,7 @@ export interface Graveyard {
 
 // The backdrop: the opaque core and its fading margin above and to the sides (D18).
 const BACKDROP_RECT: Rect = { x: PANEL_RECT.x - PANEL_FADE, y: PANEL_RECT.y - PANEL_FADE, w: PANEL_RECT.w + 2 * PANEL_FADE, h: PANEL_RECT.h + PANEL_FADE };
-const LINE = { x: 20, w: 560, h: 22 } as const;
+const LINE = { x: 20, w: 560, h: TEXT_LINE_H } as const;
 
 const IDS = {
   section: "graveyard",
@@ -192,6 +192,8 @@ export function createGraveyard(root: HTMLElement, hooks: GraveyardHooks): Grave
   let builtHistory: readonly HistoryEntry[] | null = null;
   let builtDayKeyOf: DayKeyFn | null = null;
   let cardShownId: string | null = null;
+  /** The id of the item that carries the marker of the open card (D22), or null. */
+  let markedId: string | null = null;
   /** CSS px per room unit, from the last `apply` (the card is measured in px and placed in units). */
   let scale = 1;
   const items = new Map<string, ItemRef>();
@@ -211,7 +213,17 @@ export function createGraveyard(root: HTMLElement, hooks: GraveyardHooks): Grave
     return ref !== undefined && ref.el === el ? ref : null;
   };
 
+  /** The marker of the open card (D22): the ivory ring on the item the card describes, in every input mode; one item at most. */
+  const renderMarker = (): void => {
+    const next = cardMarker(cardState, new Set(items.keys()));
+    if (next === markedId) return;
+    if (markedId !== null) items.get(markedId)?.el.removeAttribute("data-card-open");
+    if (next !== null) items.get(next)?.el.setAttribute("data-card-open", "");
+    markedId = next;
+  };
+
   const renderCard = (): void => {
+    renderMarker();
     const id = cardState.shown;
     const ref = id === null ? undefined : items.get(id);
     if (id === null || ref === undefined) {
@@ -223,12 +235,16 @@ export function createGraveyard(root: HTMLElement, hooks: GraveyardHooks): Grave
       cardShownId = id;
       card.replaceChildren(...ref.lines.map((line) => make(doc, "span", { class: "card-line" }, line)));
       setHidden(card, false);
+      card.style.removeProperty("--h"); // measure the content, not the size a previous placement set
+      card.style.removeProperty("--w");
       // The card is sized by its content (D16): measure it, in units, and place it beside its item, off the other Group's label
       // when one side allows.
       const box = card.getBoundingClientRect();
       const size = { w: box.width / scale, h: box.height / scale };
-      const avoid: Rect = { ...LINE, y: ref.group === "graveyard" ? LABEL_Y.shelf : LABEL_Y.stones };
-      place(card, placeCard(ref.rect, size, avoid));
+      // The labels to keep clear of, grown by the card's rim, so the rim never cuts into a label's text (D16).
+      const rim = CARD_RIM_PX / scale;
+      const avoid: Rect[] = [LABEL_Y.stones, LABEL_Y.shelf].map((y) => ({ ...LINE, y: y - rim, h: LINE.h + 2 * rim }));
+      place(card, placeCard(ref.rect, size, avoid), true);
     }
     setHidden(card, false);
   };

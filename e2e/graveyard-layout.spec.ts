@@ -198,6 +198,13 @@ for (const { name, history } of HISTORIES) {
           expect(inside(card, seen.panel), `card of ${id} inside the panel`).toBe(true);
           expect(inside(card, vp), `card of ${id} inside the viewport`).toBe(true);
           if (seen.settings !== null) expect(overlaps(card, seen.settings, 0.5), `card of ${id} and Settings`).toBe(false);
+          // The card with its rim never cuts into a label's text: each label's drawn text is either clear of it or wholly under it (D16).
+          const rimmed = { x: card.x - CARD_RIM_PX, y: card.y - CARD_RIM_PX, w: card.w + 2 * CARD_RIM_PX, h: card.h + 2 * CARD_RIM_PX };
+          for (const t of seen.ink.filter((x) => x.label.startsWith("label"))) {
+            const clear = !overlaps(rimmed, t.rect, 0);
+            const under = inside(t.rect, rimmed, 0);
+            expect(clear || under, `card of ${id} cuts into ${t.label}`).toBe(true);
+          }
         }
         expect(await scrolls(page), "no scroll with a card shown").toBe(false);
         expect(app.errors).toEqual([]);

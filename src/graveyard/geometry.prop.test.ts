@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { DRIFT_UNITS, GHOST_BOX, GHOST_SLOTS } from "../ghosts/slots";
 import { FLOOR_UNITS, KEEP_CLEAR_COLUMN_UNITS, stageBox } from "../ui/layout";
 import {
+  TEXT_LINE_H,
   CARD_BOUNDS,
   CARD_RIM_PX,
   CARD_GAP,
@@ -43,45 +44,55 @@ function intersects(a: Rect, b: Rect): boolean {
 }
 
 /** Full-width text line, 22 high, at y (L7). */
-const textLine = (y: number): Rect => ({ x: 20, y, w: 560, h: 22 });
+const textLine = (y: number): Rect => ({ x: 20, y, w: 560, h: TEXT_LINE_H });
 
-/** The other Group's label, which a card keeps clear of where the space allows (D16). */
-const otherLabel = (item: Rect): Rect => textLine(item.y >= 463 ? LABEL_Y.stones : LABEL_Y.shelf);
-
+/** The two group labels: a card never cuts through either (D16). */
+const LABELS: readonly Rect[] = [textLine(LABEL_Y.stones), textLine(LABEL_Y.shelf)];
 const insideBounds = (c: Rect): boolean => c.y >= CARD_BOUNDS.top && c.y + c.h <= CARD_BOUNDS.bottom && c.x >= CARD_BOUNDS.left && c.x + c.w <= CARD_BOUNDS.right;
+const clearOfAll = (c: Rect, labels: readonly Rect[]): boolean => labels.every((a) => !intersects(c, a));
 
 /** All the Property 16 checks for one item and one measured card size (R5.10, R5.11, L10 as amended by D16). */
-function checkItem(item: Rect, size: { w: number; h: number }, avoid: Rect | null): void {
-  const card = placeCard(item, size, avoid);
-  expect(card.w).toBe(Math.min(size.w, CARD_MAX.w));
-  expect(card.h).toBe(Math.min(size.h, CARD_MAX.h));
+function checkItem(item: Rect, size: { w: number; h: number }, labels: readonly Rect[]): void {
+  const card = placeCard(item, size, labels);
+  const w = Math.min(size.w, CARD_MAX.w);
+  const h = Math.min(size.h, CARD_MAX.h);
+  // The measured size; larger only when the card is lengthened to cover a label whole.
+  if (clearOfAll(card, labels)) expect([card.w, card.h]).toEqual([w, h]);
+  else {
+    expect(card.w).toBeGreaterThanOrEqual(w);
+    expect(card.h).toBeGreaterThanOrEqual(h);
+  }
   expect(intersects(card, item)).toBe(false);
   expect(gap(card, item)).toBeGreaterThanOrEqual(CARD_GAP);
   // The card and its rim never cover the item's focus ring, at the smallest scale (D16).
   expect(gap(card, item) * 0.6).toBeGreaterThanOrEqual(RING_PX + CARD_RIM_PX);
   expect(insideBounds(card), JSON.stringify(card)).toBe(true);
-  // One of the two sides, CARD_GAP from the item.
-  const above = card.y + card.h === item.y - CARD_GAP;
-  const below = card.y === item.y + item.h + CARD_GAP;
-  expect(above || below).toBe(true);
-  // When a side inside the bounds keeps clear of the other Group's label, the card is on such a side.
-  if (avoid !== null) {
-    const sides = [
-      { ...card, y: item.y - CARD_GAP - card.h },
-      { ...card, y: item.y + item.h + CARD_GAP },
-    ];
-    if (sides.some((c) => insideBounds(c) && !intersects(c, avoid))) expect(intersects(card, avoid)).toBe(false);
+  // Above or below the item, wholly: the card never lies beside it.
+  const aboveIt = card.y + card.h <= item.y - CARD_GAP;
+  const belowIt = card.y >= item.y + item.h + CARD_GAP;
+  expect(aboveIt || belowIt).toBe(true);
+  // When one of the two plain sides fits and meets no label, the card meets no label.
+  const plain = [
+    { x: card.x, y: item.y - CARD_GAP - h, w, h },
+    { x: card.x, y: item.y + item.h + CARD_GAP, w, h },
+  ];
+  if (labels.length > 0 && plain.some((c) => insideBounds({ ...c, x: CARD_BOUNDS.left }) && clearOfAll(c, labels))) expect(clearOfAll(card, labels)).toBe(true);
+  // A card never cuts through a label: each label it meets lies under it whole, top to bottom and from the label's start.
+  for (const a of labels) {
+    if (!intersects(card, a)) continue;
+    expect(card.y, `covers ${JSON.stringify(a)} from the top`).toBeLessThanOrEqual(a.y);
+    expect(card.y + card.h).toBeGreaterThanOrEqual(a.y + a.h);
+    expect(card.x).toBeLessThanOrEqual(Math.max(a.x, CARD_BOUNDS.left));
   }
 }
-
 const arbSize = fc.record({ w: fc.integer({ min: 1, max: 700 }), h: fc.integer({ min: 1, max: 400 }) });
 
 describe("Feature: ghosts-and-graveyard, Property 16: The card never covers its item and stays on the stage", () => {
   it("covers the whole finite domain of items at the largest size, with and without a label to avoid", () => {
     expect(ITEMS).toHaveLength(22);
     for (const item of ITEMS) {
-      checkItem(item, CARD_MAX, null);
-      checkItem(item, CARD_MAX, otherLabel(item));
+      checkItem(item, CARD_MAX, []);
+      checkItem(item, CARD_MAX, LABELS);
     }
   });
 
@@ -89,7 +100,7 @@ describe("Feature: ghosts-and-graveyard, Property 16: The card never covers its 
     fc.assert(
       fc.property(fc.integer({ min: 0, max: ITEMS.length - 1 }), arbSize, fc.boolean(), (index, size, avoidIt) => {
         const item = ITEMS[index] ?? stoneRect(0);
-        checkItem(item, size, avoidIt ? otherLabel(item) : null);
+        checkItem(item, size, avoidIt ? LABELS : []);
       }),
       PROP_PARAMS,
     );
@@ -101,7 +112,7 @@ describe("Feature: ghosts-and-graveyard, Property 16: The card never covers its 
     let covered = 0;
     for (const [index, size] of sample) {
       const item = ITEMS[index] ?? stoneRect(0);
-      if (intersects(placeCard(item, size, otherLabel(item)), otherLabel(item))) covered++;
+      if (!clearOfAll(placeCard(item, size, LABELS), LABELS)) covered++;
       else kept++;
     }
     expect(kept).toBeGreaterThanOrEqual(200);
@@ -179,17 +190,20 @@ const inside = (inner: Rect, outer: Rect): boolean =>
 
 /** The layout checks for one scenario: all inside the panel, none touching another, the return control clear of all (R4.10, R4.11, R4.12). */
 function checkLayout(s: Scenario): void {
+  // Every check is computed first and the failures asserted once: one `expect` per pair made a run slow enough to time out under
+  // the parallel suite. The checks themselves are unchanged.
   const all = viewRects(s);
-  for (const a of all) expect(inside(a.rect, PANEL_RECT), `${a.name} inside the panel`).toBe(true);
+  const failures: string[] = [];
+  for (const a of all) if (!inside(a.rect, PANEL_RECT)) failures.push(`${a.name} outside the panel`);
   for (let i = 0; i < all.length; i++) {
     for (let k = i + 1; k < all.length; k++) {
       const a = all[i];
       const b = all[k];
-      if (a !== undefined && b !== undefined) expect(intersects(a.rect, b.rect), `${a.name} meets ${b.name}`).toBe(false);
+      if (a !== undefined && b !== undefined && intersects(a.rect, b.rect)) failures.push(`${a.name} meets ${b.name}`);
     }
   }
   // The return control shares the Door's rectangle (L1, R3.14): it must meet nothing.
-  for (const a of all) expect(intersects(a.rect, DOOR_RECT), `${a.name} meets the return control`).toBe(false);
+  for (const a of all) if (intersects(a.rect, DOOR_RECT)) failures.push(`${a.name} meets the return control`);
   // The focus ring (D14): every item and the return control, grown by the ring's 6 px, keeps 2 px from every text line, at the
   // scale of each of the four viewports.
   const rings = [...all.filter((a) => /^(stone|stub) /.test(a.name)), { name: "return control", rect: DOOR_RECT }];
@@ -200,12 +214,12 @@ function checkLayout(s: Scenario): void {
       const ring: Rect = { x: r.rect.x - grow, y: r.rect.y - grow, w: r.rect.w + 2 * grow, h: r.rect.h + 2 * grow };
       for (const t of texts) {
         const clear = !intersects(ring, t.rect) && gap(ring, t.rect) * scale >= RING_CLEAR_PX - 1e-9;
-        expect(clear, `the ring of ${r.name} and ${t.name} at scale ${scale}`).toBe(true);
+        if (!clear) failures.push(`the ring of ${r.name} and ${t.name} at scale ${scale}`);
       }
     }
   }
+  expect(failures).toEqual([]);
 }
-
 /** The stage scales of the four viewports of R4.10. */
 const SCALES: readonly number[] = [
   [360, 640],

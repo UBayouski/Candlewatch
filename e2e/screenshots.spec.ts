@@ -14,6 +14,7 @@ import type { Page } from "@playwright/test";
 import { KEEP_CLEAR_COLUMN_UNITS } from "../src/ui/layout";
 import { fontsLoaded, judgeFigures, platformFonts, readFigures } from "./font-fixtures";
 import {
+  ghostShotFixture,
   graveyardFixture,
   largeHistory,
   openGraveyardApp,
@@ -26,7 +27,6 @@ import {
   stageOf,
   toPage,
   viewOf,
-  withDistractions,
 } from "./graveyard-fixtures";
 import type { Fixture } from "./graveyard-fixtures";
 import { STATES, VIEWPORTS, openScene } from "./scene-fixtures";
@@ -60,7 +60,8 @@ interface ExtraShot {
   readonly prepare?: (page: Page) => Promise<void>;
 }
 
-/** The ghost counts of R11.10: 0, 1, G = 12 and G + 9 = 21, during a session 5 minutes in. */
+/** The ghost counts of R11.10: 0, 1, G = 12 and G + 9 = 21, during a 50-minute session 30 minutes in; the drawn ghosts were away
+ * from 5 s to 5 minutes, so the pictures show the whole size range (first costume review advisory). */
 const GHOST_COUNTS = [
   { name: "0", n: 0 },
   { name: "1", n: 1 },
@@ -70,9 +71,9 @@ const GHOST_COUNTS = [
 
 const GHOST_SHOTS: ExtraShot[] = [
   ...GHOST_COUNTS.flatMap(({ name, n }) =>
-    (["desktop", "phone"] as const).map((size) => ({ file: `ghosts-${name}-${size}.png`, fixture: withDistractions(n, "lit"), size, reduced: false, touch: false })),
+    (["desktop", "phone"] as const).map((size) => ({ file: `ghosts-${name}-${size}.png`, fixture: ghostShotFixture(n), size, reduced: false, touch: false })),
   ),
-  { file: "ghosts-g-plus-9-desktop-reduced.png", fixture: withDistractions(21, "lit"), size: "desktop", reduced: true, touch: false },
+  { file: "ghosts-g-plus-9-desktop-reduced.png", fixture: ghostShotFixture(21), size: "desktop", reduced: true, touch: false },
 ];
 
 const smallFixture = graveyardFixture("idle-small", "idle", smallHistory);

@@ -446,7 +446,9 @@ test.describe("a tap leaves the styled colours alone (D20)", () => {
         const box = await item.boundingBox();
         expect(box).not.toBeNull();
         if (box === null) continue;
-        const clip = { x: Math.ceil(box.x), y: Math.ceil(box.y), width: Math.floor(box.width) - 1, height: Math.floor(box.height) - 1 };
+        // The item's own surface: the middle half across and the lower half down (the face below the arch, the stub's wax). The
+        // marker ring of the open card (D22) is drawn outside the item and along the Stone's arch, so it is left out.
+        const clip = { x: Math.ceil(box.x + box.width / 4), y: Math.ceil(box.y + box.height / 2), width: Math.floor(box.width / 2), height: Math.floor(box.height / 2) - 1 };
         const before = await page.screenshot({ clip, animations: "disabled" });
         await item.tap();
         await settle(page);
@@ -455,6 +457,76 @@ test.describe("a tap leaves the styled colours alone (D20)", () => {
         expect(after.equals(before), `${selector}: the tapped item's pixels are unchanged`).toBe(true);
         await tapAway(page);
       }
+    } finally {
+      await app.close();
+    }
+  });
+});
+
+/** The ids of the items that carry the open card's marker, with each one's computed outline. */
+const markers = (page: Page): Promise<{ id: string; outline: string }[]> =>
+  page.evaluate(() =>
+    [...document.querySelectorAll("#graveyard button.item[data-card-open]")].map((el) => {
+      const cs = getComputedStyle(el);
+      return { id: el.id, outline: `${cs.outlineWidth} ${cs.outlineStyle} ${cs.outlineColor} ${cs.outlineOffset}` };
+    }),
+  );
+const RING = "3px solid rgb(239, 230, 207) 3px";
+
+test.describe("the open card's item carries the marker (D22, costume review finding)", () => {
+  test("on the phone: a tapped item shows the ivory ring while its card is open, and loses it when the card hides", async ({ browser }) => {
+    const app = await openGraveyardApp(browser, { fixture: burnedOutSmall, viewport: VIEWPORTS.phone, mobile: true });
+    try {
+      const { page } = app;
+      await page.locator("#door").tap();
+      await settle(page);
+      await tapAway(page);
+      expect(await markers(page)).toEqual([]);
+      const ids = await itemIds(page);
+      expect(ids.length).toBeGreaterThanOrEqual(2);
+      for (const id of ids) {
+        await page.locator(`[id="${id}"]`).tap();
+        await settle(page);
+        expect(await cardLines(page)).not.toBeNull();
+        // Exactly the tapped item, drawn with the same ring as the keyboard focus; the tap's own focus draws no ring.
+        expect(await markers(page)).toEqual([{ id, outline: RING }]);
+        expect(await page.evaluate((i) => document.getElementById(i)?.matches(":focus-visible"), id)).toBe(false);
+      }
+      const last = ids.at(-1) ?? "";
+      await page.locator(`[id="${last}"]`).tap(); // a second tap hides the card
+      await settle(page);
+      expect(await cardLines(page)).toBeNull();
+      expect(await markers(page)).toEqual([]);
+      await page.locator(`[id="${ids[0] ?? ""}"]`).tap();
+      await settle(page);
+      expect(await markers(page)).toHaveLength(1);
+      await tapAway(page); // a tap elsewhere hides it
+      expect(await cardLines(page)).toBeNull();
+      expect(await markers(page)).toEqual([]);
+    } finally {
+      await app.close();
+    }
+  });
+
+  test("by keyboard and by hover the marker follows the card, one item at most, and Escape clears it", async ({ browser }) => {
+    const app = await openGraveyardApp(browser, { fixture: burnedOutSmall });
+    try {
+      const { page } = app;
+      await openView(page);
+      const focusedItem = await activeId(page);
+      expect(await markers(page)).toEqual([{ id: focusedItem, outline: RING }]);
+      const other = (await itemIds(page)).find((id) => id !== focusedItem) ?? "";
+      await page.locator(`[id="${other}"]`).hover();
+      await settle(page);
+      expect((await markers(page)).map((m) => m.id)).toEqual([other]);
+      await page.mouse.move(1, 1);
+      await settle(page);
+      expect((await markers(page)).map((m) => m.id)).toEqual([focusedItem]);
+      await press(page, "ArrowRight");
+      expect((await markers(page)).map((m) => m.id)).toEqual([await activeId(page)]);
+      await press(page, "Escape");
+      expect(await cardLines(page)).toBeNull();
+      expect(await markers(page)).toEqual([]);
     } finally {
       await app.close();
     }

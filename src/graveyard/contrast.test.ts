@@ -154,6 +154,38 @@ describe("non-text outlines and focus rings (L11, R6.19)", () => {
   });
 });
 
+describe("the Door's outlines against the room (non-text, 3:1; first costume review advisory)", () => {
+  // The shut door: its border and its bar are the wax shade; the usable Door's border is ivory. Both stand on the room's wall.
+  const shut = (): string => {
+    const m = /#ui \.graveyard \.door-shut \{[^}]*border:[^;]*var\((--g-[a-z-]+)\)/.exec(graveyardCss);
+    if (!m) throw new Error("the shut door's border was not found");
+    return token(graveyardCss, m[1] ?? "");
+  };
+  const bar = (): string => {
+    const m = /#ui \.graveyard \.door-shut::after \{[^}]*background:\s*var\((--g-[a-z-]+)\)/.exec(graveyardCss);
+    if (!m) throw new Error("the shut door's bar was not found");
+    return token(graveyardCss, m[1] ?? "");
+  };
+
+  it.each([
+    ["brightest", ROOM_BRIGHTEST],
+    ["darkest", ROOM_DARKEST],
+  ])("the barred Door's border and bar are at least 3:1 on the room's %s background", (_name, room) => {
+    expect(contrast(shut(), room)).toBeGreaterThanOrEqual(3);
+    expect(contrast(bar(), room)).toBeGreaterThanOrEqual(3);
+  });
+
+  it("the barred Door is 3.28 on the brightest background and 11.41 on the darkest", () => {
+    expect(contrast(shut(), ROOM_BRIGHTEST)).toBeCloseTo(3.28, 2);
+    expect(contrast(shut(), ROOM_DARKEST)).toBeCloseTo(11.41, 2);
+  });
+
+  it("the usable Door's ivory border is 4.66 and 16.20 on the same backgrounds", () => {
+    expect(contrast(token(graveyardCss, "--g-text"), ROOM_BRIGHTEST)).toBeCloseTo(4.66, 2);
+    expect(contrast(token(graveyardCss, "--g-text"), ROOM_DARKEST)).toBeCloseTo(16.2, 2);
+  });
+});
+
 describe("the Overflow_Mark (L5, R9.14)", () => {
   it("is ivory and sits in the room, below the floor band", () => {
     expect(OVERFLOW_MARK).toEqual({ x: 545, y: 860, fontSize: 24 });

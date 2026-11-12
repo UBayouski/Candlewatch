@@ -54,3 +54,11 @@ export function cardStep(state: CardState, input: CardInput): { state: CardState
       return done(NO_CARD);
   }
 }
+
+/**
+ * The item that carries the open card's marker, the ivory ring, in every input mode (D22): the shown id when it is one of the drawn
+ * items, else none. The marker follows the card, so at most one item carries it (R5.9, Property 15).
+ */
+export function cardMarker(state: CardState, drawn: ReadonlySet<string>): string | null {
+  return state.shown !== null && drawn.has(state.shown) ? state.shown : null;
+}

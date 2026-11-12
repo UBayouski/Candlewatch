@@ -27,17 +27,19 @@ export const MIN_SCALE = 0.6;
 /** The gap between an item and any text line, in units: (6 + 2) / 0.6 = 13.33, rounded up to 14 (D14). */
 export const TEXT_GAP = 14;
 
-/** The two group labels, 22 high (L7 as amended by D14, D19: the visible view header is gone, the heading is read only). */
-export const LABEL_Y = { stones: 215, shelf: 465 } as const;
+/** The height of every text line of the view: text of 23.4 units (14 px at 360 x 640) on a 28-unit line (D21). */
+export const TEXT_LINE_H = 28;
+/** The two group labels (L7 as amended by D14, D19, D21: the visible view header is gone, the heading is read only). */
+export const LABEL_Y = { stones: 215, shelf: 463 } as const;
 
-/** Stone i: 100 by 80, pitch 110 across and 90 down (L7, D14). */
+/** Stone i: 100 by 74 (44.4 px at 360 x 640), pitch 110 across and 84 down (L7, D14, D21). */
 export function stoneRect(i: number): Rect {
-  return { x: 30 + 110 * (i % STONES_PER_ROW), y: 251 + 90 * Math.floor(i / STONES_PER_ROW), w: 100, h: 80 };
+  return { x: 30 + 110 * (i % STONES_PER_ROW), y: 257 + 84 * Math.floor(i / STONES_PER_ROW), w: 100, h: 74 };
 }
 
 /** Top of Day_Shelf row r: rows are 74 high with a 10 gap (L7, D14). */
 export function shelfRowY(r: number): number {
-  return 501 + 84 * r;
+  return 505 + 84 * r;
 }
 
 /** The real-text date label at the start of shelf row r (L7). */
@@ -55,13 +57,13 @@ export function moreRect(r: number): Rect {
   return { x: 454, y: shelfRowY(r), w: 100, h: 74 };
 }
 
-/** Top of each Count_Line, 22 high, 14 units below the last row (L7, D14). */
-export const COUNT_LINE_Y = { stones: 435, shelf: 757 } as const;
-/** Top of each empty-state line, 22 high, where the first row would be (L7). */
-export const EMPTY_LINE_Y = { stones: 251, shelf: 501 } as const;
+/** Top of each Count_Line, one text line high, 14 units below the last row (L7, D14, D21). */
+export const COUNT_LINE_Y = { stones: 429, shelf: 761 } as const;
+/** Top of each empty-state line, one text line high, where the first row would be (L7). */
+export const EMPTY_LINE_Y = { stones: 257, shelf: 505 } as const;
 
-/** The largest Details_Card: 520 wide; 232 high holds the padding and eight lines of 26 (L9, D16). */
-export const CARD_MAX = { w: 520, h: 232 } as const;
+/** The largest Details_Card: 520 wide; 240 high holds the padding (24) and eight card lines of 27 (L9, D16, D21). */
+export const CARD_MAX = { w: 520, h: 240 } as const;
 /** The card stays inside the core, below its top edge and 10 units above the return control (L10, D16). */
 export const CARD_BOUNDS = { top: 215, bottom: 795, left: 20, right: 580 } as const;
 /** The card's rim in the backdrop's colour, which hides what its rounded corners would leave showing of a covered line (D16). */
@@ -77,20 +79,58 @@ const meets = (a: Rect, b: Rect): boolean => a.x < b.x + b.w && b.x < a.x + a.w 
 
 /**
  * Where the card goes for an item, given the card's measured size in units (L10 as amended by D16, R5.10, R5.11). The size is
- * clamped to CARD_MAX. Two candidates, CARD_GAP from the item: above and below. The first choice is the side of L10 (above for an
- * item at y >= 463, the Shelf; below otherwise, the Stones), then the other side. Among the candidates inside CARD_BOUNDS, the
- * first that keeps clear of `avoid` (the other Group's label) wins; when none does, the first inside the bounds. For every item of
- * the view and every size up to CARD_MAX the L10 side is inside the bounds, so a card is always placed.
+ * clamped to CARD_MAX. The card stands CARD_GAP or more from the item, above or below it; `avoid` lists the text lines it must not
+ * cut through (the two group labels, D16). Candidates, in order: the L10 side (above for an item at y >= 463, the Shelf; below
+ * otherwise), the other side, then each side pushed away from the item past any label that crosses its near edge. The first
+ * candidate inside CARD_BOUNDS that meets no label wins. When none does, the first that fits is lengthened (and widened to the
+ * label's start) so that it covers each label it meets whole: a card never cuts through a label's text. Every item of the view has
+ * a fitting candidate for every size up to CARD_MAX, so a card is always placed and never covers its item.
  */
-export function placeCard(item: Rect, size: { readonly w: number; readonly h: number }, avoid: Rect | null = null): Rect {
+export function placeCard(item: Rect, size: { readonly w: number; readonly h: number }, avoid: Rect | readonly Rect[] | null = null): Rect {
+  const labels: readonly Rect[] = avoid === null ? [] : "x" in avoid ? [avoid] : avoid;
   const w = clamp(size.w, 0, CARD_MAX.w);
   const h = clamp(size.h, 0, CARD_MAX.h);
   const x = clamp(item.x + item.w / 2 - w / 2, CARD_BOUNDS.left, CARD_BOUNDS.right - w);
   const above: Rect = { x, y: item.y - CARD_GAP - h, w, h };
   const below: Rect = { x, y: item.y + item.h + CARD_GAP, w, h };
-  const order = item.y >= 463 ? [above, below] : [below, above];
+  const isBelow = (c: Rect): boolean => c.y > item.y;
+  /** The candidate moved away from the item until no label crosses its near edge. */
+  const pushed = (c: Rect): Rect => {
+    let out = c;
+    for (let moved = true; moved; ) {
+      moved = false;
+      for (const a of labels) {
+        if (!meets(out, a)) continue;
+        if (isBelow(out) && a.y < out.y) {
+          out = { ...out, y: a.y + a.h };
+          moved = true;
+        } else if (!isBelow(out) && a.y + a.h > out.y + out.h) {
+          out = { ...out, y: a.y - out.h };
+          moved = true;
+        }
+      }
+    }
+    return out;
+  };
+  const sides = item.y >= 463 ? [above, below] : [below, above];
   const fits = (c: Rect): boolean => c.y >= CARD_BOUNDS.top && c.y + c.h <= CARD_BOUNDS.bottom;
-  const valid = order.filter(fits);
-  const clear = valid.find((c) => avoid === null || !meets(c, avoid));
-  return clear ?? valid[0] ?? order[0] ?? below;
+  const clearOf = (c: Rect): boolean => labels.every((a) => !meets(c, a));
+  const candidates = [...sides, ...sides.map(pushed)];
+  const clear = candidates.find((c) => fits(c) && clearOf(c));
+  if (clear !== undefined) return clear;
+  // No candidate keeps clear: the first that fits, preferring one with no label across its near edge, covers its labels whole
+  // (D16, second amendment). The edge next to the item stays; the far edge moves out past each label, the left edge to the label's
+  // start (a label's text begins at the left of its line), inside the bounds.
+  let pick = [...sides.map(pushed), ...sides].find(fits) ?? sides[0] ?? below;
+  for (const a of labels) {
+    if (!meets(pick, a)) continue;
+    const left = Math.max(Math.min(pick.x, a.x), CARD_BOUNDS.left);
+    const wide = { x: left, w: pick.x + pick.w - left };
+    if (isBelow(pick)) pick = { ...pick, ...wide, h: Math.min(Math.max(pick.y + pick.h, a.y + a.h), CARD_BOUNDS.bottom) - pick.y };
+    else {
+      const top = Math.max(Math.min(pick.y, a.y), CARD_BOUNDS.top);
+      pick = { ...pick, ...wide, y: top, h: pick.y + pick.h - top };
+    }
+  }
+  return pick;
 }

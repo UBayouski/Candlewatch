@@ -22,7 +22,7 @@
 
 ## Scene
 
-Inline SVG driven by CSS custom properties. Flame: layered radial gradients with a seeded flicker. Light pool: a radial mask whose radius follows the wax. Ghosts: translucent shapes with a slow drift. See `scene.md` for the look and accessibility rules.
+Inline SVG driven by CSS custom properties. Flame: layered radial gradients with a seeded flicker. Light pool: a radial mask whose radius follows the wax. The scene's accessible name is the flame's name plus the distraction count, passed in as `labelSuffix` by `main.ts`. Ghosts are not part of the scene SVG: `src/ghosts/` draws them in their own SVG layer above it, with the scene's scaling rule, as translucent shapes with a slow CSS drift. The Door and the graveyard view are HTML in `src/graveyard/`, placed on the stage box in room units. See `scene.md` for the look and accessibility rules.
 
 ## Scripts
 
@@ -49,5 +49,6 @@ Inline SVG driven by CSS custom properties. Flame: layered radial gradients with
 ## Conventions
 
 - Test the engine with an injected `now`; never fake time inside engine code.
-- E2E tests use Playwright's clock control to run whole sessions in seconds.
+- E2E tests use Playwright's clock control to run whole sessions in seconds. Pause the clock before the page loads (`page.clock.pauseAt`, then `goto`, then `runFor`), never `install` and let it run during the load: a slow load must not change what is drawn or break the setup.
+- Headless Chromium never hides a page by itself; e2e tests drive the page's own `visibilitychange` listener with `visibilityState` overridden (`setVisibility` in `e2e/graveyard-fixtures.ts`).
 - No `any`; prefer discriminated unions for states and events.

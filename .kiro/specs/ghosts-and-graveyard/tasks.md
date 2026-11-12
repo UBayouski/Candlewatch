@@ -453,15 +453,16 @@ Conventions for every task:
     - Files: `docs/screenshots/ghosts-*.png` (9 files), `docs/screenshots/graveyard-*.png` (9 files).
     - _Requirements: R11.10 to R11.13_
 
-- [ ] 27. Costume review
-  - [ ] 27.1 Run the Costume_Reviewer and record its findings in Decision D12
+- [x] 27. Costume review
+  - [x] 27.1 Run the Costume_Reviewer and record its findings in Decision D12
     - Run the `costume-reviewer` agent in the Kiro CLI (`kiro-cli chat --agent costume-reviewer`) on the finished ghosts, graveyard and shelf, with the new `ghosts-*` and `graveyard-*` screenshots and the retaken `candle-*` shots as input. It applies its three rules: every spooky element shows one piece of state (R4.6, R4.7, R4.8, R9.3); reduced motion still shows it (R10.6, R10.9); the time text keeps WCAG AA contrast (R4.14, R9.14).
     - Record its verdict and findings in `design.md` Decision **D12** (replace the "To be recorded by the final task" text), apply them (fix, retake the affected screenshots, look at them), and repeat until it passes. If the agent cannot be run, say so and stop: do not substitute another review and call it this one. Edit `design.md` only in D12 and keep the file valid for `validate_spec_format`.
+    - Result: two passes, run by the owner in the Kiro CLI. First: rule 1 FAIL (no marker on the open card's item), rules 2 and 3 PASS with five advisories; the finding and three advisories done (D21, D22, the ghost-size fixtures, the contrast tests), two kept with reasons (D15, D23). Second: PASS on all three rules. Recorded in D12.
     - Files: `.kiro/specs/ghosts-and-graveyard/design.md` (D12), and whatever the findings change.
     - _Requirements: R11.18_
 
-- [ ] 28. Wrap-up
-  - [ ] 28.1 Verify, log and summarise
+- [x] 28. Wrap-up
+  - [x] 28.1 Verify, log and summarise
     - Run `npm run verify` and confirm every property test ran with its full number of runs (all through `PROP_PARAMS`, no literal lower `numRuns`, no skipped, `only` or `todo` tests); report the unit file and test counts and the e2e count against the counts recorded at the start of task 1.
     - Update `.kiro/steering/structure.md`: `src/ghosts/` and `src/graveyard/` are implemented (list their files), `e2e/` holds the new specs and fixtures, the boundaries section names the two folders and the new purity tests.
     - Confirm `docs/screenshots/` holds the 21 `candle-*` files, the 20 `controls-*` files, the 9 `ghosts-*` files and the 9 `graveyard-*` files, and that no screenshot is older than the last change to `src/ghosts/`, `src/graveyard/`, `src/ui/`, `src/scene/` or `src/main.ts`.

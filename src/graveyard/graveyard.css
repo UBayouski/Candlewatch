@@ -42,8 +42,8 @@
   pointer-events: none;
   color: var(--g-text);
   font-family: "Alegreya Sans", sans-serif;
-  font-size: calc(20 * var(--u, 0.6px));
-  line-height: calc(22 * var(--u, 0.6px));
+  font-size: calc(23.4 * var(--u, 0.6px)); /* 14 px at 360 x 640 (D21) */
+  line-height: calc(28 * var(--u, 0.6px));
 }
 
 /* Every placed element sits at (--x, --y) room units inside the section. The wrapper `.view` and the `.day` rows have no box. */
@@ -97,10 +97,10 @@
 #ui .graveyard .count,
 #ui .graveyard .empty {
   width: calc(560 * var(--u, 0.6px));
-  height: calc(22 * var(--u, 0.6px));
+  height: calc(28 * var(--u, 0.6px));
   color: var(--g-text-subtle);
-  font-size: calc(20 * var(--u, 0.6px));
-  line-height: calc(22 * var(--u, 0.6px));
+  font-size: calc(23.4 * var(--u, 0.6px)); /* 14 px at 360 x 640 (D21) */
+  line-height: calc(27 * var(--u, 0.6px)); /* eight lines and the padding fit CARD_MAX (240) */
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -135,16 +135,16 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Stone: 100 by 80 units (60 by 48 px at 360 x 640), an arched top, standing in the ground; the Carved_Date and the intent on the
-   face (L7, D14, D15). */
+/* Stone: 100 by 74 units (60 by 44.4 px at 360 x 640), an arched top, standing in the ground; the Carved_Date and the intent on the
+   face, two 28-unit lines (L7, D14, D15, D21). */
 #ui .graveyard .stone {
   display: flex;
   flex-direction: column;
   align-items: stretch;
   justify-content: flex-start;
   width: calc(100 * var(--u, 0.6px));
-  height: calc(80 * var(--u, 0.6px));
-  padding: calc(12 * var(--u, 0.6px)) calc(8 * var(--u, 0.6px)) calc(4 * var(--u, 0.6px));
+  height: calc(74 * var(--u, 0.6px));
+  padding: calc(10 * var(--u, 0.6px)) calc(6 * var(--u, 0.6px)) calc(4 * var(--u, 0.6px));
   background: var(--g-stone);
   border: var(--g-line) solid var(--g-stone-edge);
   border-bottom: 0;
@@ -168,8 +168,8 @@
 #ui .graveyard .stone-intent {
   display: block;
   min-width: 0;
-  font-size: calc(20 * var(--u, 0.6px));
-  line-height: calc(22 * var(--u, 0.6px));
+  font-size: calc(23.4 * var(--u, 0.6px)); /* 14 px at 360 x 640 (D21) */
+  line-height: calc(28 * var(--u, 0.6px));
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis; /* the full intent stays in the DOM and in the name (R4.3) */
@@ -226,8 +226,8 @@
   display: flex;
   align-items: center;
   height: calc(74 * var(--u, 0.6px));
-  font-size: calc(20 * var(--u, 0.6px));
-  line-height: calc(22 * var(--u, 0.6px));
+  font-size: calc(23.4 * var(--u, 0.6px)); /* 14 px at 360 x 640 (D21) */
+  line-height: calc(28 * var(--u, 0.6px));
   overflow: hidden;
   white-space: nowrap;
 }
@@ -259,7 +259,7 @@
   border: 0;
 }
 
-/* --- the details card: sized by its content, at most 520 by 232 units, in the interface's dialog look (warm fill, amber border);
+/* --- the details card: sized by its content, at most 520 by 240 units, in the interface's dialog look (warm fill, amber border);
    the intent on the first line, then two columns. The pointer passes through it (L9 as amended by D16). --- */
 #ui .graveyard .card {
   z-index: 1;
@@ -268,16 +268,20 @@
   column-gap: calc(20 * var(--u, 0.6px));
   width: max-content;
   max-width: calc(520 * var(--u, 0.6px));
-  max-height: calc(232 * var(--u, 0.6px));
-  padding: calc(12 * var(--u, 0.6px)) calc(16 * var(--u, 0.6px));
+  /* The placement may lengthen the card to cover a label whole (D16); content stays at the top. */
+  min-height: calc(var(--h, 0) * var(--u, 0.6px));
+  min-width: calc(var(--w, 0) * var(--u, 0.6px));
+  max-height: calc(240 * var(--u, 0.6px)); /* CSS: min-height wins over max-height, so a lengthened card is not clipped */
+  align-content: start;
+  padding: calc(10 * var(--u, 0.6px)) calc(16 * var(--u, 0.6px));
   background: var(--g-ui-bg);
   border: 2px solid var(--g-ui-border);
   border-radius: 12px;
   /* A 4 px rim in the backdrop's colour (CARD_RIM_PX): what the rounded corners would leave showing of a covered line stays hidden. */
   box-shadow: 0 0 0 4px var(--g-panel);
   color: var(--g-text);
-  font-size: calc(20 * var(--u, 0.6px));
-  line-height: calc(26 * var(--u, 0.6px));
+  font-size: calc(23.4 * var(--u, 0.6px)); /* 14 px at 360 x 640 (D21) */
+  line-height: calc(28 * var(--u, 0.6px));
   overflow: hidden;
   pointer-events: none;
 }
@@ -380,6 +384,12 @@
   outline-offset: 3px;
 }
 
+/* --- the open card's marker: the same ring on the item the card describes, by keyboard, tap or hover; one item at most (D22) --- */
+#ui .graveyard .item[data-card-open] {
+  outline: 3px solid var(--g-focus);
+  outline-offset: 3px;
+}
+
 /* --- forced colours and more contrast: the system's colours, the borders and the ring still show --- */
 @media (forced-colors: active) {
   #ui .graveyard .panel,
@@ -415,7 +425,8 @@
     border: 1px solid CanvasText;
   }
 
-  #ui .graveyard :focus-visible {
+  #ui .graveyard :focus-visible,
+  #ui .graveyard .item[data-card-open] {
     outline-color: Highlight;
   }
 }

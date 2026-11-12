@@ -1,7 +1,7 @@
-// Property test for the Details_Card state machine (ghosts-and-graveyard design 8.4). Property 15.
+// Property test for the Details_Card state machine and its marker (ghosts-and-graveyard design 8.4, D22). Property 15.
 import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { NO_CARD, cardStep } from "./card";
+import { NO_CARD, cardMarker, cardStep } from "./card";
 import type { CardInput, CardState } from "./card";
 import { PROP_PARAMS, arbCardInputs } from "./test-kit";
 
@@ -93,6 +93,15 @@ describe("Feature: ghosts-and-graveyard, Property 15: One card at most, shown by
           // The shown id is a single id (or none), and it was named by some input so far (R5.9).
           expect(state.shown === null || typeof state.shown === "string").toBe(true);
           if (state.shown !== null) expect(named.has(state.shown)).toBe(true);
+
+          // The marker (D22): at most one drawn item carries it, the one whose card is shown, and none when no card is shown or the
+          // shown id is not drawn.
+          for (const drawn of [named, new Set([...named].slice(1))]) {
+            const marker = cardMarker(state, drawn);
+            const marked = [...drawn].filter((id) => id === marker);
+            expect(marked.length).toBeLessThanOrEqual(1);
+            expect(marker).toBe(model.shown !== null && drawn.has(model.shown) ? model.shown : null);
+          }
 
           // The state matches the reference model.
           expect(state.shown).toBe(model.shown);

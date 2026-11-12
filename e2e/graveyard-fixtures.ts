@@ -88,10 +88,32 @@ export const historyWith = (n: number): readonly HistoryEntry[] => spreadHistory
 
 // --- stored states -----------------------------------------------------------
 
-/** A session of `lengthMin` that started at `startedAt`, with `n` completed distractions of 20 s each. */
-export function sessionWith(startedAt: number, lengthMin: number, n: number): Session {
-  const awaySpansMs = Array.from({ length: n }, (_, i) => 10_000 + 5_000 * (i % 7));
-  return { startedAt, lengthMin, intent: null, pausedTotalMs: 0, distractions: n, timeAwayMs: awaySpansMs.reduce((a, b) => a + b, 0), awaySpansMs };
+/** A session of `lengthMin` that started at `startedAt`, with `n` completed distractions of 10 to 40 s, or the given spans. */
+export function sessionWith(startedAt: number, lengthMin: number, n: number, spans?: readonly number[]): Session {
+  const awaySpansMs = spans === undefined ? Array.from({ length: n }, (_, i) => 10_000 + 5_000 * (i % 7)) : [...spans];
+  return { startedAt, lengthMin, intent: null, pausedTotalMs: 0, distractions: awaySpansMs.length, timeAwayMs: awaySpansMs.reduce((a, b) => a + b, 0), awaySpansMs };
+}
+
+/**
+ * Spans for the ghost screenshots: the drawn ghosts (the newest twelve) run from 5 s to 5 minutes away, so their sizes cover the
+ * whole range from the smallest to full size; spans that are not drawn are 20 s. One ghost alone is away 2 minutes.
+ */
+export function sizeRangeSpans(n: number): number[] {
+  if (n === 1) return [120_000];
+  const drawn = Math.min(n, 12);
+  const hidden = n - drawn;
+  return Array.from({ length: n }, (_, i) => {
+    if (i < hidden) return 20_000;
+    const k = (i - hidden) / Math.max(1, drawn - 1);
+    return Math.round(5_000 + (300_000 - 5_000) * k * k);
+  });
+}
+
+/** A lit session of 50 minutes with `n` distractions of `sizeRangeSpans(n)`, looked at 30 minutes in (20:00 left). */
+export function ghostShotFixture(n: number): Fixture {
+  const lengthMin = 50;
+  const session = sessionWith(T0, lengthMin, n, sizeRangeSpans(n));
+  return { name: `lit-${n}-size-range`, state: { phase: "lit", history: [], session, litSince: T0, awaySince: null }, now: T0 + 30 * MIN };
 }
 
 export type Phase = State["phase"];

@@ -11,7 +11,8 @@ Applies when working on `src/scene/**` or any CSS. Remember the core rule: the c
 
 - A dark, painterly room lit only by the candle: deep blue-black walls, warm amber light, wax in ivory.
 - Nothing like a retro OS, not 1-bit, not a spreadsheet. It must look nothing like the other entries by the same author.
-- SVG and CSS only: candle, wax drips, flame (layered radial gradients with a seeded flicker), light pool (radial mask whose radius follows the wax), ghosts (translucent shapes with a slow drift).
+- SVG and CSS only: candle, wax drips, flame (layered radial gradients with a seeded flicker), light pool (radial mask whose radius follows the wax), ghosts (translucent shapes with a slow drift, in their own layer, `src/ghosts/`).
+- The Door at the left of the floor shows one piece of state: usable (a lit doorway with an amber handle) when no candle burns, barred while a session runs. The graveyard view (`src/graveyard/`) uses the scene's own palette and room units, and its backdrop fades into the room.
 - Responsive from a phone in portrait to a wide desktop.
 
 ## Reduced motion
@@ -23,6 +24,8 @@ Applies when working on `src/scene/**` or any CSS. Remember the core rule: the c
 
 - The time text meets WCAG AA (4.5:1, or 3:1 if large text) against the room at every light level, including the darkest minute. Check the extremes, not just the default.
 - Focus is always visible.
+- Non-text graphics that carry state (a ghost's outline, the Door's border and bar, a Stone's edge, a Stub's wax) need 3:1 against what is next to them; the tests compute it from the stylesheets.
+- The scene's accessible name never contains a time; it ends with the distraction count in words.
 
 ## Naming
 
