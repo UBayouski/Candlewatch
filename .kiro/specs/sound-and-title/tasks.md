@@ -33,214 +33,226 @@ Conventions for every task:
 
 ## Tasks
 
-- [ ] 1. Cue choice (`src/audio/types.ts`, `src/audio/cue.ts`)
-  - [ ] 1.1 Types, `cueFor`, the audio test-kit and the unit tests
+- [x] 1. Cue choice (`src/audio/types.ts`, `src/audio/cue.ts`)
+  - [x] 1.1 Types, `cueFor`, the audio test-kit and the unit tests
     - Create `src/audio/types.ts` with `Cue`, `CueContext` (`eventType`, `sound`, `now`), `GainPoint`, `Waveform`, `FilterKind`, `FilterSpec`, `OscVoice`, `NoiseVoice`, `Voice` and `CueSpec` exactly as design 3.1 and 3.2. Create `src/audio/cue.ts` with `LATE_CUE_LIMIT_MS = 120000` and `cueFor(prev, next, context)`: the six rules of design 3.1 tried in order (sound off, `reload`, strike, chime, breath, fallback `null`); lateness is `context.now - next.endedAt`, computed only for the end Cues, not clamped, end Cue plays when `lateness <= LATE_CUE_LIMIT_MS`, a non-finite `now` gives no end Cue, never throws (D29). Remove `src/audio/.gitkeep` now that the folder has files.
     - Create `src/audio/test-kit.ts` (test-only) with `arbPhasePair` (all 25 ordered pairs, built from states picked out of `runScript` traces and from hand-built `burned-out` and `snuffed` states with a chosen `endedAt`), `arbCueContext` (event type from the engine's event names, `sound`, `now` near `endedAt` with offsets that include 0, 119999, 120000, 120001, large values and negative values down to -200000), and `referenceCue(prevPhase, nextPhase, eventType, sound, lateness)`: a lookup keyed by `"<prev>><next>"` plus a lateness test written as `lateness > 120000` negated, with `sound` false or `reload` as its first line, so it cannot copy the code's mistakes. Re-export `PROP_PARAMS`. The gesture-script arbitrary is added in task 6.3.
     - Create `src/audio/cue.test.ts`: the 25 ordered phase pairs against the table in design 3.1; the Late_Cue_Limit at 119999, 120000 and 120001 ms for `chime` and `breath`; `strike` found 10 minutes after the previous `idle` state still strikes; `reload` and sound off give `null`; a negative lateness (`now` 1 ms before `endedAt`) plays; a NaN and an infinite `now` give no end Cue and do not throw; the break (`burned-out` to `burned-out`) gives `null`.
     - Files: `src/audio/types.ts`, `src/audio/cue.ts`, `src/audio/test-kit.ts`, `src/audio/cue.test.ts`, `src/audio/.gitkeep` (deleted).
     - _Requirements: R1.1, R1.2, R2.1 to R2.13, R9.2_
 
-  - [ ] 1.2 Required: P1, no Cue when sound is off or on reload
+  - [x] 1.2 Required: P1, no Cue when sound is off or on reload
     - **Property 1: No Cue when sound is off or on reload**
     - Create `src/audio/cue.prop.test.ts` (tag Property 1): for any two states, any event type, any `now` and any `sound`, `cueFor` returns `null` when `sound` is false and returns `null` when the event type is `reload`.
     - Mutation check (P1): in `cueFor`, ignore `context.sound` (delete rule 1); confirm P1 fails; revert. Then delete the `reload` rule (rule 2); confirm P1 and the `reload` unit test fail; revert.
     - Files: `src/audio/cue.prop.test.ts`.
     - **Validates: Requirements 2.6, 2.7, 2.13**
 
-  - [ ] 1.3 Required: P2, `cueFor` agrees with the reference table
+  - [x] 1.3 Required: P2, `cueFor` agrees with the reference table
     - **Property 2: cueFor agrees with the reference table**
     - Add Property 2 to `src/audio/cue.prop.test.ts` (tag Property 2): for any two states reached by a generated script, any live event type, sound on and `now` within the Late_Cue_Limit, `cueFor` equals `referenceCue`; the result is always one of `strike`, `chime`, `breath` or `null`; at most one Cue is returned; a break (`isBreak` true or false on the same `burned-out` state) does not change the result.
     - Mutation check (P2): swap the `strike` and `chime` results of rules 3 and 4; confirm P2 and the 25-pair unit test fail; revert. Then return `breath` for `paused` to `burned-out`; confirm P2 fails; revert.
     - Files: `src/audio/cue.prop.test.ts`.
     - **Validates: Requirements 2.1, 2.2, 2.3, 2.4, 2.5, 2.8, 2.9**
 
-  - [ ] 1.4 Required: P4, the Late_Cue_Limit decides end Cues and never strikes
+  - [x] 1.4 Required: P4, the Late_Cue_Limit decides end Cues and never strikes
     - **Property 4: The Late_Cue_Limit decides end Cues and never strikes**
     - Add Property 4 to `src/audio/cue.prop.test.ts` (tag Property 4): for any Transition from `lit` or `paused` to `burned-out` or `snuffed` with sound on, `cueFor` is `null` exactly when `now - endedAt > 120000`, otherwise `chime` or `breath` by the next phase; for any Transition to `lit` from `idle`, `burned-out` or `snuffed` the result is `strike` whatever the delay. The generator includes offsets 119999, 120000, 120001, large positive values and negative values.
     - Mutation check (P4), three faults, each applied, caught and reverted: (a) change `<=` to `<` (or use `LATE_CUE_LIMIT_MS + 1`); (b) apply the lateness rule to `strike`; (c) compute the lateness as `Math.abs(now - endedAt)`. Each must fail P4 and the matching unit test.
+    - Result (tasks 1.1 to 1.4): `types.ts`, `cue.ts`, the audio test-kit, 37 unit tests and 6 property tests. The unit tests found one code fault before any property ran: `now = -Infinity` gave a lateness of -Infinity, which passes `<=`, so the dawn played; `onTime` now also requires a finite lateness (design D29 amended). No property failed against the code. Coverage guards were made sure by the generators, not by lower thresholds: `arbCueScript` (more lights and snuffs, long gaps), three pairs in four taken from a real phase change, and `transition(kind, t0)`, every Transition the engine makes built with `step`. Mutations, each caught and the source restored (hash checked): P1 rule 1 deleted (seed 1062690339); P1 rule 2 deleted, also the reload unit test (-951159320); P2 strike and chime swapped, also the 25-pair unit test (189613145); P2 breath for paused to burned-out (1408358286); P4 (a) `<` for `<=` (-1111346834), (b) the limit applied to strike (1260403919), (c) `Math.abs` lateness (738793087), each with its unit test (for (c) a unit case 200000 ms before the end was added: -1 ms could not tell `abs` apart).
     - Files: `src/audio/cue.prop.test.ts`.
     - **Validates: Requirements 2.11, 2.12, 5.22**
 
-- [ ] 2. Noise and the three Cue_Specs
-  - [ ] 2.1 `src/audio/noise.ts`
+- [x] 2. Noise and the three Cue_Specs
+  - [x] 2.1 `src/audio/noise.ts`
     - Create `noiseSamples(seed, count)` with the local mulberry32 of design 3.2: samples in [-1, 1), the same `(seed, count)` gives the same array, a prefix of a longer array equals the shorter one, `count` is floored, a negative, NaN or infinite `count` gives an empty array, `seed` is read as an unsigned 32-bit integer. It imports nothing.
     - Create `src/audio/noise.test.ts`: equal arrays for equal inputs; prefix stability; range; bad counts; two different seeds differ.
     - Files: `src/audio/noise.ts`, `src/audio/noise.test.ts`.
     - _Requirements: R3.4, R3.5_
 
-  - [ ] 2.2 `src/audio/specs.ts`
+  - [x] 2.2 `src/audio/specs.ts`
     - Create `MASTER_GAIN = 0.5`, `CUE_SPECS` and `cueSpec(cue)` with the recipes of decision D1 (design 3.2): `strike` 400 ms (noise scratch seed `0x5ca7c4`, bandpass 4000 to 2500 Hz, q 0.8, gain points [0,0] [8,0.24] [100,0]; triangle flare 160 to 110 Hz from 60 ms, [60,0] [75,0.14] [400,0]); `chime` 2000 ms (sines 660, 880, 1320 Hz at 0, 140, 280 ms, peaks 0.14, 0.12, 0.08, ends 1400, 1700, 1900); `breath` 900 ms (noise seed `0xb2ea71` lowpass 2400 to 700 Hz q 0.7 [0,0] [60,0.30] [900,0], and noise seed `0x0d15ea` bandpass 1800 to 900 Hz q 0.9 [0,0] [40,0.08] [700,0]). Plain data only: numbers, strings and arrays; the same object on every call; the reduced-motion preference never enters it (R3.11).
     - Create `src/audio/specs.test.ts`: each number against D1 (ids, durations 400, 2000, 900; scratch 100 ms and flare 160 to 110 Hz starting at 60 ms; chime frequencies and decays at least 600 ms; breath cutoff ratios 0.29 and 0.5; rise and fall lengths); the sums of voice peaks times `MASTER_GAIN` (0.19, 0.17, 0.19) are at most 0.2; every frequency and cutoff is above 0 (exponential ramps are valid); no function or object other than plain arrays and records in the data; `JSON.parse(JSON.stringify(spec))` equals the spec.
     - Files: `src/audio/specs.ts`, `src/audio/specs.test.ts`.
     - _Requirements: R3.1 to R3.12, R9.2_
 
-  - [ ] 2.3 Required: P5, Cue_Specs obey the sound rules
+  - [x] 2.3 Required: P5, Cue_Specs obey the sound rules
     - **Property 5: Cue_Specs obey the sound rules**
     - Create `src/audio/specs.prop.test.ts` (tag Property 5), one property over `fc.constantFrom("strike", "chime", "breath")`, with repeated calls for equality: `cueSpec(cue)` is deeply equal across calls and across a simulated reduced-motion preference (there is no input for it, so the test calls twice around a changed `matchMedia` stub and asserts equality); duration above 0 and within 700, 2500 and 1200 ms; the sum over voices of the peak gain times `MASTER_GAIN` at most 0.2; every voice peak above 0; `MASTER_GAIN` in (0, 1]; every envelope starts and ends at gain 0, rises at least 5 ms and falls at least 20 ms, has non-decreasing times inside [0, duration]; `strike` has a noise scratch of 40 to 150 ms and a tonal partial of 80 to 220 Hz starting inside the scratch window; `chime` has at least two tonal voices between 200 and 2000 Hz with decays of at least 600 ms; `breath` has only noise voices whose end cutoff is at least 30% lower than the start; the three ids and the three durations differ.
     - Mutation check (P5): set `MASTER_GAIN` to 0.6; confirm P5 fails; revert. Then end one voice envelope at gain 0.01; confirm P5 fails; revert.
+    - Result (tasks 2.1 to 2.3): `noise.ts` (local mulberry32), `specs.ts` (the D1 recipes, plain data), 14 unit tests and P5. No property failed. Mutations caught and restored: `MASTER_GAIN` 0.6 (seed -1492182602), a voice ending at gain 0.01 (1530354829).
     - Files: `src/audio/specs.prop.test.ts`.
     - **Validates: Requirements 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, 3.10, 3.11**
 
-- [ ] 3. Page title and wake delay (`src/page/`)
-  - [ ] 3.1 The `pageTitle` strings, and the matching `src/ui/strings.test.ts` exemption
+- [x] 3. Page title and wake delay (`src/page/`)
+  - [x] 3.1 The `pageTitle` strings, and the matching `src/ui/strings.test.ts` exemption
     - Add the `pageTitle` group to `src/strings.ts` with the final wording of design 4.2 and no other change to the file: `lit` `{time} · {name}`, `paused` `{time} paused · {name}`, `burnedOut` `Morning · {name}`, `snuffed` `Dark · {name}` (separator U+00B7 with a space on each side, inside the templates). Keep `as const` and the nested shape (R8.6).
-    - CR12, first part: in `src/ui/strings.test.ts` add `"pageTitle"` to `NOT_THIS_SPEC`; its keys are used by `src/page/title.ts`, outside `src/ui/`, and without this the "every new key is used" check of that file fails the moment the group exists. The other groups named in CR12 (`count`, `ghosts`, `graveyard`) are added to the set in task 15.1, when they get this spec's wording. Note this ordering in the task result.
+    - CR12, first part: in `src/ui/strings.test.ts` add `"pageTitle"` to `NOT_THIS_SPEC`; its keys are used by `src/page/title.ts`, outside `src/ui/`, and without this the "every new key is used" check of that file fails the moment the group exists. The other groups named in CR12 (`count`, `ghosts`, `graveyard`) are already in the set since `ghosts-and-graveyard` task 1.4 (corrected, design D34); task 15.1 only checks that. Note this in the task result.
     - Files: `src/strings.ts`, `src/ui/strings.test.ts`.
     - _Requirements: R6.6, R8.2, R8.6_
 
-  - [ ] 3.2 `src/page/title.ts`, the page test-kit and the unit tests
+  - [x] 3.2 `src/page/title.ts`, the page test-kit and the unit tests
     - Create `titleFor(state, now)` exactly as design 3.5: one `switch` on `state.phase` with no default; `idle` returns `STRINGS.title`; `lit` and `paused` fill the templates with `formatTime(timeLeftMs(state, now))` and `name = STRINGS.title`; `burned-out` and `snuffed` fill the dawn and dark forms with no time. Imports: `timeLeftMs` from `../engine`, `STRINGS`, `fill` and `formatTime` from `../ui/format`. No literal `paused`, `Morning`, `Dark` or separator in the file; the intent is never read.
     - Create `src/page/test-kit.ts` (test-only) with `arbLitState`, `arbAnyState` (both built from `runScript` traces) and `arbNonDecreasingTimes` (a start and a list of non-negative gaps); re-export `PROP_PARAMS`. The `runWithExtraTicks` helper is added in task 9.1.
     - Create `src/page/title.test.ts`: one example per phase against the forms of R6.1 to R6.5 (`Candlewatch`, `12:31 · Candlewatch`, `12:31 paused · Candlewatch`, `Morning · Candlewatch`, `Dark · Candlewatch`); the paused title is the same at two different `now` values; a break and a finished dawn give one title; a NaN and an infinite `now` give `00:00 · Candlewatch` for `lit` and do not throw; a long and a distinctive intent never appears; `1 ms` left reads `00:01`; and a file check that `index.html` holds `<title>Candlewatch</title>` exactly (R6.16, read with `node:fs`).
     - Files: `src/page/title.ts`, `src/page/test-kit.ts`, `src/page/title.test.ts`.
     - _Requirements: R1.1, R6.1 to R6.9, R6.15 to R6.17, R9.2_
 
-  - [ ] 3.3 Required: P6, the title carries the time left and no intent
+  - [x] 3.3 Required: P6, the title carries the time left and no intent
     - **Property 6: The title carries the time left and no intent**
     - Create `src/page/title.prop.test.ts` (tag Property 6): for any state reached by a generated script and any `now`, `lit` equals the `pageTitle.lit` template filled with `formatTime(timeLeftMs(state, now))`, `paused` the `pageTitle.paused` template filled the same way, `burned-out` and `snuffed` give the dawn and dark forms with no time, `idle` equals `STRINGS.title`; the time in the title equals the time that `viewOf` shows as the Time_Text for the same state and `now`; no title contains the session's intent (use an intent of at least 3 characters that does not occur in the fixed strings).
     - Mutation check (P6): build the title time from `timeLeftMs(state, now + 1000)`; confirm P6 fails; revert. Then append the intent to the title; confirm P6 fails; revert.
     - Files: `src/page/title.prop.test.ts`.
     - **Validates: Requirements 6.1, 6.2, 6.3, 6.4, 6.5, 6.7, 6.8, 6.9, 6.15, 6.17**
 
-  - [ ] 3.4 Required: P7, the title changes at most once per second while lit
+  - [x] 3.4 Required: P7, the title changes at most once per second while lit
     - **Property 7: The title changes at most once per second while lit**
     - Add Property 7 to `src/page/title.prop.test.ts` (tag Property 7): for any `lit` state and any non-decreasing list of times, the number of changes in the sequence of titles is at most the number of whole seconds of time left crossed, and the Title_Time never increases.
     - Mutation check (P7): make the title include tenths of a second (for example `Math.floor(now / 100)`); confirm P7 fails; revert.
     - Files: `src/page/title.prop.test.ts`.
     - **Validates: Requirements 6.11**
 
-  - [ ] 3.5 `src/page/wake.ts`
+  - [x] 3.5 `src/page/wake.ts`
     - Create `WAKE_MAX_MS = 1000`, `WAKE_MIN_MS = 1` and `nextWakeMs(state, now)` exactly as design 3.6: `lit` uses `clampWake(timeLeftMs(state, now))`, `paused` uses `clampWake(pauseLeftMs(state, now))`, other phases give `null`; `clampWake` returns `WAKE_MAX_MS` for NaN and otherwise `min(max(ms, WAKE_MIN_MS), WAKE_MAX_MS)`. Imports `timeLeftMs` and `pauseLeftMs` from `../engine`.
     - Create `src/page/wake.test.ts`: zero left gives 1; 0.4 gives 1; 1 gives 1; 999 gives 999; exactly 1000 gives 1000; 1001 and 5000 give 1000; `idle`, `burned-out`, `snuffed` give `null`; paused with 10 minutes of allowance and with 0 left; a non-finite `now` in `lit` gives 1; the table of design 3.6 row by row (Infinity, -Infinity, NaN through the clamp, tested on the exported rule or an equivalent state).
     - Files: `src/page/wake.ts`, `src/page/wake.test.ts`.
     - _Requirements: R5.3, R5.4, R5.5, R9.2_
 
-  - [ ] 3.6 Required: P8, the wake delay is bounded and never passes the end
+  - [x] 3.6 Required: P8, the wake delay is bounded and never passes the end
     - **Property 8: The wake delay is bounded and never passes the end**
     - Create `src/page/wake.prop.test.ts` (tag Property 8): for any state and any `now`, `nextWakeMs` is in (0, 1000] when the phase is `lit` or `paused` and `null` otherwise; in `lit` it is at most `max(timeLeftMs, 1)`; in `paused` it is at most `max(pauseLeftMs, 1)`; it is never 0.
     - Mutation check (P8): remove the cap so the wake can pass the end moment; confirm P8 fails; revert. Then return 0 instead of the 1 ms floor; confirm P8 fails; revert.
+    - Result (tasks 3.1 to 3.6): the `pageTitle` group in `strings.ts` and `pageTitle` in `NOT_THIS_SPEC` (the other three groups were already there since `ghosts-and-graveyard` task 1.4, so task 15.1 only checks them); `title.ts`, `wake.ts` (with `clampWake` exported so the table of design 3.6 is tested row by row), the page test-kit, 26 unit tests and P6, P7, P8. No property failed against the code; a coverage guard (`paused` met 6 times) was fixed by adding states of every phase built with `step` to `arbAnyState`. Mutations caught and restored: P6 time from `now + 1000` (-700137797), the intent appended (523409759); P7 tenths of a second (-552379230); P8 cap removed (790015101), a wake 500 ms past the end (507196491), 0 instead of the 1 ms floor (1051090147).
     - Files: `src/page/wake.prop.test.ts`.
     - **Validates: Requirements 5.3, 5.4, 5.5**
 
-- [ ] 4. Purity tests for the pure modules
-  - [ ] 4.1 `src/audio/purity.test.ts` and `src/page/purity.test.ts`
+- [x] 4. Purity tests for the pure modules
+  - [x] 4.1 `src/audio/purity.test.ts` and `src/page/purity.test.ts`
     - Copy the technique of `src/ui/purity.test.ts` (strip comments, match whole words). `src/audio/purity.test.ts` scans `types.ts`, `cue.ts`, `specs.ts`, `noise.ts`; `src/page/purity.test.ts` scans `title.ts` and `wake.ts`. Each fails if a file contains any of `window`, `document`, `localStorage`, `Date`, `performance`, `Math.random`, `matchMedia`, `setTimeout`, `setInterval`, `requestAnimationFrame`, `AudioContext`, or imports anything outside the allowed list of design 2.2 (`src/audio/` imports only `../engine`, `../strings` and siblings; `src/page/` also `../ui/format`).
     - Also check: `title.ts` contains no literal copy of the paused, dawn and dark words or of the separator; no file in either folder contains the trademarked timer word (case-insensitive, built from fragments); no shipped file in the repo imports `test-kit.ts`, `fake-audio-context.ts` or `fake-timer.ts`; every string literal in the pure files is a cue id, a waveform name, a filter kind or a phase name (no visible text, R1.10).
+    - Result: 17 and 18 tests. The "no literal paused" rule is checked on string literals: `case "paused":` is the phase name and must be there, so every literal of the pure files must be in an allowed set (phase, event and cue names, waveforms, filter kinds; and `"type"`, the key of `Event["type"]` in `types.ts`), and "Morning", "Dark" and the separator are searched for anywhere in `title.ts`. Two scanner bugs were fixed before the faults were run (a self-test that put an import mid-line, and the `"type"` key). Each fault caught from a clean baseline and restored: `Date` in `wake.ts`, a "Morning" literal and a "paused" copy in `title.ts`, `Math.random` in `noise.ts`, a `../scene` import in `cue.ts`, a visible text in `specs.ts`.
     - Files: `src/audio/purity.test.ts`, `src/page/purity.test.ts`.
     - _Requirements: R1.2, R1.3, R1.10, R1.11, R6.6_
 
-- [ ] 5. Checkpoint - Batch 1 ends here
+- [x] 5. Checkpoint - Batch 1 ends here
   - Run `npm run verify`. Ensure all tests pass, ask the user if questions arise. Confirm P1, P2, P4, P5, P6, P7, P8 ran at 300 runs through `PROP_PARAMS` with no skipped, `only` or `todo` tests, that every mutation named above was caught and reverted (`git diff` on the sources shows only the intended files), and that no shipped file imports the new modules yet. Report the unit file and test counts.
   - Add the batch 1 entry to `KIRO_USAGE.md` (R9.10): surface, what was built (tasks 1 to 4), property failures with their seeds or "none", the mutation results, screenshots and costume review "none yet", and the counts.
   - Files: `KIRO_USAGE.md`.
 
 > **Batch 1 ends here.** Stop this CLI session. Start batch 2 with task 6.
 
-- [ ] 6. The Audio_Player and the Fake_AudioContext
-  - [ ] 6.1 `src/audio/fake-audio-context.ts`
+- [x] 6. The Audio_Player and the Fake_AudioContext
+  - [x] 6.1 `src/audio/fake-audio-context.ts`
     - Create `FakeAudioContext` (test-only) implementing `AudioContextLike` as in design 8.3: records every created node with its type and parameter calls (`setValueAtTime`, `linearRampToValueAtTime`, `exponentialRampToValueAtTime`, `cancelScheduledValues`), every `start` and `stop` time, every `connect` and `disconnect`, and counts of construction and `resume()` calls. Options: `resumeMode` (`"instant"` flips the state in the call, `"deferred"` flips it in a microtask, `"never"` leaves it `suspended`, `"throw"` rejects) and `throwOn` (a method name that throws). `advance(ms)` moves `currentTime` and fires `onended` of a node once its `stop` time has passed; `sounding()` returns the Cues whose `cueGain` is above 0 at the current time (used by P15). Also export a small factory helper that counts calls.
     - Create `src/audio/fake-audio-context.test.ts` as a short self-test: the options behave as named, `onended` fires after `advance`, `sounding()` follows a fade.
     - Files: `src/audio/fake-audio-context.ts`, `src/audio/fake-audio-context.test.ts`.
     - _Requirements: R4.13, R9.2, R9.3_
 
-  - [ ] 6.2 `src/audio/audio-player.ts` and the unit tests
+  - [x] 6.2 `src/audio/audio-player.ts` and the unit tests
     - Create the `*Like` interfaces, `createAudioPlayer(deps)` and `browserAudioFactory()` exactly as design 3.3: states `locked`, `unlocked`, `failed`; `unlock()` calls the factory once and `resume()` in the same call; `play(cue)` follows rules 1 to 6 (drop when locked, failed or sound off; start when the context is `running`; one `resume()` per request; one held request for the promise of its own `resume()` call, replaced by a newer request, cleared by `setSound(false)`; `closed` sets `failed` and drops, D26); each Cue gets its own gain node; a 30 ms fade of the sounding Cue before a new one starts; an idempotent `release()` on every `onended`; envelope points become `setValueAtTime` and `linearRampToValueAtTime` calls, glides use `exponentialRampToValueAtTime`; noise buffers come from `noiseSamples`. The whole of `play` is inside one `try`; a throw sets `failed`, releases what was built and is not rethrown. No `setTimeout`, no `<audio>`, no `Audio(`, no `fetch`, no `webkitAudioContext`.
     - Create `src/audio/audio-player.test.ts` with `FakeAudioContext`: nothing is constructed at creation; `unlock()` constructs once and calls `resume()` in the same call; sound off constructs nothing; `play` before unlock is dropped and not replayed after unlock; a `suspended` context whose `resume()` flips the state starts the Cue; one that leaves it `suspended` drops it; a deferred `resume()` starts the held request once and only the latest; `setSound(false)` fades within 50 ms and clears the held request; `setSound(true)` before any gesture unlocks; a second Cue fades the first in 30 ms; every node is disconnected after `advance`; a factory returning `null`, a factory that throws, a context in state `closed` and a node call that throws all end `failed` silently with the timer, title and scene untouched; the voice envelope calls match `CUE_SPECS` for each Cue.
     - Files: `src/audio/audio-player.ts`, `src/audio/audio-player.test.ts`.
     - _Requirements: R4.1 to R4.15, R9.2_
 
-  - [ ] 6.3 Required: P10, the player never makes a sound by surprise
+  - [x] 6.3 Required: P10, the player never makes a sound by surprise
     - **Property 10: The player never makes a sound by surprise**
     - Add `arbGestureScript` to `src/audio/test-kit.ts` (a list of `gesture`, `request(cue)`, `setSound(on)`, `advance(ms)` and `settle` steps). Create `src/audio/audio-player.prop.test.ts` (tag Property 10): for any script against an injected factory, the factory is called at most once, never before the first gesture that the sound setting allows, and never while sound has been off since the start; a Cue sounds only when the player is unlocked with sound on and the context is running; a request made before unlock never sounds afterwards; a request made while sound is off is never replayed.
     - Mutation check (P10): call the factory inside `createAudioPlayer` instead of inside `unlock()`; confirm P10 fails; revert. Then let `play` create the context when `locked`; confirm P10 fails; revert.
     - Files: `src/audio/test-kit.ts`, `src/audio/audio-player.prop.test.ts`.
     - **Validates: Requirements 4.1, 4.2, 4.5, 4.6, 4.8, 4.9, 4.14**
 
-  - [ ] 6.4 Required: P15, at most one Cue sounds at a time
+  - [x] 6.4 Required: P15, at most one Cue sounds at a time
     - **Property 15: At most one Cue sounds at a time**
     - Add Property 15 to `src/audio/audio-player.prop.test.ts` (tag Property 15): for any sequence of Cue requests and time advances against the `FakeAudioContext`, at any instant 50 ms after the last request at most one Cue is sounding; a replaced Cue is silent within 50 ms; when sound is turned off the sounding Cue is silent within 50 ms; after every source has ended all nodes the player created are disconnected.
     - Mutation check (P15): skip `fadeOut(current)` when a new Cue starts; confirm P15 fails; revert. Then leave the held request alive after `setSound(false)`; confirm P15 fails (strengthen the generator with a deferred `resume()` if it survives); revert.
+    - Result (tasks 6.1 to 6.4): `audio-player.ts` (the `*Like` interfaces, the three states, rules 1 to 6 of `play`, a gain node per Cue, the 30 ms fade with a stop at 35 ms, an idempotent release per voice and per Cue, `browserAudioFactory`), `fake-audio-context.ts` (records nodes, connections and parameter calls; evaluates sets and linear ramps; `advance` fires `onended`; `sounding()` tells the Cue by its sources; `countingFactory`; an extra `resumeMode` `"void"` for the "returned nothing" branch of rule 5), 12 self-tests, 32 player unit tests, P10 and P15. Two typing notes: `onended` is typed `((this: never, event: never) => unknown) | null` (exported as `EndedHandler`) so the browser's own handler type is accepted without a cast; the per-Cue gain is created before the `try` so a failed first call has nothing to release. The player also keeps the Cue that is fading and releases it at the next fade (the error-handling row "a source that never fires `onended` is released when the next Cue fades it"). No property failed against the code. P15 counts the 50 ms from the moment a Cue starts: a held request (D19) takes effect when its `resume()` settles, so the bound is counted from the request or from that start, whichever is later; and it also asserts that a Cue requested before a `setSound(false)` is silent from 50 ms after it. Mutations, each caught and the source restored (hash checked): P10 factory called in `createAudioPlayer` instead of `unlock()` (seed -1175990653); P10 `play` unlocking when `locked` (-876561562); P15 no fade of the sounding Cue when a new one starts (729913088); P15 held request kept after `setSound(false)`: it **survived** the first generator (the only deferred `resume()` was the one of `unlock()`, which settles at the first settle step, so a held request rarely met a sound toggle), so the generator was strengthened, not the code: a `suspend` step puts the context back to `"suspended"` so later requests wait on a deferred `resume()`, and an off-then-on toggle is generated as one chunk; then caught three times in three runs (560864161, -6993548, 1892941895). P10 and P15 passed five repeated runs unmutated.
     - Files: `src/audio/audio-player.prop.test.ts`.
     - **Validates: Requirements 4.7, 4.10, 4.11**
 
-- [ ] 7. The first-gesture listener
-  - [ ] 7.1 `src/audio/gesture.ts`
+- [x] 7. The first-gesture listener
+  - [x] 7.1 `src/audio/gesture.ts`
     - Create `armFirstGesture(target, wanted, unlock)` exactly as design 3.4: `keydown`, `pointerdown` and `touchend` added with `{ capture: true }` (and `passive: true` on `touchend`), one shared handler, removed with `{ capture: true }`. The handler returns at once when `wanted()` is false (listeners stay armed); otherwise it calls `unlock()` inside a `try`, then `disarm()` in the same dispatch (also when `unlock()` returns false). It calls neither `preventDefault` nor `stopPropagation`. `disarm` is safe to call twice.
     - Create `src/audio/gesture.test.ts` with a 20-line recording target: three listeners in the capture phase; the first event with sound on unlocks and removes all three in the same dispatch; with sound off nothing is created and the listeners stay armed; a later turn-on plus the next gesture finds an unlocked player and disarms; an `unlock` that returns false or throws still disarms; Escape is not required (any key counts); `disarm` twice is safe.
+    - Result: `gesture.ts` as design 3.4 (one shared handler that takes no event, so it cannot call `preventDefault` or `stopPropagation`; `disarm` guarded by an `armed` flag) and 11 unit tests, the player driven through the Fake_AudioContext where an unlock is involved.
     - Files: `src/audio/gesture.ts`, `src/audio/gesture.test.ts`.
     - _Requirements: R4.2, R4.4, R4.6, R4.16, R4.17, R9.2_
 
-- [ ] 8. The title adapter
-  - [ ] 8.1 `src/page/title-adapter.ts`
+- [x] 8. The title adapter
+  - [x] 8.1 `src/page/title-adapter.ts`
     - Create `createTitleAdapter(doc)` exactly as design 3.8: the first write compares with `doc.title` once; later writes compare with the last known string and drop equal ones; a non-string is ignored; a throwing getter or setter is caught and `known` is left unchanged so the next call retries; no timer, no clock, no `requestAnimationFrame`.
     - Create `src/page/title-adapter.test.ts`: the first write equal to the page's title does not write; equal writes are dropped; a changed string writes; a throwing setter keeps `known` and retries on the next call; `last()` is `null` before the first write; the write count after a reload is one.
     - Files: `src/page/title-adapter.ts`, `src/page/title-adapter.test.ts`.
     - _Requirements: R1.4, R6.10, R6.11, R6.12, R6.14, R9.2_
 
-  - [ ] 8.2 Required: P13, the title adapter writes only changes
+  - [x] 8.2 Required: P13, the title adapter writes only changes
     - **Property 13: The title adapter writes only changes**
     - Create `src/page/title-adapter.prop.test.ts` (tag Property 13): for any sequence of titles and any starting `document.title`, the adapter writes only when the new title differs from the last one it knows (the write count equals the number of changes, plus one when the first title differs from the page's); for any monotone sequence of `now` values in `lit` fed through `titleFor` the writes are at most one per whole second of time left plus the phase changes.
     - Mutation check (P13): drop the equality check in the adapter; confirm P13 fails; revert.
+    - Result (tasks 8.1, 8.2): `title-adapter.ts` as design 3.8, 8 unit tests (also: the document is read once, at the first write; a throwing getter at the first write keeps `last()` null) and P13 in two parts (exact write list over titles from a small repeating set; a lit session over monotone times, then a pause, snuff or burn-out tick, writes at most 1 + whole seconds crossed + phase changes). No property failed. Mutation caught and restored: equality check dropped, both parts fail (seed 692371972).
     - Files: `src/page/title-adapter.prop.test.ts`.
     - **Validates: Requirements 6.10, 6.11, 6.12, 6.14**
 
-- [ ] 9. The Hidden_Tick
-  - [ ] 9.1 `src/page/fake-timer.ts` and the extra-tick runner
+- [x] 9. The Hidden_Tick
+  - [x] 9.1 `src/page/fake-timer.ts` and the extra-tick runner
     - Create `FakeTimer` (test-only): `schedule(fn, ms)` returns an incrementing id and records the due time; `cancel(id)`; `advance(ms)` runs due timers in order while moving a settable `clock()`; `live()` counts armed timers; `lateBy(ms)` runs the next timer `ms` later than due (models throttling). Add to `src/page/test-kit.ts` `runWithExtraTicks(script, t0, extraTimes)` (runs the script through `step` and inserts `tick` events at extra times that fall between steps, merged so `now` never goes backwards) and `runWithoutExtraTicks(script, t0)` (the same script followed by one `tick` at the last `now`). Add a short `fake-timer.test.ts` self-test.
     - Files: `src/page/fake-timer.ts`, `src/page/fake-timer.test.ts`, `src/page/test-kit.ts`.
     - _Requirements: R5.1, R5.9, R9.2_
 
-  - [ ] 9.2 `src/page/hidden-tick.ts` and the unit tests
+  - [x] 9.2 `src/page/hidden-tick.ts` and the unit tests
     - Create `createHiddenTick(deps)` exactly as design 3.7: `start(now)`, `stop()`, `isRunning()`, `hasPending()`; the `armId` guard; every delay from `nextWakeMs`; `now` read from `deps.clock()` when the callback runs; only `{ type: "tick" }` is dispatched; a throw from `dispatch` is swallowed and the chain goes on; a throw from `getState` or `nextWakeMs` arms the next timer at `WAKE_MAX_MS`; the chain ends only when `nextWakeMs` returns `null` or `stop()` has run (D27). No `Date`, no `requestAnimationFrame`, no `AudioContext`.
     - Create `src/page/hidden-tick.test.ts` with `FakeTimer`: `start` after `hide` arms one timer at the wake; the callback dispatches one `tick` with `clock()`; re-arm; the tick that finds the end stops the chain; `stop` cancels; a callback that runs after `stop` does nothing; `start` twice arms once; `start` in `idle` arms nothing; a throwing `dispatch` is swallowed and the next timer is still armed at the Wake_Delay; a throwing `getState` arms the next timer at exactly 1000 ms; a late timer (`lateBy`) dispatches with the later `now`; an early timer re-arms with a shorter delay.
     - Files: `src/page/hidden-tick.ts`, `src/page/hidden-tick.test.ts`.
     - _Requirements: R1.5, R1.7, R5.1 to R5.14, R5.18, R5.20, R5.23, R9.2_
 
-  - [ ] 9.3 Required: P12, the Hidden_Tick keeps at most one timer and stops when told
+  - [x] 9.3 Required: P12, the Hidden_Tick keeps at most one timer and stops when told
     - **Property 12: The Hidden_Tick keeps at most one timer and stops when told**
     - Create `src/page/hidden-tick.prop.test.ts` (tag Property 12): for any generated sequence of `start`, `stop`, timer advances (including late ones), state changes and injected throws from `dispatch` and `getState`, the `FakeTimer` never holds more than one live timer from the module; `hasPending()` implies `isRunning()`; no timer is armed while the phase is not `lit` or `paused`; after `stop()` no `dispatch` runs and no timer is armed, including a callback already due; the only event sent is `tick`; every `dispatch` carries the `now` that `clock()` returned when the callback ran; a throwing `dispatch` never ends the chain; a throwing `getState` arms the next timer at `WAKE_MAX_MS`; the chain ends only when `nextWakeMs` is `null` or `stop()` has run.
     - Mutation check (P12), four faults, each applied, caught and reverted: (a) remove the `armId` check in `fire`; (b) re-arm after `running` became false; (c) return from the `catch` around `dispatch`; (d) fall back to `WAKE_MIN_MS` instead of `WAKE_MAX_MS` when `getState` throws. Each must fail P12; (c) and (d) must also fail the matching unit tests.
     - Files: `src/page/hidden-tick.prop.test.ts`.
     - **Validates: Requirements 5.1, 5.2, 5.6, 5.10, 5.11, 5.13, 5.14**
 
-  - [ ] 9.4 Required: P9, extra hidden ticks change nothing (Risk K1)
+  - [x] 9.4 Required: P9, extra hidden ticks change nothing (Risk K1)
     - **Property 9: Extra hidden ticks change nothing**
     - Add Property 9 to `src/page/hidden-tick.prop.test.ts` (tag Property 9), in two parts: the engine part uses `runWithExtraTicks` against `runWithoutExtraTicks` and asserts the final states are `toEqual`, and that the distraction count and the ghost spans are equal; the Hidden_Tick part drives a real `createHiddenTick` with a `dispatch` that calls the engine's `step` and a `FakeTimer`, over generated scripts with `hide` and `show`, and asserts the same equality with the ticks the module itself sent.
+    - **Risk K1 result:** P9 **passed** without any mutation, in both parts, on every run made while building (more than ten); no counterexample, no engine finding for `distraction-tracking`.
     - **Risk K1 (stop-and-report rule):** if P9 fails without a mutation applied, do not work around it. Do not change the engine, the test, the runner, the generator or the property to make it pass, and do not weaken it. Stop, record the shrunk counterexample and the seed, say that a `tick` while hidden changed a hide span, a ghost span or the distraction count, and report it as an engine finding for `distraction-tracking` (CR8). Leave the rest of the batch to the owner's decision.
     - Mutation check (P9): in `fire`, dispatch `{ type: "hide" }` instead of `tick`; confirm P9 fails (the Hidden_Tick part must catch it; if only the engine part exists, strengthen the test); revert. Then make the runner's extra tick carry a stale `now` (earlier than the previous event); confirm P9 fails; revert.
+    - Result (tasks 9.1 to 9.4): `fake-timer.ts` (also `ignoreCancel`, a timer that still runs after `cancel` as a queued browser task, and `queued()`), 7 self-tests; `runWithExtraTicks`, `runWithoutExtraTicks` and `stepOnce` in the page test-kit (a step is applied through the engine's `runScript`, so a `reload` is the same real round trip); `hidden-tick.ts` exactly as design 3.7; 13 unit tests; P12 and P9 (two parts). No property failed against the code. Three faults were in the new tests and were fixed there: the runner dropped an extra time equal to the last `now` (empty script); P12 marked the module "quiet" until `start` returned, so its own first arm looked like an arm after `stop`; and P12's checks inside `dispatch` were thrown, so the module's own `catch` around `dispatch` (D27) swallowed them — they are now recorded in a list that is asserted empty after every op (found because mutation (a) first survived). Coverage guards (fires, dispatch throws, getState throws, stale callbacks, stops inside a dispatch, natural chain ends, at least 10 each; P9 runs with ticks and with ghosts) were met by the generators: P12 starts from a lit session, sets lit and paused states with little time left, and adds chunks (start, stop, start, advance; start, stop-in-dispatch, advance; near-end state, start, advance); the Hidden_Tick part of P9 begins every script with a light and a hide. Mutations, each caught and the source restored (hash checked): P12 (a) `armId` check removed in `fire` (seed -1340554381); (b) the check after `dispatch` removed, so it re-arms after `running` became false (1387996047); (c) `return` from the `catch` around `dispatch`, also the throwing-dispatch unit test (914649852); (d) `WAKE_MIN_MS` when `getState` throws, also the exactly-1000 ms unit test (637543228); P9 `hide` instead of `tick`, caught by the Hidden_Tick part (and by P12) (-118932302); P9 stale `now` in the runner (1448935449). The stale-`now` fault is caught by the runner-contract check of the engine part (every extra time goes in, the `now` values never go backwards); the state comparison alone cannot see it, because `tick` only settles and `settle` with an earlier `now` changes nothing (checked by running the fault with that one check removed: P9 passed).
     - Files: `src/page/hidden-tick.prop.test.ts`.
     - **Validates: Requirements 5.14, 5.18**
 
-- [ ] 10. `after-step.ts`
-  - [ ] 10.1 `src/after-step.ts` and the unit tests
+- [x] 10. `after-step.ts`
+  - [x] 10.1 `src/after-step.ts` and the unit tests
     - Create `createAfterStep(deps)` and the `AfterStep` type exactly as design 3.9: four steps in a fixed order, each in its own `try`/`catch` (choose the Cue with `cueFor` and `deps.sound()` read at that moment; `play`; `writeTitle(titleFor(next, now))`; `hidden.start(now)` for `hide` or `hidden.stop()` for `show`). It receives the player, the adapter and the Hidden_Tick as arguments and imports no effect file.
     - Create `src/after-step.test.ts` with recording fakes: for `light` the log is `play("strike")` then `writeTitle("25:00 · Candlewatch")`; for `hide` it is `writeTitle` then `hidden.start(now)`; for `show` it is `hidden.stop()`; `reload` plays nothing; a `tick` that keeps the phase plays nothing; a throwing `play` still writes the title and starts the tick; a throwing `writeTitle` still starts the tick; a throwing `sound()` means no Cue; sound off means no `play`.
     - Files: `src/after-step.ts`, `src/after-step.test.ts`.
     - _Requirements: R1.6, R1.7, R2.1 to R2.8, R2.14, R5.16, R5.17, R6.12, R9.2_
 
-  - [ ] 10.2 Required: P14, `afterStep` runs in order and plays at most one Cue
+  - [x] 10.2 Required: P14, `afterStep` runs in order and plays at most one Cue
     - **Property 14: afterStep runs in order and plays at most one Cue**
     - Create `src/after-step.prop.test.ts` (tag Property 14): for any previous state, next state, event and `now`, `afterStep` calls `play` at most once; `play` before `writeTitle` and `writeTitle` before `hidden.start` or `hidden.stop`; `hidden.start` only for `hide` and `hidden.stop` only for `show`; it does not throw whichever of its dependencies throw.
     - Mutation check (P14): call `writeTitle` before `play`; confirm P14 and the order unit test fail; revert. Then call `hidden.start` for `show`; confirm P14 fails; revert.
     - Files: `src/after-step.prop.test.ts`.
     - **Validates: Requirements 1.6, 1.7, 5.16, 5.17, 6.12**
 
-  - [ ] 10.3 Required: P3, at most one Cue per event, none from reload, one strike and one end Cue per session
+  - [x] 10.3 Required: P3, at most one Cue per event, none from reload, one strike and one end Cue per session
     - **Property 3: At most one Cue per event, none from reload, one strike and one end Cue per session**
     - Add Property 3 to `src/after-step.prop.test.ts` (tag Property 3): for any generated script run through a `dispatch` built like the one in `main.ts` (`step`, then `afterStep` with a counting `play`), at most one Cue comes from each event, no Cue comes from the initial `reload` step, and over one session (from `light` to its end) there is at most one `strike` and at most one end Cue (`chime` or `breath`).
     - Mutation check (P3): call `play` a second time for the same Cue in `afterStep`; confirm P3 fails; revert. Then force the event type given to `cueFor` to `"tick"` for a `reload`; confirm P3 fails; revert.
+    - Result (tasks 10.1 to 10.3): `src/after-step.ts` exactly as design 3.9 (imports only `./engine`, `./audio/cue`, `./audio/types`, `./page/title`), 13 unit tests (the logs include the title write before `hidden.stop()` for `show`, which is the fixed order of 3.9; one burn-out found by a `hide` event shows all four steps in one call with a throwing `play`), P14 and P3. No property failed against the code. P3 runs each trace entry of `runScript` through `afterStep` (one `step`, then `afterStep` with the states before and after, as `dispatch` does) and numbers the sessions from the states (a non-running phase becoming `lit`), not from the Cues. Coverage guards (Cues played; hide and show events; strikes, end Cues and reloads that end a session) were made sure by the generators: P14 draws half its pairs from the engine's real Transitions (`transition(kind)`), P3 mixes in sessions that end near a `tick` or a `reload` (up to 150 s after the end of the watch, or after the pause allowance). Mutations, each caught and the source restored (hash checked): P14 `writeTitle` before `play`, also the order unit tests (seed -1825477871); P14 `hidden.start` for `show` (1635266380); P3 `play` twice (-504881754); P3 event type forced to `tick` for a `reload` (-852730276); all four caught again after the generator change (182347031, 1961100672, 719983727, -1364196720).
     - Files: `src/after-step.prop.test.ts`.
     - **Validates: Requirements 1.6, 2.8, 2.10, 5.7, 5.8**
 
-- [ ] 11. Purity scans for the effect files
-  - [ ] 11.1 Extend `src/audio/purity.test.ts` and `src/page/purity.test.ts`
+- [x] 11. Purity scans for the effect files
+  - [x] 11.1 Extend `src/audio/purity.test.ts` and `src/page/purity.test.ts`
     - `audio-player.ts`: no `Audio(`, `<audio>`, `fetch`, `XMLHttpRequest`, `webkitAudioContext`, `setTimeout`, `.mp3`, `.wav` or `.ogg`; `window` and `AudioContext` only inside `browserAudioFactory`. `gesture.ts`: no `window` or `document`. `hidden-tick.ts`: no `Date`, `requestAnimationFrame`, `AudioContext`, `window` or `document`. `title-adapter.ts`: no `window`, `setTimeout` or `requestAnimationFrame`. `after-step.ts`: imports only `./audio/cue`, `./audio/types`, `./page/title` and `./engine`.
     - Add a scan of all non-test files under `src/`: `title-adapter.ts` is the only file that assigns `document.title` or `.title =`; `AudioContext` appears only in `audio-player.ts`; `setTimeout` and `clearTimeout` appear only in `main.ts` (the wiring) and files that already used them before this spec; no file in `src/audio/` or `src/page/` contains a visible string literal outside `strings.ts`; no shipped file imports a `test-kit`, `fake-*` file.
+    - Result: 15 new tests in each file (32 and 33 in all). `window` and `AudioContext` are checked outside the text of `browserAudioFactory` (found with a balanced-brace scan, which has its own self-test); the literal scans now cover every shipped file of both folders, with the effect files' names (player states, context states, `typeof` results, the three gesture events, `tick`, `hide`, `show`); the two `RangeError` messages in `audio-player.ts` were removed so no text is left there. The files that used `setTimeout` before this spec are `main.ts` and `ghosts/layer.ts` (its fade safety); the test-helper import check now covers any `fake-*` file. Planted faults, each caught by the matching scan and restored (hash checked): `window` outside the factory, `setTimeout` in the player, `document` and a visible text in `gesture.ts`, `Date` and `setTimeout` in `hidden-tick.ts`, a title assignment and an effect-file import in `after-step.ts`, `window` in `title-adapter.ts`.
     - Files: `src/audio/purity.test.ts`, `src/page/purity.test.ts`.
     - _Requirements: R1.4, R1.5, R1.9, R1.10, R4.15, R5.23_
 
-- [ ] 12. Checkpoint - Batch 2 ends here
+- [x] 12. Checkpoint - Batch 2 ends here
+  - Result: `npm run verify` as one command, exit 0: 105 unit files, 1472 tests; 350 e2e passed, 7 skipped. Every property test of tasks 6 to 10 (9 `fc.assert`) runs through `PROP_PARAMS`, with no literal run count and no `skip`, `only` or `todo`. Every named mutation was caught and reverted; `git status` shows only the intended files (the two spec documents, `KIRO_USAGE.md`, `src/strings.ts`, `src/ui/strings.test.ts`, the removed `.gitkeep` and the new files). P9 passed (Risk K1: no finding). No shipped file imports the new modules.
   - Run `npm run verify`. Ensure all tests pass, ask the user if questions arise. Confirm every property test of tasks 6 to 10 ran at 300 runs through `PROP_PARAMS`, with no skipped, `only` or `todo` tests, that every mutation named above was caught and reverted (`git diff` on the sources is clean), and that P9 passed or was reported under Risk K1. Report the unit file and test counts. The new modules are still not imported by any shipped file.
   - Add the batch 2 entry to `KIRO_USAGE.md` (R9.10): surface, what was built (tasks 6 to 11), property failures with their seeds or "none" (P9 and the Risk K1 result in particular), the mutation results, screenshots and costume review "none yet", and the counts.
   - Files: `KIRO_USAGE.md`.
@@ -268,9 +280,9 @@ Conventions for every task:
 
 - [ ] 15. Final wording in `strings.ts`
   - [ ] 15.1 Replace the placeholder values and add the new keys (CR6, CR11, CR12). Requires the ghosts-and-graveyard build
-    - If `src/strings.ts` has no `graveyard` group or `src/graveyard/` does not exist, stop and report (see Overview). Otherwise set the ten values of CR6 in `src/strings.ts`: `graveyard.door` "Walk out to the graveyard", `noStones` "Nothing is buried here.", `noStubs` "The shelf is bare.", `noIntent` "Unnamed watch", `olderStone` "{n} older stone out of sight", `olderStones` "{n} older stones out of sight", `olderDay` "{n} older day out of sight", `olderDays` "{n} older days out of sight", `card.planned` "Length: {time}", `announceOpen` "The graveyard. Quiet.". Add `graveyard.card.stoneLine` ("Here lies {intent}"), `stubLine` ("Burned to the end: {intent}"), `unnamed` ("an unnamed watch") and `quoted` (`"{text}"`, straight double quotes). Every other key keeps its value, in particular `unknownDate` stays "Unknown date" (D23), and `status`, `announce`, `snuff`, `settings`, `scene` and `time` are not touched (R8.12).
-    - CR12, second part: add `"count"`, `"ghosts"` and `"graveyard"` to `NOT_THIS_SPEC` in `src/ui/strings.test.ts` if the ghosts spec has not already done so (`pageTitle` was added in task 3.1).
-    - Update every test and e2e literal that quotes a changed value (`src/graveyard/text.test.ts`, `src/strings.test.ts`, the ghosts E3 and E6 specs and any other file found by a search for the old strings "No stones yet", "No candles on the shelf yet", "not shown", "Planned:", "Open the graveyard", "The graveyard.", "No intent"). Do not change their logic.
+    - If `src/strings.ts` has no `graveyard` group or `src/graveyard/` does not exist, stop and report (see Overview). Otherwise set the ten values of CR6 in `src/strings.ts`: `graveyard.door` "Walk out to the graveyard", `noStones` "Nothing is buried here.", `noStubs` "The shelf is bare.", `noIntent` "Unnamed watch", `olderStone` "{n} older stone out of sight", `olderStones` "{n} older stones out of sight", `olderDay` "{n} older day out of sight", `olderDays` "{n} older days out of sight", `card.planned` "Length: {time}", `announceOpen` "The graveyard. Quiet.". The four new keys `graveyard.card.stoneLine`, `stubLine`, `unnamed` and `quoted` are **not** added here but in task 16.3, together with their caller: since `ghosts-and-graveyard` task 17.1, `src/strings.test.ts` fails for any `graveyard` key that no file in `src/graveyard/` uses (corrected, design D34). Every other key keeps its value, in particular `unknownDate` stays "Unknown date" (D23), and `status`, `announce`, `snuff`, `settings`, `scene` and `time` are not touched (R8.12).
+    - CR12, second part: check that `"count"`, `"ghosts"` and `"graveyard"` are in `NOT_THIS_SPEC` in `src/ui/strings.test.ts` (they are, since `ghosts-and-graveyard` task 1.4; `pageTitle` was added in task 3.1). Change nothing if they are.
+    - Update every test and e2e literal that quotes a changed value. Found when the plan was corrected (design D34): `src/graveyard/text.test.ts`, `src/graveyard/plan.test.ts` and the hand-written snapshots of `e2e/graveyard-a11y.spec.ts` (the ghosts E6); `e2e/graveyard-layout.spec.ts` (E3) and `e2e/graveyard.spec.ts` fill their text from `STRINGS` and follow on their own. Search again for the old strings "No stones yet", "No candles on the shelf yet", "not shown", "Planned:", "Open the graveyard", "The graveyard.", "No intent" before editing. Do not change their logic.
     - Files: `src/strings.ts`, `src/ui/strings.test.ts`, and the test files that quote the old values.
     - _Requirements: R8.1, R8.2, R8.3, R8.4, R8.5, R8.6, R8.11, R8.12_
 
@@ -289,9 +301,11 @@ Conventions for every task:
     - **Validates: Requirements 8.9, 8.10**
 
   - [ ] 16.3 `cardLines` builds the kind-specific first line (CR9). Requires the ghosts-and-graveyard build
-    - In `src/graveyard/text.ts` change only the first line of `cardLines` as in design 4.3: a stone gets `fill(stoneLine, { intent })` where `intent` is `fill(card.quoted, { text })` for a named entry and `card.unnamed` otherwise; a stub gets `fill(stubLine, { intent })` with the intent unquoted or `card.unnamed`; a null or empty intent counts as unnamed. The intent is passed to `fill` as a value, never trimmed, cut, escaped or case-changed. `cardLines` still returns exactly five lines and lines 2 to 5 are unchanged. `stoneIntent` and `itemName` are not changed: the accessible name stays the intent (or `noIntent`) plus the date and never contains "Here lies" or "Burned to the end" (R8.15).
+    - First add to `src/strings.ts` the four keys moved here from task 15.1 (design D34): `graveyard.card.stoneLine` ("Here lies {intent}"), `stubLine` ("Burned to the end: {intent}"), `unnamed` ("an unnamed watch") and `quoted` (`"{text}"`, straight double quotes), and `text` to the allowed placeholder names of `src/strings.test.ts`.
+    - In `src/graveyard/text.ts` change only the first line of `cardLines` as in design 4.3 (the kind is `item.entry.outcome`): a stone gets `fill(stoneLine, { intent })` where `intent` is `fill(card.quoted, { text })` for a named entry and `card.unnamed` otherwise; a stub gets `fill(stubLine, { intent })` with the intent unquoted or `card.unnamed`; a null or empty intent counts as unnamed. The intent is passed to `fill` as a value, never trimmed, cut, escaped or case-changed. `cardLines` still returns exactly five lines and lines 2 to 5 are unchanged. `stoneIntent` and `itemName` are not changed: the accessible name stays the intent (or `noIntent`) plus the date and never contains "Here lies" or "Burned to the end" (R8.15).
     - Update `src/graveyard/text.test.ts` with the four rows of design 4.3 compared with the literal strings of R8.13 (`Here lies "write the report"`, `Here lies an unnamed watch`, `Burned to the end: write the report`, `Burned to the end: an unnamed watch`), an intent containing `$&`, `{n}` and `{intent}` kept as typed, and the Item name never containing the flavour phrases for both kinds with and without an intent. Update ghosts Property P18 in `src/graveyard/text.prop.test.ts` as CR9 says (five lines; the first contains the exact intent as a substring when it is not null and not empty, and `card.unnamed` when it is); keep its tag and its generator, and run its mutation check from the ghosts plan again (drop the intent from the first line; confirm it fails; revert).
-    - Files: `src/graveyard/text.ts`, `src/graveyard/text.test.ts`, `src/graveyard/text.prop.test.ts`.
+    - Update the e2e tests that build or quote the first card line: `expectedLines` in `e2e/graveyard.spec.ts` (it builds the first line as the intent or `noIntent`) and the descriptions in the snapshots of `e2e/graveyard-a11y.spec.ts`. The card is sized to its content (ghosts-and-graveyard D16), so the longer line needs no geometry change; run `e2e/graveyard-layout.spec.ts` to confirm the placement checks still pass.
+    - Files: `src/strings.ts`, `src/strings.test.ts`, `src/graveyard/text.ts`, `src/graveyard/text.test.ts`, `src/graveyard/text.prop.test.ts`, `e2e/graveyard.spec.ts`, `e2e/graveyard-a11y.spec.ts`.
     - _Requirements: R8.13, R8.14, R8.15, R9.2_
 
 - [ ] 17. Strings tests
@@ -310,7 +324,7 @@ Conventions for every task:
 
 - [ ] 19. Browser test helpers
   - [ ] 19.1 `e2e/sound-fixtures.ts`
-    - Build on `e2e/controls-fixtures.ts` (`openApp`, `settle`, `jump`, `press`, `timeText`, `statusText`, `liveTexts`, `storedState`, `phaseOf`, `clockNow`) and `FIXTURES` and `T0` of `e2e/scene-fixtures.ts`. Export `FAKE_AUDIO_SCRIPT` (a string for `initScripts`: replaces `window.AudioContext` with a class that starts `suspended`, flips to `running` in a microtask after `resume()`, and appends `{ kind, at: Date.now(), ... }` entries to `window.__audioLog` for `construct`, `resume`, `osc`, `noise`, `filter` and `stop`), `FAKE_AUDIO_THROWS` (a constructor that throws), `cuesPlayed(log)` (identifies a Cue by its signature using the numbers of `CUE_SPECS`: a bandpass noise voice from 4000 Hz is `strike`, a 660 Hz sine is `chime`, a lowpass noise voice from 2400 Hz is `breath`), `constructions(log)`, `resumes(log)`, and `setHidden(page, hidden)` (sets `visibilityState`, dispatches `visibilitychange`, and holds `requestAnimationFrame` callbacks in `window.__heldFrames` installed after load, restoring and replaying them on show; see design 8.5 and D32). `window.__audioLog` and `window.__heldFrames` are globals of the tests' own scripts; the app never reads them.
+    - Build on `e2e/controls-fixtures.ts` (`openApp`, `settle`, `jump`, `press`, `timeText`, `statusText`, `liveTexts`, `storedState`, `phaseOf`, `clockNow`) and `FIXTURES` and `T0` of `e2e/scene-fixtures.ts`. Export `FAKE_AUDIO_SCRIPT` (a string for `initScripts`: replaces `window.AudioContext` with a class that starts `suspended`, flips to `running` in a microtask after `resume()`, and appends `{ kind, at: Date.now(), ... }` entries to `window.__audioLog` for `construct`, `resume`, `osc`, `noise`, `filter` and `stop`), `FAKE_AUDIO_THROWS` (a constructor that throws), `cuesPlayed(log)` (identifies a Cue by its signature using the numbers of `CUE_SPECS`: a bandpass noise voice from 4000 Hz is `strike`, a 660 Hz sine is `chime`, a lowpass noise voice from 2400 Hz is `breath`), `constructions(log)`, `resumes(log)`, and `setHidden(page, hidden)` (sets `visibilityState`, dispatches `visibilitychange`, and holds `requestAnimationFrame` callbacks in `window.__heldFrames` installed after load, restoring and replaying them on show; see design 8.5 and D32). Headless Chromium never hides a page by itself; build on the shape of `setVisibility` in `e2e/graveyard-fixtures.ts` (corrected, design D34). `openApp` now starts the clock paused at the load instant (`pauseAt(now - 5000)`, then the page, then `runFor(5040)`); keep that order and install the frame stub after load. `window.__audioLog` and `window.__heldFrames` are globals of the tests' own scripts; the app never reads them.
     - Add a one-test smoke in `e2e/sound.spec.ts` that opens a page with the fake audio and sees `constructions(log)` equal 0, to prove the helpers.
     - Files: `e2e/sound-fixtures.ts`, `e2e/sound.spec.ts`.
     - _Requirements: R9.3, R9.5_
@@ -357,7 +371,7 @@ Conventions for every task:
 
 - [ ] 25. Screenshots
   - [ ] 25.1 Retake the affected `graveyard-*` screenshots. Requires the ghosts-and-graveyard build
-    - If `docs/screenshots/` has no `graveyard-*` files, stop and report (see Overview). Read `e2e/screenshots.spec.ts` for the opt-in rule (`CANDLEWATCH_SHOTS=1` writes into `docs/screenshots/`) and the test names. Retake only the affected shots, with a grep filter on the test names, at desktop (1280 by 800) and phone (360 by 640): `graveyard-small-desktop`, `graveyard-small-phone`, `graveyard-large-desktop`, `graveyard-large-phone`, `graveyard-large-desktop-reduced`, `graveyard-card-keyboard-desktop`, `graveyard-card-keyboard-phone`, `graveyard-card-touch-desktop`, `graveyard-card-touch-phone`. Clear the variable afterwards. Run `git status`: only these files may have changed under `docs/screenshots/`; the `candle-*` files are not affected by this spec (the title is not drawn, no room element changes, CR17) and must not be retaken. A `candle-*` file that shows as modified before this task started is not this task's change; do not touch it.
+    - If `docs/screenshots/` has no `graveyard-*` files, stop and report (see Overview). Read `e2e/screenshots.spec.ts` for the opt-in rule (`CANDLEWATCH_SHOTS=1` writes into `docs/screenshots/`) and the test names. Retake only the affected shots, with a grep filter on the test names, at desktop (1280 by 800) and phone (360 by 640): `graveyard-small-desktop`, `graveyard-small-phone`, `graveyard-large-desktop`, `graveyard-large-phone`, `graveyard-large-desktop-reduced`, `graveyard-card-keyboard-desktop`, `graveyard-card-keyboard-phone`, `graveyard-card-touch-desktop`, `graveyard-card-touch-phone`. Clear the variable afterwards. The `ghosts-*` and `graveyard-*` cases are in `e2e/screenshots.spec.ts` with the `candle-*` ones, so filter on `graveyard-` (and on `ghosts-` for task 25.2 only if one differs). `docs/screenshots/` holds 59 files (corrected, design D34). Run `git status`: only these files may have changed under `docs/screenshots/`; the `candle-*` files are not affected by this spec (the title is not drawn, no room element changes, CR17) and must not be retaken. A `candle-*` file that shows as modified before this task started is not this task's change; do not touch it.
     - Files: `docs/screenshots/graveyard-*.png` (the nine named above).
     - _Requirements: R9.7_
 

@@ -13,7 +13,7 @@ const SRC_DIR = join(UI_DIR, "..");
 const ENFORCE_ALL_USED = true;
 
 /** Groups of keys that other specs own and that this spec's files need not use. */
-const NOT_THIS_SPEC = new Set(["title", "tagline", "scene", "count", "ghosts", "graveyard"]);
+const NOT_THIS_SPEC = new Set(["title", "tagline", "scene", "count", "ghosts", "graveyard", "pageTitle"]);
 
 function walk(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {

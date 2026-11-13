@@ -123,4 +123,11 @@ export const STRINGS = {
     announceOpen: "The graveyard.",
     announceLeave: "Back in the room.",
   },
+  /** The page title while a focus session is on or just ended (sound-and-title design 4.2, R6). `{name}` is `title` above. */
+  pageTitle: {
+    lit: "{time} · {name}",
+    paused: "{time} paused · {name}",
+    burnedOut: "Morning · {name}",
+    snuffed: "Dark · {name}",
+  },
 } as const;
