@@ -1,0 +1,493 @@
+# Requirements Document
+
+## Introduction
+
+This spec gives Candlewatch a picture. The state logic is finished and reviewed: the engine, the distraction wiring, the scene model, the ghosts, the graveyard, the controls and the sound. What is left bare is the art. This spec changes how things look and never what they mean.
+
+The Costume Contest judges "a haunting user interface that's polished and unforgettable" with "spooky design elements that enhance your app's function". The current screenshots show where the picture falls short:
+
+- **The room** (`candle-*`): a gradient wall, a blue rectangle for a window, a candle that stands on nothing, and a wide black field around a narrow centre column. At 1280 by 800 the left and right thirds of the page hold no drawn thing at all. In `idle` a first-time visitor sees almost nothing: the pool is at its smallest (`LIGHT_MIN`), no flame burns, and the rest of the room is the near-black `--room-night`. In `snuffed` the light radius is 0 and the room is black to the edge.
+- **The ghosts** (`ghosts-*`): up to twelve identical grey arched shapes in two straight columns at x 444 and x 836 (room units 55 and 545), differing only in size.
+- **The Door**: a flat outline in the lower left; usable it is a brown arch with an amber dot, shut it is a dark arch with a bar.
+- **The graveyard view** (`graveyard-*`): a dark rounded panel in the middle of the page with stones and candle stubs inside, and black on both sides.
+- **The zone controls** (measured in Chromium on the built app at lit start, in CSS pixels; these numbers are the current state to be changed, see Requirement 9): at 1280 by 800 the three buttons are 44 px high but 128, 160 and 96 px wide, so the distance from the border to the icon is 31.6 px on Pause, 26.3 px on Let it go dark and 8.7 px on Settings (a spread of 22.9 px). Pause sits 100 px from the time-text box and Let it go dark sits 100 px from it, but Settings sits 8 px from Let it go dark. At 360 by 640 all three are 44 by 44 with 10 px icon padding, and the gaps are 72, 20 and 8 px. The earlier claim of "16 px" came from a code reading and is replaced by these measurements.
+
+The candle, the flame, the halo and the light pool are good and stay exactly as they are.
+
+The room is also not allowed to be black when no candle burns. The window becomes a **second, dim light source**: the night sky lights the setting faintly and coolly, and the dawn lights it warmly, as the dawn wash does today. So in `idle` the first-time visitor sees a room (wall, table, window frame, door), and `snuffed` is still the darkest state, told from `idle` by more than brightness.
+
+Today's rule ("Nothing is decoration only", `product.md`) was applied so strictly that a wall grain, a table and a dish were each removed by the costume reviewer. This spec replaces the rule with the **Lit Setting rule** (Requirement 1) and then uses it. The new rule keeps the old one for everything that moves or changes, and allows a still setting only where the candle's light or the window's light falls on it, so the setting makes the light's state easier to read.
+
+**Build order.** Three specs touch the same screens, so they run one after another and never at the same time:
+
+1. `sound-and-title` batches 1 to 3 finish and are committed first.
+2. `room-art` is built second. Its first build task also edits the `sound-and-title` spec files (Requirement 11, criterion 13).
+3. `sound-and-title` batch 4 (tasks 19 to 27: browser tests, screenshots, costume review, wrap-up) runs last, so that its screenshots and its costume review are taken on the finished picture.
+
+`main.ts` is not touched by two builds at the same time (Requirement 11, criterion 15). Writing this spec's design and its prototype does not have to wait for step 1. **Tasks are not written until the owner has approved the prototype** (Requirement 12).
+
+Fixed inputs from the existing specs, which this spec does not redefine:
+
+- The scene model (`sceneModel`, the fields of `SceneModel`, `render.ts`'s table of custom properties) is unchanged. The setting is drawn from CSS and markup alone, using the custom properties that already exist (`--light-radius`, `--dawn`, `--wax-height`). No new model field is added.
+- Wax height is exactly the fraction left, a drip runs at each quarter, the flame modes, the pool radius, the dawn and the smoke keep their meaning and their tests (`candle-scene` R3 to R9, P1 to P8).
+- The stage is 600 by 1000 room units, scaled by the `meet` rule of `stageBox` in `src/ui/layout.ts`. The floor line is y = 900. The band below it is the time-text zone and is the topmost layer. The candle column (x 160..440, y 260..900), the window pane (x 240..360, y 50..260), the Door (`DOOR_RECT`, x 20..100, y 805..890) and the twelve ghost cells (`GHOST_CELLS`, x 10..100 and x 500..590, y 215..785) are the keep-clear rectangles of `controls-and-access` R8.3 and P10.
+- The ghost count G is 12, the slot rule is `index mod G` (D6), the size is `ghostSize`, and the cap and the "+n" Overflow_Mark stay (`ghosts-and-graveyard` R9, R10).
+- All layout numbers of `controls-and-access` and `ghosts-and-graveyard` hold, except the ones named in the Change Requests.
+- The tech rules hold: inline SVG and CSS only, no image file, no new dependency, no new font, no inline style (the Content-Security-Policy), and elapsed time from timestamps.
+
+The requirements fix constraints. The geometry of each prop, the colour values, the texture recipe, the Window_Light level and the performance numbers that this document marks as "set in the design" are derived in the design from the rules here, and the look is chosen by eye in a static prototype (Requirement 12) that the owner approves before tasks are written.
+
+## Glossary
+
+- **Room_Art**: this spec and the artwork it adds.
+- **Lit_Setting_Rule**: the replacement costume rule defined in Requirement 1.
+- **State_Element**: an element of the table in `product.md` (candle, flame, light pool, ghost, stone, stub, dawn) or an element that the table's neighbours need to work (the Door, the Overflow_Mark, the ember, the smoke, the drips, the wax). A State_Element shows exactly one piece of state.
+- **Still_Setting**: a drawn thing that is not a State_Element, that has no animation, no transition and no motion of any kind, and whose own shape, position and colours do not depend on the session. A Still_Setting is either a Surface or a Prop.
+- **Surface**: a Still_Setting that runs edge to edge (the wall, the floor, the ground, the sky outside the window).
+- **Prop**: a Still_Setting with a bounded shape (the table top, the holder, the window frame, the door wood, the shelf board).
+- **Setting_Group**: the one group in the scene SVG, `<g class="setting">`, that holds every Still_Setting of the Room. It is drawn below the night layer, so the lighting layers (the light pool's mask and whatever the design adds for the Window_Light) govern how much of it shows.
+- **Pool_Light**: the amount of light at a point of the room, from 0 to 1, given by the light pool's own mask: the radial gradient of `#cw-pool-hole` (stops 1, 0.75 and 0 at 0, 0.6 and 1 of the radius) scaled by `--light-radius` times `LIGHT_FULL_UNITS` (700), centred on the flame as `.pool` places it.
+- **Window_Light**: the second, dim light of the room, cast by the window. At night it is cool, faint and constant; at the dawn it is warm, through `--dawn`, as the dawn wash is today. It carries no time-left information: it is the same at every wax height, every flame mode and every flicker value of `idle`, `lit` and `paused`. In `snuffed` it is at its minimum or zero, as the design chooses (Requirement 4, criterion 17), so that `snuffed` is the darkest state. Its level is not fixed by this document: it is chosen by eye in the Prototype and recorded in the design (Requirement 12), within the floors of Requirement 3.
+- **Light_At_Point**: the combination of Pool_Light and Window_Light at a point of the room (the combination rule, such as a maximum or a screen, is set in the design). It is the one quantity that governs a Still_Setting's brightness, and it never decreases when either input increases.
+- **Wall_Samples**: four 3 by 3 pixel patches on the wall, centred on the room-unit points (200, 150), (400, 150), (120, 500) and (480, 500), read at every viewport of VIEWPORTS_ART. They lie outside the keep-clear rectangles and are used by the idle and snuffed floors.
+- **Lit_By_The_Light**: a Still_Setting is lit when its visible brightness at every point equals the setting's own tone mixed with the night by the Light_At_Point of that point, and by nothing else. Tested by Requirement 1 criteria 5 to 7.
+- **Role_Colour**: a colour that belongs to a State_Element: flame (`--flame-amber-outer`, `--flame-amber-mid`, `--flame-core`, `--flame-blue-outer`, `--flame-blue-core`, `--halo`, `--ember`), wax (`--wax-ivory`, `--wax-shade`), ghost (`--ghost-fill`, `--ghost-stroke`), smoke (`--smoke-colour`), dawn (`--window-dawn`, `--dawn-cool`, `--dawn-warm`) and the Door's state graphics (`--g-text`, `--g-text-subtle`, `--g-amber`). The list is kept only as a reference for the Costume_Reviewer's colour judgement; no automated test compares a Setting_Token with it.
+- **Impostor**: a Still_Setting that looks like a State_Element by shape, place or motion (defined in Requirement 1 criterion 8), or that the Costume_Reviewer judges to be mistaken for the flame, the ember, a ghost or the wax by colour (Requirement 1 criterion 15).
+- **Ornament_Words**: the list of forbidden words in Requirement 1 criterion 10.
+- **Setting_Token**: a new colour custom property with the prefix `--set-`. Every Still_Setting colour is a Setting_Token or an existing neutral wall token (`--wall-top`, `--wall-low`, `--room-night`).
+- **Window_Sky**: the glass of the window and what is drawn in it: the night gradient, a fixed set of stars, and the dawn. It is part of the Dawn State_Element, not a Still_Setting (Requirement 4).
+- **Frame**: the window's frame, mullions and sill, drawn inside the pane's rectangle.
+- **Table_Top**: the lit strip the candle stands on, ending at the floor line.
+- **Holder**: the low dish at the candle's base that catches wax.
+- **Backdrop**: every part of the artwork drawn outside the 600 by 1000 stage (x < 0, x > 600, y < 0 or y > 1000 in room units).
+- **Backdrop_Extent**: the room-unit rectangle that the Backdrop covers; `backdropExtent(vw, vh)` is the pure function that gives the part of the room a viewport shows.
+- **Ghost_Cell**: one of the 12 keep-clear cells of a ghost (90 by 95 room units). **Ghost_Extent**: the body, eyes and glow of one ghost, at its size, after any offset and the largest drift.
+- **Place**: the Graveyard_View drawn as an outdoor scene with a sky, a ground and a wooden Shelf.
+- **Text_Backing**: the opaque colour behind a line of text, from the contrast tables of `ghosts-and-graveyard`.
+- **Zone_Button**: Pause or Resume, Let it go dark, or Settings, in the floor-line zone.
+- **Prototype**: the static, unshipped picture of the finished look, one HTML file with inline SVG and CSS in `.kiro/specs/room-art/prototype/`, with a screenshot of each state saved beside it (Requirement 12).
+- **Costume_Reviewer**: the `costume-reviewer` agent, run in the Kiro CLI.
+- **PROP_PARAMS**: the shared fast-check settings (300 runs) exported by the engine test kit.
+- **VIEWPORTS_ART**: the seven sizes 360 by 640, 375 by 667, 768 by 1024, 1280 by 800, 1920 by 1080, 2560 by 1440 and 3840 by 2160.
+
+## Requirements
+
+### Requirement 1: The Lit Setting rule
+
+**User Story:** As a judge and as a maintainer, I want one rule that says what may be drawn, so that the picture is rich and every drawn thing is still honest.
+
+The rule, in the words that replace the old one:
+
+> **The Lit Setting rule.** Anything that moves or changes shows one piece of state. A still setting (a wall, a table, a window frame, door wood, ground) may be drawn only where the candle's light or the window's light falls on it, so that the setting makes the light's state easier to read. No still setting may look like a state element. Nothing is a stock Halloween ornament.
+
+#### Acceptance Criteria
+
+1. THE Lit_Setting_Rule SHALL be recorded, with these four sentences, in `product.md`, `scene.md` and `structure.md`, and in the Costume_Reviewer's instructions, by the changes listed in the Amended Rules table (done by the first task of this spec, not by this document).
+2. THE Room_Art SHALL draw each State_Element so that it shows exactly one piece of state, as today.
+3. WHEN a drawn thing moves, changes size, changes colour, changes opacity or changes shape over time or with input, THE Room_Art SHALL make that change a function of one piece of state of the table in `product.md`.
+4. THE Room_Art SHALL draw each Still_Setting inside the Setting_Group, except the Place (Requirement 8), the Door's wood (Requirement 6) and the Window_Sky (Requirement 4), which have their own criteria.
+5. THE Setting_Group SHALL come before the `.night` rect in document order and SHALL NOT sit inside any other group that has its own mask, opacity or filter, so that the lighting layers cover it; how the Window_Light is drawn is set in the design.
+6. THE Setting_Group SHALL carry no CSS custom property of the scene model, no animation, no transition and no opacity of its own, so that its visible brightness at a point is the Light_At_Point at that point and nothing else.
+7. WHEN the same point of a Surface is sampled in the Room at two wax heights whose light radii differ, and the point lies between the two pool edges, THE Room_Art SHALL show the point brighter at the wax height with the larger radius, while the Window_Light is the same at both heights (the point is lit by the pool, not by a different second light).
+8. A Still_Setting SHALL be an Impostor IF any of these is true:
+   (a) its outline equals the path of a State_Element's shape (the flame paths, the drip path, the candle's rects, `silhouettePath()`);
+   (b) its bounding box intersects the flame, the halo, the candle's wax body at any wax height, the Door's rectangle, a Ghost_Cell or the time-text zone, other than the Table_Top and the Holder at the candle's base;
+   (c) it has an animation, a transition or a CSS rule that reads a model custom property.
+9. THE Room_Art SHALL contain no Impostor under criterion 8, checked by tests on the markup, the stylesheets and the constants (Requirement 11).
+10. THE Room_Art SHALL contain none of these whole words, matched case-insensitively, in any identifier, class, id, data attribute, string or comment of `src/scene/`, `src/ghosts/`, `src/graveyard/` and `src/strings.ts`: bat, bats, pumpkin, jack-o-lantern, cobweb, cobwebs, spiderweb, spider, skull, skeleton, bones, cauldron, witch, broom, coffin, raven, crow (the Ornament_Words).
+11. WHERE a Still_Setting varies in tone or position inside its own shape (wood grain, plank joints, stone courses), THE Room_Art SHALL derive the variation from fixed constants or a fixed seed, and SHALL NOT use `Math.random` or `Date`.
+12. WHERE a State_Element is drawn with variation that carries no information (the shape variant, tilt and offset of a ghost), THE Room_Art SHALL derive the variation from the element's identity, and SHALL make no second attribute of the element depend on state.
+13. THE Room_Art SHALL leave every control of `controls-and-access` as an action: the Lit_Setting_Rule does not apply to the interface layer, and `controls-and-access` R8.11 stays in force.
+14. WHEN the Setting_Group and every other Still_Setting are removed from the Room, THE Room_Art SHALL leave each state still readable from its State_Element alone (candle, flame, pool, ghosts, stones, stubs, dawn), as the old rule's Costume_Reviewer test requires.
+15. THE Costume_Reviewer SHALL judge by colour whether a Still_Setting could be mistaken for the flame, the ember, a ghost or the wax, because wood, stone and wax-lit surfaces sit near the warm role colours; no automated test compares a Still_Setting's colour with a Role_Colour.
+
+### Requirement 2: Boundaries, purity and what does not change
+
+**User Story:** As a maintainer, I want the art to be pure data and markup around an unchanged model, so that no new thing can disagree with the timer.
+
+#### Acceptance Criteria
+
+1. THE Room_Art SHALL change no file of `src/engine/`, `src/storage/` or `src/distraction/`, no field of `SceneModel`, and no entry of the property table in `src/scene/render.ts`.
+2. THE Room_Art SHALL read no clock and no state of the session, and SHALL add no engine event, no storage key and no setting.
+3. THE Room_Art SHALL add exactly these new pure modules: `src/scene/setting.ts` (the setting's constants: Table_Top, Holder, Frame, stars, plank and joint lines, Setting_Tokens' names, the Window_Light levels), `src/scene/light.ts` (the pure `poolLight(dx, dy, lightRadius)`, which mirrors the mask, `windowLight(lightRadius, dawn)` and `lightAt(dx, dy, lightRadius, dawn)`, the Light_At_Point), `src/scene/backdrop.ts` (the pure `backdropExtent(vw, vh)`, with its own copy of the stage rule, compared with `src/ui/layout.ts` by a test), `src/ghosts/place.ts` (the pure `placeGhost(slot, index, size)` and `ghostLook(index)`) and `src/graveyard/place.ts` (the Place's rectangles in room units).
+4. THE new pure modules SHALL import nothing from the DOM, `window`, `document`, `localStorage`, `Date`, `performance`, `Math.random`, `matchMedia` or any timer, and SHALL import only the folders their parent folder may import (`structure.md` Boundaries).
+5. THE purity tests of `src/scene/`, `src/ghosts/` and `src/graveyard/` SHALL cover each new file listed in criterion 3 and SHALL keep every check they have today, so that a test run fails when any of those files imports a name forbidden by criterion 4.
+6. THE Room_Art SHALL put all user-visible text in `src/strings.ts` and SHALL add zero new visible text strings, so that the set of strings in `src/strings.ts` that the Room_Art uses is unchanged in count and wording.
+7. THE Room_Art SHALL add zero runtime dependencies, zero test dependencies, zero font files, zero image files, and zero `<img>`, `<canvas>`, WebGL or video elements, and `package.json` SHALL list the same dependencies with the same exact versions as before.
+8. THE Room_Art SHALL contain the word "Pomodoro" (in any letter case) nowhere in source, tests, docs or strings, and SHALL contain no trademark, logo or real product name.
+9. THE `src/ghosts/` folder SHALL import nothing from `src/scene/` and `src/graveyard/`, THE `src/scene/` folder SHALL import nothing from `src/ghosts/` and `src/graveyard/`, and WHERE a number is shared between folders, THE Room_Art SHALL keep one copy in each folder and a test SHALL fail when the copies differ, as `src/ui/layout.ts` already does.
+10. IF a test or a build step finds a file in the new modules, or a change in `src/engine/`, `src/storage/` or `src/distraction/`, that breaks criterion 1, 2, 3 or 4, THEN THE Room_Art SHALL fail `npm test` or `npm run build` with a message that names the file, and SHALL leave the session state and the stored data of the user untouched.
+
+### Requirement 3: The room: wall, table and holder
+
+**User Story:** As a user, I want the room to look like a room, even before I light the candle, with a wall I can read the light on and a table the candle stands on.
+
+#### Acceptance Criteria
+
+1. THE Setting_Group SHALL draw a wall with a visible texture (set in the design: boards or stone courses, with joints), built from paths, rects and gradients and never from `feTurbulence`, `feDisplacementMap` or `feMorphology`.
+2. WHEN the wall is sampled inside the pool at the lit start (litStart fixture), THE Room_Art SHALL show a joint and the board beside it with a contrast ratio of at least 1.10 to 1.
+3. THE wall SHALL keep the wall gradient's end tones `--wall-top` (`#14192a`) and `--wall-low` (`#3a2a1c`) unchanged, because the Stone's face and other tokens reuse them (`ghosts-and-graveyard` D15, `contrast.test.ts`).
+4. THE Setting_Group SHALL draw a Table_Top no taller than 16 room units, running from edge to edge of the Backdrop_Extent, with its front edge at the floor line (y = 900).
+5. THE Table_Top SHALL be a Prop under Requirement 1 and SHALL use Setting_Tokens only.
+6. THE Door's rectangle MAY overlap the Table_Top, because the Door is drawn above it.
+7. THE Setting_Group SHALL draw a Holder, a low dish at the candle's base no wider than the candle column's inner part (x 236..364) and no taller than 14 room units, drawn behind the candle body.
+8. THE Holder SHALL be static and SHALL show no wax level, so that no second drawing of time left exists.
+9. THE Holder SHALL leave the candle body's drawn height equal to `CANDLE_H * waxHeight` at every wax height from 0 to 1, with its base at y = 900.
+10. THE Holder SHALL cover no pixel of `.body`, `.stub`, `.head` or the drips.
+11. THE drip clip line, the stub, the ember and the smoke wisp SHALL keep their positions and their layer order.
+12. THE Room_Art SHALL keep the layer order of `candle-scene` 5.2 for the state layers (night, dawn wash, window glass, candle, lit group, zone) and SHALL insert the Setting_Group between `.wall` and `.night`.
+13. THE `candle-scene` model tests and properties SHALL pass unchanged: `model.test.ts`, `model.prop.test.ts` (P1 to P8), `flicker.test.ts`, `flicker.prop.test.ts`, `types.test.ts`, `render.test.ts`, `purity.test.ts`, `scene-kit.test.ts`.
+14. THE `scene.css.test.ts` figures SHALL pass unchanged, including the room stops (ivory on `--room-bg-darkest` 16.20:1, on `--room-bg-brightest` 4.66:1), the zone figures (15.83:1 and 7.53:1) and the window figures (1.33, 1.15 and 1.10).
+15. THE Room_Art SHALL keep each Still_Setting's resolved colour, after lighting by the Light_At_Point (Pool_Light and Window_Light together), at or below the relative luminance of `--room-bg-brightest` (`#566683`) and at or above that of `--room-bg-darkest` (`#05070d`), so that every room background stays between the two published stops and the 4.66:1 floor and the 16.20:1 figure of all room text hold.
+16. THE Room_Art SHALL keep the pool, the halo and the time-text zone clear of each other as `candle-scene` R7.8 requires, and the Setting_Group SHALL add no element inside the zone band.
+17. WHILE the phase is `burned-out` and the dawn wash is shown, THE Room_Art SHALL keep the setting legible: the dawn wash lies above the Setting_Group and a sampled joint and its adjacent board SHALL differ by a contrast ratio of at least 1.04 to 1 (figure set in the design).
+18. WHEN the phase is `snuffed`, THE Room_Art SHALL light the setting by the pool at radius 0 and by the Window_Light at its snuffed minimum only (Requirement 4, criterion 17), so that `snuffed` is the darkest state (Requirement 7, criterion 7).
+19. WHILE the phase is `idle`, THE Room_Art SHALL show the wall, the Table_Top, the Frame and the Door's wood each with a luminance contrast ratio of at least 1.10 to 1 against pure `--room-night` (floor, final level chosen in the prototype), so that a first-time visitor sees a room and not black.
+20. WHILE the phase is `idle`, THE wall sampled at the Wall_Samples (200, 150) and (400, 150), which lie outside the pool at `LIGHT_MIN`, SHALL show a joint and the board beside it with a contrast ratio of at least 1.10 to 1 (floor, final level chosen in the prototype), so that the texture of criterion 1 is visible by the Window_Light alone.
+
+### Requirement 4: The window: a light source, frame, glass and sky
+
+**User Story:** As a user, I want a window that lights the room faintly by night and warmly at the dawn, with a frame and panes whose night sky becomes the dawn, so that the room is never black and completion has a place to happen.
+
+#### Acceptance Criteria
+
+1. THE Frame (outer frame, one vertical and one horizontal mullion, and a sill) SHALL be drawn inside the pane's rectangle x 240..360, y 50..260, so that `KEEP_CLEAR_WINDOW_UNITS`, `TOP_ROW_MIN_WINDOW_TOP` and the layout variants of `src/ui/layout.ts` do not change.
+2. THE Frame SHALL be a Prop in the Setting_Group, so that the pool's reach and the Window_Light show on it and it is darker where neither light reaches it.
+3. THE glass SHALL be four panes between the mullions, drawn above the night layer as the pane is today, with the constant night gradient (`--window-moon` to `--window-night`) at rest.
+4. THE Window_Sky SHALL contain a fixed set of at most 9 stars at fixed positions, each a round dot of 1 to 2 room units in diameter, drawn entirely inside the glass.
+5. WHEN the `--dawn` amount is 0, THE Window_Sky SHALL show every star at full opacity (1.0) and the glass at the constant night gradient.
+6. WHEN the `--dawn` amount is 1, THE Window_Sky SHALL hide every star (opacity 0) and THE glass SHALL take `--window-dawn`.
+7. THE Window_Sky SHALL change only through `--dawn`, and SHALL show nothing that could disagree with the candle: no sun, no moon, no moving star, no cloud, no star that appears or disappears except at the dawn, and no count of stars that changes with time left.
+8. WHILE the phase is `lit`, `paused`, `idle` or `snuffed`, THE glass SHALL be identical (within 2 channel units per pixel) at any wax height, any flame mode and any flicker value.
+9. WHEN the dawn eases in, THE stars SHALL fade over the existing 3 s dawn easing; WHERE reduced motion is on, THE stars SHALL change in a single frame (0 s transition).
+10. THE Frame SHALL meet a contrast ratio of at least 1.10 to 1 against the glass at rest, and at the dawn the glass SHALL meet at least 1.15 to 1 against the Frame as seen through the wash.
+11. THE glass SHALL keep the dawn pixel test of `scene.spec.ts` ("at dawn the pane is clearly lighter than the wash beside it") passing: the glass centre equals `--window-dawn` within 6 channel units and is at least 30 channel units brighter than the point 60 px left of the pane.
+12. THE window SHALL stay above the flame: its bottom (y = 260) is above the flame tip (y = 340) at a whole candle.
+13. THE window's soft edge filter SHALL remain a single `feGaussianBlur` in sRGB on the glass group only.
+14. THE Window_Sky and the Frame SHALL add no node to the accessibility tree: they are inside the SVG that has `aria-hidden="true"`, and the scene's `role="img"` accessible name is unchanged.
+15. THE window SHALL be a light source: WHILE the phase is `idle`, `lit` or `paused`, THE Window_Light SHALL light the Still_Settings with a cool, faint light, constant over the three phases.
+16. WHILE the phase is `idle`, `lit` or `paused`, THE Window_Light SHALL be the same (within 2 channel units per pixel of the lit Still_Settings, sampled where the Pool_Light is 0) at any wax height, any flame mode and any flicker value, and SHALL carry nothing that shows time left.
+17. WHILE the phase is `snuffed`, THE Window_Light SHALL be at its minimum or at zero, as the design chooses, and no higher than at any other phase, so that `snuffed` is the darkest state.
+18. WHILE the phase is `burned-out`, THE Window_Light SHALL be warm, taking its colour and its amount through `--dawn` only, as the dawn wash does.
+19. THE Window_Light SHALL read from the scene only `--dawn` and whether `--light-radius` is 0, and never the amount of the light radius, so that it cannot show time left.
+20. THE level of the Window_Light (its brightness, reach and falloff) is not fixed by this document: it is chosen by eye in the Prototype and recorded in the design (Requirement 12), subject to the floors of Requirement 3 criteria 15, 19 and 20 and Requirement 7 criteria 6 and 7.
+21. WHILE the phase is `snuffed`, THE Room_Art SHALL be told from `idle` by at least three differences that are not brightness, all read from what the scene already draws (Requirement 7, criterion 7): the smoke wisp (`--smoke` is 1 in `snuffed` and 0 in `idle`, drawn in `.lit` above the night layer), the candle (a whole candle of `CANDLE_H` in `idle`, only the stub of `STUB_H` in `snuffed`) and the status line (`The candle waits.` in `idle`, `The flame is out.` in `snuffed`, from `src/strings.ts`).
+
+### Requirement 5: Ghosts that look like ghosts
+
+**User Story:** As a user, I want each distraction to come back as a ghost with a face and a glow, standing where it does not form a grid, so that the room feels haunted and still tells the truth.
+
+#### Acceptance Criteria
+
+1. THE Ghost SHALL be drawn with a translucent body, two eyes and a soft glow, in the ghost colour roles (`--ghost-fill`, `--ghost-stroke`) only, so that no ghost takes a flame or wax colour.
+2. THE Ghost's body SHALL scale exactly with `ghostSize` of its distraction's span, so that size still means time away (`ghosts-and-graveyard` R9.2, P14).
+3. THE Ghost's eyes SHALL be identical in shape, size and position relative to the body on every ghost of the same variant and SHALL carry no state, and THE eye colour SHALL meet a contrast ratio of at least 3:1 against the body fill as composed over the room's brightest background.
+4. THE Ghost's glow SHALL lie inside the Ghost_Extent, and THE Ghost's outline SHALL have a contrast ratio of at least 3:1 against the glow-lit room behind it, computed with the glow added to the room's brightest background.
+5. THE Ghost SHALL take a body variant from 3 hem shapes chosen by `index mod 3`, and a tilt of 0 to 6 degrees (absolute value) and a resting offset, both chosen by the pure `placeGhost(slot, index, size)` and `ghostLook(index)` from the distraction's identity, and never by `Math.random`.
+6. THE resting offset SHALL be bounded so that, for every slot (0 to 11), every index and every size from 0.25 to 1, the Ghost_Extent with the largest drift (`DRIFT_UNITS`, 8 room units) stays inside its Ghost_Cell, whose keep-clear role in `controls-and-access` P10 and `ghosts-and-graveyard` Property 20 is unchanged.
+7. WHEN the Ghost is at size 1, THE resting offset SHALL have a magnitude of at most 2 room units on each axis, because the cell leaves 2 units at the drift extreme (`ghosts-and-graveyard` D23).
+8. WHEN the sizes of the six ghosts of one column are all at most 0.5, THE resting x positions SHALL differ by at least 8 room units between the leftmost and the rightmost, so that the column does not read as a straight line.
+9. WHEN a new distraction is added, THE Ghost of every earlier distraction SHALL keep its slot, index, variant, offset, tilt and size for the rest of the session, and THE new distraction SHALL change no other Ghost (`ghosts-and-graveyard` R9.11, R9.12, P15).
+10. THE Room SHALL draw at most G = 12 Ghosts and the "+n" Overflow_Mark for the rest, unchanged (`ghosts-and-graveyard` R9.13 to R9.15, L5).
+11. THE Ghost SHALL stay clear of the controls, the Door, the candle column, the halo, the window and the zone: its Ghost_Extent lies inside its Ghost_Cell, and the cells are outside the keep-clear rectangles by construction, which `layout.test.ts` and P10 keep checking.
+12. WHERE the setting `prefers-reduced-motion: reduce` is on, THE Ghosts SHALL show no drift and no fade, and SHALL have the same body, eyes, glow, variant, offset, tilt and size as the moving version.
+13. WHERE the setting "ghosts" is off, THE Room SHALL draw no Ghost and no Overflow_Mark, and THE Scene_Label SHALL still give the exact distraction count.
+14. THE Ghost layer SHALL keep `aria-hidden="true"`, SHALL add no element to the accessibility tree, and SHALL NOT announce its eyes.
+15. THE Overflow_Mark SHALL keep its place (x 545, baseline y 860, 24 units) and a contrast ratio against the room of 4.66:1 or more at the darkest room state, up to 16.20:1 at the brightest.
+
+### Requirement 6: The Door as a wooden door
+
+**User Story:** As a user, I want a door that looks like a door, barred while a candle burns and usable when none does, and told apart by shape.
+
+#### Acceptance Criteria
+
+1. THE Door SHALL be drawn as a wooden door with an arched frame, vertical planks and iron straps, inside the Door rectangle x 20..100, y 805..890 (80 by 85 room units, `DOOR_RECT`, L1), and no part of the drawing SHALL extend outside that rectangle; `DOOR_RECT` SHALL keep these values in every phase.
+2. WHILE the Door is usable, THE Door SHALL show an amber round handle and no bar.
+3. WHILE the Door is shut, THE Door SHALL show a horizontal bar across the full width of the door (x 20..100) and no handle.
+4. THE usable Door and the shut Door SHALL differ by shape (handle against bar), so that a reader who sees only luminance, with hue removed, can tell the two states apart.
+5. THE Door's border and bar SHALL meet a contrast ratio of at least 3:1 against every plank colour next to them, the handle SHALL meet at least 3:1 against the planks, and the Door's outline SHALL meet at least 13.0:1 against its face where the face is `--g-face`, in the contrast table of `ghosts-and-graveyard` L11.
+6. THE Door's wood (planks, grain, straps) SHALL be a Still_Setting whose visibility is governed by the Light_At_Point and the dawn, as Requirement 1 criterion 6 says for the Setting_Group; it is drawn in the scene SVG at `DOOR_RECT` under the night layer, and the HTML Door's face is made transparent apart from its outline, handle and bar (decided in Q10, Resolved Questions).
+7. WHILE any phase exists in which the Door exists, THE Door's state graphics (outline, handle, bar) SHALL stay visible at full opacity whatever the radius of the pool, because they carry state.
+8. THE Door SHALL keep a hit area of at least 48 by 51 CSS pixels at the smallest scale (never below 44 by 44), the key `g`, the Tab and accessibility rules of `ghosts-and-graveyard` R3 and R7.11, and WHILE the Door is shut, THE Door SHALL be absent from the Tab order and the accessibility tree.
+9. WHERE forced colours are active, THE Door SHALL draw its border and bar in `CanvasText` and SHALL drop the wood (planks, grain, straps).
+10. WHERE `prefers-reduced-motion: reduce` is on, THE Door SHALL show no transition: a change between usable and shut SHALL show its final look in the same frame (0 ms).
+
+### Requirement 7: Wide, tall and short screens
+
+**User Story:** As a user on a large monitor or a tall phone, I want the room to fill the page, so that no empty band frames a narrow column.
+
+#### Acceptance Criteria
+
+1. THE Room_Art SHALL draw the wall, the Table_Top and the floor from the left edge to the right edge of the page at every viewport width from 360 to 3840 CSS pixels.
+2. THE Backdrop_Extent SHALL cover the whole viewport, with a margin of at least 50 room units on each side, for every viewport from 360 by 640 to 3840 by 2160 CSS pixels and for every aspect ratio from 1 to 3.5 (tall) up to 32 to 9 (wide).
+3. THE Backdrop SHALL be drawn in the same SVG as the stage, in room units outside the 600 by 1000 box, using the overflow that the scene already uses (the wall is drawn from x = -2200 to 2800 today), so that the stage geometry is the one `stageBox` gives.
+4. THE stage SHALL keep the `xMidYMid meet` rule, `stageBox`, `placeControls`, `keepClear` and every layout number of `controls-and-access` (P10) and `ghosts-and-graveyard`, so that the controls, the ghost cells, the Door and the Graveyard_View's items sit at the same room-unit positions as before this change, with a difference of 0 room units, except the Zone_Buttons' rectangles named in Requirement 9.
+5. THE pure function `backdropExtent(vw, vh)` SHALL return the part of the room, in room units, that the viewport shows, computed with the `stageBox` rule, and a test SHALL compare its copy of that rule with `src/ui/layout.ts` for every viewport of VIEWPORTS_ART and fail on any difference.
+6. WHILE the phase is `idle`, `lit`, `paused` or `burned-out`, THE page SHALL show at the left and right edges (the 3 by 3 pixel patch centred 2 px from the edge, at 30, 60 and 80 percent of the viewport height) a colour whose summed absolute difference over the red, green and blue channels from `--room-night` is at least 8 channel units, at every viewport of VIEWPORTS_ART; `idle` is included on purpose, so the Window_Light reaches the edges at the level the design chooses.
+7. WHILE the phase is `snuffed`, THE page MAY show the room dark to the edge, because the light is out, but THE snuffed room SHALL be darker than the `idle` room: at each Wall_Sample, the luminance contrast ratio of the `idle` patch over the `snuffed` patch SHALL be at least 1.10 to 1 (floor, final level chosen in the prototype), and no Wall_Sample of `snuffed` SHALL be brighter than the same sample in `idle`, `lit`, `paused` or `burned-out` (within 2 channel units).
+8. THE page SHALL show no scrollbar and no overflow (document scroll width and scroll height not larger than the viewport width and height) at any viewport of VIEWPORTS_ART (`candle-scene` R10.2).
+9. WHEN the viewport is wider than the stage, THE extra width SHALL show more of the room (wall, Table_Top, window side, floor) and SHALL NOT change the candle's rendered size, which stays within 0 pixels of its size at the same viewport height with a narrower width (`candle-scene` R10.3).
+10. THE ghosts and the controls SHALL keep to the stage's reserved bands as today; the wider Backdrop SHALL hold no State_Element and no control.
+
+### Requirement 8: The graveyard view as a place
+
+**User Story:** As a user, I want the graveyard to be somewhere I walked to, with ground, sky, stones standing in the earth and candle stubs on a wooden shelf, not a panel.
+
+#### Acceptance Criteria
+
+1. WHILE the view is open, THE Place SHALL draw a night sky, a ground line, a ground that fills the width of the page, Stones standing in the ground and a wooden Shelf board under each Day_Shelf's Stubs.
+2. WHILE the view is open, THE Place SHALL run edge to edge at every viewport of VIEWPORTS_ART, from the top of the page (y = 0) to the floor line, with 0 px of empty band at the left and at the right.
+3. THE Place SHALL replace the opaque panel of `ghosts-and-graveyard` D8 and D18 (the core x 0..600, y 205..900 with a 60-unit fading margin), and SHALL keep the panel's job: WHILE the view is open, no pixel of the room's candle, flame, halo or ghosts SHALL show through any text line's rectangle, Item or card.
+4. WHILE the view is open, THE Place SHALL leave the zone below the floor line, the time text and the Settings opener unchanged in position, size and content from their state in the room.
+5. WHILE the phase is not `burned-out`, THE Place's sky SHALL show the night colours; WHILE the phase is `burned-out`, THE Place's sky SHALL show the dawn colours, and the sky SHALL change only through `--dawn`, following the Window_Sky's rule (decided in Q13, Resolved Questions).
+6. THE Place's Still_Settings (ground texture, sky, shelf wood) SHALL be lit under the Lit_Setting_Rule by one light only: the Doorway_Light, a fixed pool centred on the return control (the Door the user came through), of constant radius, set in the design (decided in Q1, Resolved Questions). The Doorway_Light SHALL NOT change in radius or position while the view is open.
+7. THE Place SHALL be drawn only while the view is open, which the engine allows only while the Door is usable, so that the Doorway_Light exists exactly when no candle burns. WHEN the view closes, THE Place SHALL remove its art and the Doorway_Light in the same render.
+8. THE Place SHALL keep, behind every line of text, a Text_Backing already in the contrast tables (`#080b12` at 15.83:1, `#14192a` at 13.0:1, `#1a130d` at 14.78:1), or a new Text_Backing whose pair is added to the contrast tables at 4.5:1 or more.
+9. THE Place SHALL keep every rule of `ghosts-and-graveyard` R4 to R8: no scroll at 360 by 640, 768 by 1024, 1280 by 800 and 1920 by 1080 (R4.10), Items inside the viewport and clear of one another (R4.11), hit size at least 44 by 44 (R4.13), text contrast 4.5:1 (R4.14), no motion in reduced motion (R4.15), the Details_Card rules (R5), roving focus (R6), accessibility (R7) and large history (R8).
+10. THE Place SHALL keep the layout properties and tests of `ghosts-and-graveyard` for the view passing without weakened assertions: `geometry.prop.test.ts`, `geometry.test.ts`, `plan.test.ts`, `visible.prop.test.ts`, `view.prop.test.ts`, `ui-only.prop.test.ts` (P6), `focus.prop.test.ts`, `card.prop.test.ts`, `days.prop.test.ts`, `text.prop.test.ts`, `purity.test.ts` and `contrast.test.ts` (the existing pairs keep their figures).
+11. THE Stones and Stubs SHALL keep their rectangles in room units (Stone 100 by 74 units, return control 80 by 85 units, `TEXT_GAP` 14 units), so that every Item rectangle has the same x, y, width and height as before the Place.
+12. THE Place's ground SHALL stay below every Stone's foot and every Shelf board, and THE Place's art SHALL NOT intersect any text line's rectangle, except where the art is that line's Text_Backing.
+13. THE Place SHALL add 0 elements to the accessibility tree: its art is `aria-hidden` or CSS, and `ariaSnapshot` of the view is identical to its snapshot before the Place.
+14. WHERE `forced-colors: active`, THE Place SHALL drop its art (sky, ground, Shelf wood and Doorway_Light) and SHALL draw the borders and text in system colours, as the view's other parts do.
+
+### Requirement 9: The zone buttons
+
+**User Story:** As a user, I want Pause, Let it go dark and Settings to look like one family, so that the bottom row is tidy.
+
+**Measured baseline (current state, to be changed).** Measured in Chromium with Playwright on the built app, at lit start, in CSS pixels. All buttons are 44 px high with a 2 px border. "Icon edge" is the distance from the button's outer left edge to the icon; "label edge" is the distance from the label's right end to the button's outer right edge; the border is included in both.
+
+| Viewport | Button | x range | Width | Icon | Label | Icon edge | Label edge |
+|---|---|---|---|---|---|---|---|
+| 1280 by 800 (wide, labelled) | Pause | 344..472 | 128 | 20 | 36.8 | 31.6 | 31.6 |
+| 1280 by 800 | Let it go dark | 808..968 | 160 | n/a | 79.5 | 26.3 | 26.3 |
+| 1280 by 800 | Settings | 976..1072 | 96 | n/a | 50.7 | 8.7 | 8.7 |
+| 360 by 640 (compact) | Pause | 8..52 | 44 (by 44) | 24 | none | 10 | 10 |
+| 360 by 640 | Let it go dark | 256..300 | 44 (by 44) | 24 | none | 10 | 10 |
+| 360 by 640 | Settings | 308..352 | 44 (by 44) | 24 | none | 10 | 10 |
+
+| Viewport | Time text box | Pause to time box | Time box to Let it go dark | Let it go dark to Settings |
+|---|---|---|---|---|
+| 1280 by 800 | x 572..708 (136 wide), y 720..764 | 100 | 100 (708 to 808) | 8 (968 to 976) |
+| 360 by 640 | x 124..236 (112 wide, 36 high) | 72 | 20 | 8 |
+
+Findings: the wide-layout widths 128, 160 and 96 fit different labels, so the inner padding differs by up to 22.9 px (8.7 to 31.6); the Settings gap (8) differs from the two gaps to the time text box (100 each); the compact layout is already 44 by 44 with 10 px icon padding. The 100 px gaps are the distances to the centred time-text box, which has its own width; so the gap rule is stated in terms of what the design chooses (equal inner padding in the buttons, and one gap value between neighbouring controls of a group), not by the time-text box width.
+
+#### Acceptance Criteria
+
+1. THE Zone_Buttons SHALL have a height of exactly 44 CSS pixels at every viewport width from 360 to 2560 and every viewport height from 640 to 1440 (measured today: 44 px at 1280 by 800 and at 360 by 640).
+2. WHILE the layout is wide (`labelled` true), THE Zone_Buttons SHALL have equal inner padding, measured as the distance from the outer border edge to the icon on the left and from the label to the outer border edge on the right, with the three Zone_Buttons' left paddings within 1 CSS pixel of one another, their right paddings within 1 CSS pixel of one another, and each button's left and right paddings within 1 CSS pixel of each other. The current spread is 22.9 px (8.7 to 31.6) at 1280 by 800, which fails this criterion.
+3. WHILE the layout is wide, THE gaps between neighbouring controls SHALL follow one rule stated in the design: a single gap value G, in CSS pixels, between the neighbouring Zone_Buttons of a group (today Let it go dark and Settings, 8 px), and a recorded distance T from each outer button to the time-text box (today 100 px on both sides); the Let it go dark to Settings gap SHALL equal G within 1 CSS pixel and the two values of T SHALL be within 1 CSS pixel of each other. The design records G and T and the measured baselines above.
+4. WHILE the layout is compact, THE Zone_Buttons SHALL be exactly 44 by 44 CSS pixels each with the icon padding equal on both sides, as today (24 px icon, 10 px each side); the compact gaps (72, 20 and 8 px at 360 by 640) are recorded in the design and change only if the design says so.
+5. THE new rectangles SHALL satisfy P10 of `controls-and-access` at every integer width from 360 to 2560 and every integer height from 640 to 1440: inside the viewport, at least 44 by 44 CSS pixels, at least 4 CSS pixels apart, clear of the keep-clear rectangles, and in the order Pause or Resume, time text, Let it go dark, Settings.
+6. THE Zone_Buttons SHALL keep their accessible names, their roles, their Tab order and their focus ring (3 px outline, 3 px offset), and a test SHALL compare each of these with its value before the change.
+7. IF a label is longer than its button allows (a longer string), THEN THE design SHALL record the maximum label width, in CSS pixels and in characters of the `src/strings.ts` label, and a test SHALL fail when any Zone_Buttons label string in `src/strings.ts` exceeds it.
+8. IF a label in wide layout would not fit within its button at the recorded bound, THEN THE Zone_Buttons SHALL keep the 44 CSS pixel height and SHALL NOT overlap a neighbouring rectangle or the keep-clear rectangles, so that criterion 5 still holds.
+9. WHEN the wide-layout widths are measured again in Chromium on the built app after the change, THE measured padding spread SHALL be at most 1 CSS pixel, and the design SHALL record the new numbers next to the baseline above.
+
+### Requirement 10: Construction, contrast, accessibility and performance
+
+**User Story:** As a user with low vision, motion sensitivity or a slow device, I want the richer picture to stay readable, still and quick.
+
+#### Acceptance Criteria
+
+1. THE Room_Art SHALL be inline SVG and CSS only; SVG gradients, masks, clip paths, patterns and `feGaussianBlur` defined in the inline SVG are allowed.
+2. THE Room_Art SHALL set styles by CSS classes and `style.setProperty` and SHALL NOT use a `style` attribute, an inline `<style>` element, a remote reference or a data URL, so that the Content-Security-Policy of `render.yaml` (only `'self'` and `'none'`) holds and `headers-local.spec.ts` passes unchanged.
+3. THE renderer SHALL write only custom properties, data attributes and the accessible name (`candle-scene` R11.5, R11.6), and a test SHALL fail if the renderer writes any other attribute or property.
+4. THE Room_Art SHALL keep every existing contrast pair and figure at or above its current value: the room stops (16.20 and 4.66), the zone (15.83 and 7.53), the controls (`style.test.ts`), the ghosts (`src/ghosts/contrast.test.ts`) and the graveyard (`src/graveyard/contrast.test.ts`), and those tests SHALL pass unchanged.
+5. THE Room_Art SHALL add a contrast pair, computed from the stylesheets by a test, for each new State_Element graphic, with these minimum ratios: the Ghost's eyes on its body (3:1), the Door's bar, handle and border on the planks (3:1), a Stub's wax on its Shelf board (3:1), a Stone's edge on its ground (the figure that `contrast.test.ts` already records, not lowered), and each Text_Backing the Place adds (4.5:1).
+6. THE Room_Art SHALL add a test that fails IF any Setting_Token is brighter than `--room-bg-brightest`; the comparison of Setting_Tokens with the Role_Colours is left to the Costume_Reviewer (Requirement 1, criterion 15).
+7. WHERE `prefers-reduced-motion: reduce` is on, THE Room_Art SHALL show every state and every Still_Setting as it does with motion, with no flicker, no drift, no fade and no transition (computed animation and transition durations of 0 s on every Room_Art element), and THE stylesheets SHALL keep their reduced-motion blocks as the first rule.
+8. THE scene root SHALL keep `role="img"` and its label (the flame mode in words, the distraction count in words, no time), and THE Room_Art SHALL add no text node to the scene SVG.
+9. THE Room_Art SHALL add no element to the accessibility tree; every new SVG part SHALL be inside an `aria-hidden` SVG, and every new HTML part SHALL be a CSS box or an `aria-hidden` element, and the aria snapshots in e2e SHALL be unchanged except for the scene label.
+10. THE design SHALL propose and record a measurable performance budget (`tech.md` states none), and THE tasks SHALL add the tests for it, with these starting values (accepted in Q6):
+    - the sum of JS and CSS in `dist/` is at most 120 KB (120 000 bytes) raw (today 89 360 bytes: 67 114 of JS and 22 246 of CSS);
+    - the number of elements in the scene SVG, the ghost layer and the Place is at most the count recorded before the work plus 300;
+    - none of `feTurbulence`, `feDisplacementMap`, `feMorphology` and `feConvolveMatrix` appears in the shipped SVG, and no CSS `filter` is set on a group that is repainted every frame;
+    - a local measurement script, outside `npm run verify`, records the frame interval of a lit session at 1920 by 1080 with the real clock for at least 600 frames, with a median of 17.5 ms or less and a 95th percentile of 25 ms or less on the author's machine.
+11. WHEN the flame redraws on each frame, THE static artwork SHALL NOT be repainted: the design SHALL keep the Setting_Group's rasterising independent of the per-frame custom properties, or SHALL show by the measurement of criterion 10 that the frame interval stays inside its budget.
+12. THE Room_Art SHALL keep `npm run check`, `npm test` and `npm run build` green on the Render build, and `npm run verify` SHALL pass before merging.
+
+### Requirement 11: Tests, screenshots, the costume review and the build order
+
+**User Story:** As a developer and as a judge, I want the rule enforced by tests and the new picture seen in a real browser, in an order that never makes two builds fight, so that the costume stays honest and polished.
+
+#### Acceptance Criteria
+
+1. THE property tests SHALL use fast-check with `PROP_PARAMS`, in `*.prop.test.ts` files colocated with the source.
+2. THE costume-rule tests SHALL be automated in Vitest and SHALL fail, with a message naming the offending file, element or selector, WHEN any of the following checks finds one violation: a scan of the markup, CSS and constants for the Ornament_Words (zero matches allowed); a check that every element of the Room's SVG outside the State_Element groups is a descendant of `.setting`; a check that `.setting` precedes `.night` in document order; a check of the Setting_Tokens against the brightest and the darkest room stops; a check that no rule selecting a `.setting` descendant has an animation, a transition or a model custom property; and a check that no Still_Setting path equals a State_Element path.
+3. THE tests that today forbid the setting SHALL be changed on purpose, each with the reason recorded in the design: `room.test.ts` "has the seven layers in the documented order" (an eighth layer, `.setting`, is added); "has no grain, texture or other decoration-only layer" (now: zero `feTurbulence` elements, zero `<pattern>` elements outside `.setting`, and no element id containing "grain"); "has no table, dish or floor element (F1, F2)" (now: such elements are allowed only inside `.setting`); and "is only its two pane rects, with no frame, sill or curtain" (F3; now: the frame group is allowed, and the two pane rects keep their classes and their area unchanged).
+4. THE `room.test.ts` tests for the window SHALL keep the portrait area x 240..360, y 50..260 (room units), exactly one blur filter and the sRGB filter space.
+5. THE `ghosts-and-graveyard` tests that read slot positions (`slots.test.ts`, the slot reads of `ghosts.spec.ts` and `graveyard-fixtures.ts`) SHALL keep `GHOST_SLOTS` as the cell centres and SHALL read the resting position from `placeGhost`; `silhouette.test.ts` SHALL keep "every point lies inside the box" for each silhouette variant.
+6. THE Playwright tests SHALL pause `page.clock` before load (`pauseAt`, then `goto`, then `runFor`), SHALL build fixtures with the engine's serializers, and SHALL use no test hook in the shipped code.
+7. THE Playwright pixel tests SHALL run at every VIEWPORTS_ART size in the states idle, lit start, lit half, paused, last minute, burned-out (dawn) and snuffed, and SHALL run each state with reduced motion on and off WHERE the rule differs between the two.
+8. THE screenshot tests SHALL cover every file of `docs/screenshots/` (59 today: 21 `candle-*`, 9 `ghosts-*` and 9 `graveyard-*` from `screenshots.spec.ts`, and 20 `controls-*` from `controls-screenshots.spec.ts`) and SHALL add `candle-lit-half-wide.png` (1920 by 1080 pixels), `candle-lit-half-4k.png` (3840 by 2160 pixels) and `graveyard-large-wide.png` (1920 by 1080 pixels), for 62 files in total; the committed retake of the full 62-file list is done by `sound-and-title` task 25.x on the finished picture (criterion 14).
+9. WHEN the screenshots are retaken, THE author SHALL look at every retaken screenshot and SHALL state in the task summary which files were retaken (`scene.md`, "Screenshots stay current").
+10. THE final task of the spec SHALL be a review by the Costume_Reviewer, using the updated rules and checklist of the Change Requests (including the fourth rule of CR1), of the finished room, ghosts, Door, window, wide screens and Place, compared with the Prototype's pictures; THE verdict PASS SHALL require that no element reads as a placeholder (a flat rectangle standing for an object, an outline standing for a surface); THE review output SHALL name the three weakest-looking elements and what would improve each; THE author SHALL record the findings, the three weakest elements and the improvements in the design's Decisions even on PASS, and SHALL repeat the review after each fix until the verdict is PASS.
+11. THE Costume_Reviewer SHALL be able to check, from the files and the screenshots alone, each of the four sentences of the Lit_Setting_Rule (state on everything that moves, light on every still setting, no Impostor, no ornament), SHALL judge by colour that no still setting is mistaken for the flame, the ember, a ghost or the wax (Requirement 1, criterion 15), and SHALL apply the fourth rule: "The picture reads at a glance as a candlelit room at night, and the graveyard as a place outside it. Name the three weakest-looking elements and what would improve each."
+12. THE owner has approved the Amended Rules table (Q15), including the edits to `docs/BRIEF.md` section 4 and to the Costume_Reviewer's agent file; THE spec SHALL NOT edit any steering file, `docs/BRIEF.md`, the agent file or any other spec in the requirements and design phases, and THE first task of the build SHALL apply the table and the edits of criterion 13, and record them in `KIRO_USAGE.md`.
+13. THE first build task SHALL edit the `sound-and-title` spec files (`.kiro/specs/sound-and-title/tasks.md`, `design.md` sections 8.6 and 8.5, and `requirements.md` where needed) so that: its screenshot tasks (25.x) and its costume-review task (26.1) expect the new art, the 62-file screenshot list, the room-art Lit Setting rule and the updated reviewer checklist; and its e2e fixtures and pixel samples do not depend on old pixel positions (they read room-unit positions through the layout and the Wall_Samples, not fixed pixels).
+14. THE build order SHALL be: `sound-and-title` batches 1 to 3 finish and are committed first; then `room-art` is built; then `sound-and-title` batch 4 (tasks 19 to 27: browser tests, screenshots, costume review, wrap-up) runs last, so that its screenshots and costume review are taken on the finished picture. THE two builds SHALL NOT run at the same time.
+15. THE `room-art` build SHALL start only after the `sound-and-title` batch 3 commit, and neither build SHALL edit `main.ts` while the other is running; IF the design needs a change to `main.ts` (CR8), THEN it is made in the `room-art` build only.
+
+### Requirement 12: The prototype
+
+**User Story:** As the owner, I want to see and approve the finished look as pictures before any task is written, so that what I approve is what gets built.
+
+#### Acceptance Criteria
+
+1. THE design phase SHALL produce a static Prototype in `.kiro/specs/room-art/prototype/`: one HTML file (`prototype/index.html`) with inline SVG and CSS, no build step, and no script needed to view it.
+2. THE Prototype SHALL show these nine pictures, each at 1280 by 800 and at 360 by 640: (1) `idle` on a first visit; (2) `lit` at the start; (3) `lit` at half with six ghosts of mixed sizes; (4) the last minute; (5) `paused`; (6) `burned-out` at dawn; (7) `snuffed`; (8) the graveyard view with a small history; (9) the graveyard view with a card open; and SHALL show `lit` at half also at 2560 by 1080.
+3. THE Prototype SHALL make each picture reachable without script (for example by a CSS `:target` rule on the picture's id), and SHALL show the `idle` picture when no hash is given.
+4. THE Prototype SHALL save a screenshot of each picture in the same folder, 19 files in total (9 states at 2 sizes, plus 1): `proto-idle-desktop.png`, `proto-idle-phone.png`, `proto-lit-start-desktop.png`, `proto-lit-start-phone.png`, `proto-lit-half-desktop.png`, `proto-lit-half-phone.png`, `proto-last-minute-desktop.png`, `proto-last-minute-phone.png`, `proto-paused-desktop.png`, `proto-paused-phone.png`, `proto-burned-out-desktop.png`, `proto-burned-out-phone.png`, `proto-snuffed-desktop.png`, `proto-snuffed-phone.png`, `proto-graveyard-small-desktop.png`, `proto-graveyard-small-phone.png`, `proto-graveyard-card-desktop.png`, `proto-graveyard-card-phone.png` and `proto-lit-half-ultrawide.png` (desktop is 1280 by 800, phone is 360 by 640, ultrawide is 2560 by 1080).
+5. THE Prototype SHALL use the real tokens, read from the stylesheets (`scene.css` and the other stylesheets) by a script or by a link and never copied by eye, and SHALL use the real stage geometry: the 600 by 1000 room units, `DOOR_RECT`, `GHOST_CELLS`, the window pane, the floor line (y = 900) and the Stone and Stub rectangles; a Vitest check SHALL fail when a custom property or a geometry constant of the Prototype differs from the source.
+6. THE Prototype SHALL NOT be shipped: it SHALL NOT be under `src/` or `public/`, SHALL NOT be imported by any source file, and a check run after `npm run build` SHALL fail when `dist/` contains any file of the Prototype.
+7. THE Window_Light level, the texture recipe and the colour of each Still_Setting SHALL be chosen by eye in the Prototype, within the floors of Requirement 3 criteria 15, 19 and 20 and Requirement 7 criteria 6 and 7, and the chosen values, with the measured figures, SHALL be recorded in the design Decisions (D1, D3, D5, D15).
+8. THE Prototype SHALL show `idle` as a room (wall, table, window frame, door) and not as black, and SHALL show `snuffed` darker than `idle` and told from it by the smoke wisp, the stub and the status text as well as by brightness (Requirement 4, criterion 21).
+9. THE tasks document (`tasks.md`) SHALL NOT be written until the owner has approved the Prototype, and the approval SHALL be recorded in the design Decisions (D14).
+10. THE Prototype's pictures SHALL be the reference that the Costume_Reviewer compares the finished screenshots against (Requirement 11, criterion 10).
+11. THE Prototype SHALL be checked only for these properties: it opens with JavaScript disabled, it contains the nine states, and it satisfies criteria 5 and 6; THE check SHALL NOT be part of `npm run verify` unless the design decides otherwise.
+
+## Property-Based Tests
+
+Each property runs at least 300 cases through `PROP_PARAMS` and is never weakened to pass. The `candle-scene` properties P1 to P8, the `controls-and-access` properties P1 to P10 and the `ghosts-and-graveyard` properties P1 to P16 keep passing unchanged, except where the Change Requests extend them.
+
+| ID | Property | Covers |
+|---|---|---|
+| P1 | For any slot in 0..11, any index and any size in [0.25, 1], the Ghost_Extent of `placeGhost` with the drift at both extremes in x and y lies inside the slot's Ghost_Cell. | R5.6, R5.7, R5.11 |
+| P2 | `placeGhost` and `ghostLook` are deterministic and depend only on `(slot, index, size)` and `index`; adding or removing other ghosts changes no result. | R5.5, R5.9, R1.11 |
+| P3 | For any run of 6 consecutive indexes and sizes at most 0.5 in one column, the resting x positions span at least 8 room units; the variant is in {0, 1, 2} and equals `index mod 3`. | R5.5, R5.8 |
+| P4 | For any viewport width 360..3840 and height 640..2160 with aspect from 1:3.5 to 32:9, `backdropExtent(vw, vh)` contains the viewport's room-unit rectangle with a margin of at least 50 units. | R7.2, R7.5 |
+| P5 | `backdropExtent` agrees with `stageBox` of `src/ui/layout.ts` on scale and offsets at every viewport. | R7.4, R7.5 |
+| P6 | `lightAt(dx, dy, r, dawn)` is in [0, 1], is non-increasing in distance, and is non-decreasing in `r` and in the Window_Light; `poolLight(dx, dy, r)` equals 0 outside the pool and equals 0 when `r` is 0; `lightAt` outside the pool equals `windowLight(r, dawn)`; the stops of `poolLight` equal the stops of `#cw-pool-hole` read from `ROOM_SVG`. | R1.6, R1.7, R3.18, R4.15 |
+| P7 | Every star of the Window_Sky lies inside the glass, the star list is constant, and the Window_Sky's opacity function takes only the dawn amount, with value 1 at 0 and 0 at 1. | R4.4 to R4.7 |
+| P8 | For every Setting_Token, the relative luminance lies between `--room-bg-darkest` and `--room-bg-brightest`, and the same holds for the token after lighting by `lightAt` at any point and any phase. | R3.15, R10.6 |
+| P9 | For any wax height in [0, 1], the Holder's rectangle and the Table_Top do not intersect the candle body, the stub, the head or the drips, and the drawn candle height equals `candleHeightUnits(model)`. | R3.9, R3.10 |
+| P10 | For every integer viewport width 360..2560 and height 640..1440, the placed Zone_Buttons have equal height, equal inner padding within 1 px (wide), the gap rule (G and T of R9.3), and satisfy every clause of P10 of `controls-and-access`. | R9.1 to R9.5 |
+| P11 | For any history and limits, the Place's rectangles (ground, shelf boards, sky) intersect no text line's rectangle and contain every Stone's foot and every Stub; the Item rectangles equal those of `geometry.ts`. | R8.11, R8.12 |
+| P12 | For any engine script, the state after the script is the same whether or not art-only inputs (view switches, card openings, reduced-motion changes, ghosts on or off) were interleaved. | R2.2, R2.1 |
+| P13 | For any light radius `r` greater than 0 and any two values of `r`, `windowLight(r, 0)` is equal (it takes no amount of the radius); `windowLight(0, 0)` is the snuffed minimum and is not above `windowLight(r, 0)`; `windowLight(r, 1)` is the warm dawn level for every `r`; and `lightAt` is non-decreasing in the dawn amount at night levels. | R4.15 to R4.19 |
+
+## Playwright Tests
+
+- **E1. The rule in pixels.** At lit start and at the last minute, a point on the wall between the two pool edges is brighter at lit start; a point inside both pools is the same within 2 channel units; a point outside both pools and in the Window_Light's reach is the same within 2 channel units; the glass of the window is identical in both. (R1.7, R4.8, R4.16)
+- **E2. No empty band.** At each viewport of VIEWPORTS_ART, in idle, lit start, paused and burned-out, the left and right edge patches are at least 8 channel units from `--room-night`; no scrollbar. (R7.1, R7.6, R7.8)
+- **E3. Wall and window.** The wall's joint and board contrast is at least 1.10 to 1 near the candle at lit start and, in idle, at the Wall_Samples (200, 150) and (400, 150); the Frame is seen at lit start and in idle, and dark at the last minute where no light reaches it; the stars are seen in every non-dawn state and hidden at the dawn; the dawn glass test of `scene.spec.ts` passes. (R3.2, R3.20, R4.2 to R4.11)
+- **E4. Table and holder.** The candle body's height over its height at the start equals the wax height at every checked wax height (the existing test of `scene.spec.ts`); the Holder covers no body pixel. (R3.9, R3.10)
+- **E5. Ghosts.** With 1, 5, 12 and 21 distractions at 1280 by 800 and 360 by 640, every ghost's bounding box is inside its cell, outside the candle column, the Door and the controls; ghost x positions in a column are not all equal; reduced motion shows the same positions and no animation; ghosts off shows none. (R5.6, R5.8, R5.11 to R5.13)
+- **E6. The Door.** A usable Door shows a handle and no bar, a shut Door shows a bar and no handle (a DOM check and a pixel check of the handle area); the hit box is at least 44 by 44; Tab never reaches the shut Door. (R6.2 to R6.8)
+- **E7. The Place.** At VIEWPORTS_ART the view has no scroll, the sky and ground reach both edges, every Item and card is inside the viewport, and text patches meet 4.5:1 against the sampled backing. The `graveyard-a11y.spec.ts` snapshots pass unchanged. (R8.2, R8.9, R8.13)
+- **E8. Zone buttons.** The measured height of the three buttons is 44 px; at wide viewports the measured inner padding differs by at most 1 px (the baseline of 22.9 px at 1280 by 800 is the failing case); the Let it go dark to Settings gap equals G within 1 px and the two T values agree within 1 px. (R9.1 to R9.3, R9.9)
+- **E9. Reduced motion.** For each state, the still room equals the moving room in every Still_Setting and State_Element reading. (R10.7)
+- **E10. Headers and CSP.** `headers-local.spec.ts` and `live.spec.ts` pass unchanged; the console shows no CSP violation. (R10.2)
+- **E11. Screenshots.** The 59 files plus the 3 new ones are covered by the screenshot tests; the committed retake is `sound-and-title` task 25.x. (R11.8, R11.9, R11.14)
+- **E12. Idle against snuffed.** In `idle` the Wall_Samples are each at least 1.10 to 1 brighter than in `snuffed`; the setting (wall, table, frame, door wood) is at least 1.10 to 1 from `--room-night` in `idle`; and `snuffed` differs from `idle` by something other than brightness: the computed opacity of `.smoke-wisp` is 1 in `snuffed` and 0 in `idle`, the candle's drawn height is `STUB_H` in `snuffed` and `CANDLE_H` in `idle` (the `.body` and `.stub` boxes), and the status line text equals `strings.status.snuffed` in one and `strings.status.idle` in the other. (R3.19, R4.21, R7.7)
+- **E13. The Prototype.** With JavaScript disabled, `prototype/index.html` opens and each of the nine pictures is reachable at its id; the 19 screenshot files exist. This test is outside `npm run verify`. (R12.1 to R12.4, R12.11)
+
+Existing Playwright files that must pass unchanged: `scene.spec.ts` (every test; the pixel tests of the ember, the halo, the zone and the dawn pane are re-run, and a failure caused by the new art is a finding to fix in the art, not to loosen), `controls.spec.ts`, `controls-layout.spec.ts`, `controls-a11y.spec.ts`, `controls-polish.spec.ts`, `settings.spec.ts`, `graveyard.spec.ts`, `graveyard-layout.spec.ts`, `graveyard-a11y.spec.ts`, `ghosts.spec.ts` (except its slot-position reads, R11.5), `fixtures-imports.spec.ts`, `smoke.spec.ts`, `headers-local.spec.ts`, `live.spec.ts`.
+
+## Amended Rules
+
+This table lists every rule, decision and instruction that the Lit_Setting_Rule amends. The owner has approved the table (Q15). No file in it is edited by this document or by the design phase; the first task of the build applies it, including `docs/BRIEF.md` section 4 and the Costume_Reviewer's agent file, and records it in `KIRO_USAGE.md`. This spec supersedes `structure.md` line 98 ("The scene shows state only: no element is decoration ...") and the earlier costume-review findings F1, F2 and F3 and the removal of the wall grain, on purpose, with the owner's approval (Q18). A quoted line is exact as of the date of this document.
+
+| # | Where | Current wording | New wording |
+|---|---|---|---|
+| A1 | `.kiro/steering/product.md`, section "The rule" | "**The costume is the function: every spooky element shows one piece of state.** Nothing is decoration only. Take the costume off and nothing is left to read. Any new visual element must map to a piece of state, or it does not ship." | "**The costume is the function: every spooky element shows one piece of state.** Anything that moves or changes shows one piece of state. A still setting (a wall, a table, a window frame, door wood, ground) may be drawn only where the candle's light or the window's light falls on it, so it makes the light's state easier to read. No still setting may look like a state element. Nothing is a stock Halloween ornament. Take the setting off and every state is still readable. Any new moving or changing element must map to a piece of state, and any new still element must be a lit setting, or it does not ship." |
+| A2 | `.kiro/steering/product.md`, the table under "The rule" | Seven rows, from Candle to Dawn. | Add a row: "Setting (wall, table, holder, window frame, door wood, ground) \| Nothing of its own: where the candle's light or the window's light reaches, so the light is easier to read". |
+| A3 | `.kiro/steering/scene.md`, first paragraph | "Remember the core rule: the costume is the function; every spooky element shows one piece of state (see `product.md`)." | "Remember the core rule: the costume is the function; every spooky element shows one piece of state, and a still setting is drawn only where the candle's light or the window's light falls on it (the Lit Setting rule, `product.md`)." |
+| A4 | `.kiro/steering/scene.md`, "The look", third bullet | "SVG and CSS only: candle, wax drips, flame (layered radial gradients with a seeded flicker), light pool (radial mask whose radius follows the wax), ghosts (translucent shapes with a slow drift, in their own layer, `src/ghosts/`)." | Same list plus "the setting (wall, table, holder, window frame), drawn in one group below the night layer so that the pool and the window's light light it". Ghosts: "with eyes and a soft glow". |
+| A5 | `.kiro/steering/scene.md`, "The look", fourth bullet | "The Door at the left of the floor shows one piece of state: usable (a lit doorway with an amber handle) when no candle burns, barred while a session runs. The graveyard view (`src/graveyard/`) uses the scene's own palette and room units, and its backdrop fades into the room." | "The Door at the left of the floor is a wooden door and shows one piece of state: usable (an amber handle, no bar) when no candle burns, barred (a bar, no handle) while a session runs. The graveyard view (`src/graveyard/`) is a place with a sky, a ground and a wooden shelf, in the scene's palette and room units, and runs edge to edge above the floor line." |
+| A6 | `.kiro/steering/scene.md`, "Contrast", third bullet | "Non-text graphics that carry state (a ghost's outline, the Door's border and bar, a Stone's edge, a Stub's wax) need 3:1 against what is next to them; the tests compute it from the stylesheets." | Add: "a ghost's eyes, the Door's handle". Add a bullet: "Setting colours stay between the room's darkest and brightest published stops, after lighting; the costume reviewer judges that none is mistaken for a state colour." |
+| A7 | `.kiro/steering/structure.md`, Boundaries, line 98 | "The scene shows state only: no element is decoration (a wall grain was tried and removed for that reason)." | "The scene shows state and the still setting that the candle's light or the window's light falls on (the Lit Setting rule): moving or changing elements show state; still elements sit in one group below the night layer. A wall grain was removed under the earlier rule; a lit wall texture replaces it." |
+| A8 | `.kiro/steering/structure.md`, folder list | `src/scene/` list ends at "scene-kit.ts"; "59" screenshots. | Add `setting.ts`, `light.ts`, `backdrop.ts`, `ghosts/place.ts`, `graveyard/place.ts`; screenshots 62. |
+| A9 | `.kiro/steering/tech.md`, "Scene" | "Inline SVG driven by CSS custom properties. Flame: layered radial gradients with a seeded flicker. Light pool: a radial mask whose radius follows the wax." | Add: "Setting: one group below the night layer, lit by the pool's mask and the window's light." And add a "Performance budget" bullet under Non-negotiable rules or Hosting with the numbers of R10.10 (tech.md states none today). |
+| A10 | `docs/BRIEF.md`, section 4, first paragraph (approved by the owner; applied by the first build task) | "Each spooky element shows one piece of state. Nothing is decoration only." | "Each spooky element shows one piece of state. A still setting may stand behind them only where the candle's light or the window's light falls on it." |
+| A11 | `.kiro/specs/candle-scene/requirements.md`, R11.8 | "A new visual element SHALL map to a piece of state, or it SHALL NOT ship (`product.md`). Every element in this spec maps as follows: ... the wall to nothing of its own (it is the surface the light pool reveals, so it carries progress), and the zone to a reserved area ... There is no table and no dish (costume review F1)." | "A new moving or changing visual element SHALL map to a piece of state, and a new still element SHALL be a lit setting under the Lit Setting rule, or it SHALL NOT ship. The wall, the table top, the holder and the window frame are lit settings (`room-art`)." |
+| A12 | `.kiro/specs/candle-scene/requirements.md`, R8.7, last sentence | "The window pane SHALL have a faint, constant night colour at rest that is visible against the wall, so the dawn reads as the window lighting up; the colour carries no state." | Add: "The glass has a frame and stars inside the pane's rectangle; the stars change only with the dawn. The window is also a dim light source (`room-art` R4)." |
+| A13 | `.kiro/specs/candle-scene/design.md`, F1 | "Table and dish were decoration only (rule 1). ... both are removed (layer 5 of the old design, `--table`, `--dish`)." | Add: "Superseded by `room-art` R3: a Table_Top and a Holder return as lit settings that show no wax level and cover no pixel of the candle." |
+| A14 | `.kiro/specs/candle-scene/design.md`, F2 | "The wall stays only as the substrate the pool reveals (5.2, 7.2)." | Add: "The wall carries a lit texture (`room-art` R3)." |
+| A15 | `.kiro/specs/candle-scene/design.md`, F3 | "Only the pane is drawn: no frame, sill or curtain (5.2, 7.2)." | "The pane is drawn with a frame, two mullions and a sill inside the same rectangle; the frame is a lit setting (`room-art` R4)." |
+| A16 | `.kiro/specs/candle-scene/design.md`, 17.3, pass 2 | "The grain was proposed, judged decoration by the costume-reviewer, and removed completely ... The room has no `feTurbulence` and no `<pattern>`, and `room.test.ts` checks that." | Add: "Under the Lit Setting rule a lit wall texture is allowed. `feTurbulence` stays forbidden for cost (`room-art` R3.1, R10.10); `<pattern>` is allowed inside `.setting`." |
+| A17 | `.kiro/specs/ghosts-and-graveyard/requirements.md`, Introduction, last bullet | "The costume rule applies to every new element: each element shows exactly one piece of state and nothing is decoration." | "The costume rule applies to every new element: each moving or changing element shows exactly one piece of state, and each still element is a lit setting (`room-art`)." |
+| A18 | `.kiro/specs/ghosts-and-graveyard/requirements.md`, R4.8 | "THE Graveyard_View SHALL contain no element that does not map to a piece of state or to an action the user can take." | "... or to an action the user can take, or that is a Still_Setting of the Place under the Lit Setting rule." |
+| A19 | `.kiro/specs/ghosts-and-graveyard/design.md`, D8 and D18 | D8: "The panel is the view's background, not decoration: it shows that the user has left the room." D18: "the edges fade, rather than the view covering the whole room." | The opaque panel becomes the Place: it covers the room edge to edge above the floor line (`room-art` R8.3). Its job (nothing of the room shows through text) is kept. |
+| A20 | `.kiro/specs/ghosts-and-graveyard/design.md`, D23 | "Ghost columns keep their fixed x (first costume review, advisory 5, declined). ... The equal pitch stays." | The cells stay; the resting position moves inside the cell by an offset bounded by the cell's spare room, which is small at size 1 and large at small sizes (`room-art` R5.6 to R5.8). |
+| A21 | `.kiro/specs/ghosts-and-graveyard/design.md`, L11 table, rows "Door and back-door control" and "Ghost (no text)" | "face `#1b2030`, outline ivory ... 13.0" and "no text ... none" | Add the Door's plank, bar and handle pairs and the ghost eyes pair (`room-art` R6.5, R10.5). |
+| A22 | `.kiro/specs/controls-and-access/requirements.md`, R8.6 (the two layouts, zone widths 128, 160 and 96 px in the wide layout) and `design.md` section 6 | Fixed widths of Pause, Let it go dark and Settings in the wide layout. | New rectangles per `room-art` R9 (equal height, equal inner padding within 1 px, one gap rule). R8.10 and R8.11 stay as they are: the interface has no decoration. |
+| A23 | `.kiro/agents/costume-reviewer.json`, "description" | "Read-only reviewer. Checks scene changes against docs/BRIEF.md section 4: every spooky element shows one piece of state, reduced motion still shows it, and the time text keeps WCAG AA contrast." | "... every moving or changing element shows one piece of state, every still setting is lit by the candle or the window and is not an impostor or an ornament, the picture reads at a glance as a candlelit room at night with no placeholder-looking element, reduced motion still shows it, and the time text keeps WCAG AA contrast." |
+| A24 | `.kiro/agents/costume-reviewer.json`, "prompt", rule 1 | "Each spooky element shows exactly one piece of state from the section 4 table (...). Flag any element that is decoration only, shows nothing, or shows more than one thing. Flag any state in the table that has no visible element." | The checklist of Change Request CR1 below, including its fourth rule, exactly: "The picture reads at a glance as a candlelit room at night, and the graveyard as a place outside it. Name the three weakest-looking elements and what would improve each." A pass needs no element that reads as a placeholder (a flat rectangle standing for an object, an outline standing for a surface). |
+| A25 | `.kiro/specs/sound-and-title/requirements.md`, Introduction | "The costume rule applies to every new element: each cue shows exactly one state change and nothing is decoration." | Not amended. Sound is not a setting. Listed so the reviewer does not read it as a missed row. |
+| A26 | `.kiro/specs/sound-and-title/tasks.md` (25.x, 26.1) and `design.md` (8.6, 8.5) | Screenshot tasks and the costume-review task written for the old picture and the 59-file list. | Expect the new art, the 62-file list, the Lit Setting rule and the updated reviewer checklist (CR9). |
+
+## Change Requests
+
+This spec does not edit the specs or files below in the requirements and design phases. The changes are requested here and applied by its first build task; the owner has approved the reviewer file edit (CR1) and the `docs/BRIEF.md` edit (CR7).
+
+- **CR1. The Costume_Reviewer checklist (agent file edit approved; applied in the first build task).** Rule 1 becomes four checks: (a) every element that moves or changes shows exactly one piece of state from the table; flag any that shows nothing or two things; (b) every still element is inside `.setting` (or the Place, the Door's wood or the Window_Sky) and its brightness comes from the pool or the window's light; flag any still element drawn outside the lit group, any other light, any wide area that glows without the pool or the window; (c) no still element is an Impostor: flag any use of a State_Element's shape or place, or motion, and judge by colour that none is mistaken for the flame, the ember, a ghost or the wax; (d) no ornament: flag bats, pumpkins, cobwebs, skulls and the other Ornament_Words. Rule 2 adds "every Still_Setting is identical with reduced motion". Rule 3 adds the new pairs of R10.5. A new rule 4, exactly: "The picture reads at a glance as a candlelit room at night, and the graveyard as a place outside it. Name the three weakest-looking elements and what would improve each." A pass needs no element that reads as a placeholder (a flat rectangle standing for an object, an outline standing for a surface). Rule 5: "the setting reaches both edges at 360 to 3840 px; flag any empty band", and "idle shows a room, not black; snuffed is the darkest state and differs from idle by more than brightness". The reviewer compares the finished screenshots with the Prototype's pictures.
+- **CR2. controls-and-access, zone buttons.** The wide-layout rectangles of Pause, Let it go dark and Settings change (R9). The pure `placeControls`, the `Placement.zoneControls` type, `layout.test.ts`, `layout.prop.test.ts` (P10) and `controls-layout.spec.ts` are updated; the status-line rectangles that depend on them (`statusRunning`, `statusResting`) are rechecked.
+- **CR3. ghosts-and-graveyard, ghost placement and the Place.** `GHOST_SLOTS` stay as the cell centres; the layer reads `placeGhost`; D23 and D8/D18 are amended as listed above; the graveyard CSS and `view-dom.ts` draw the Place.
+- **CR4. candle-scene, tests.** The four `room.test.ts` tests of R11.3 change on purpose. The `scene.css.test.ts` figures do not change.
+- **CR5. tech.md, performance budget.** Add the budget the design records (R10.10).
+- **CR6. structure.md, file list and screenshot count.** Add the five new files and 62 screenshots.
+- **CR7. BRIEF.md section 4 (owner approval given; applied in the first build task).** A10.
+- **CR8. main.ts.** Only if the design needs a shared ancestor for the pool values and the Window_Light (Q10 chose the scene SVG, so none is expected); the one dispatch and the clock stay as they are; never changed while another build runs (R11.15).
+- **CR9. sound-and-title spec files, build order (applied in the first build task).** Edit `.kiro/specs/sound-and-title/tasks.md` (screenshot tasks 25.x and costume-review task 26.1), `design.md` sections 8.6 and 8.5, and `requirements.md` where needed, so that they expect the new art, the 62-file screenshot list, the room-art Lit Setting rule and the updated reviewer checklist, and so that their e2e fixtures and pixel samples do not depend on old pixel positions (R11.13).
+- **CR10. Build order (R11.14).** `sound-and-title` batches 1 to 3 are committed first, `room-art` second, `sound-and-title` batch 4 (tasks 19 to 27) last. Never two builds at the same time.
+- **CR11. Prototype gate.** `tasks.md` of this spec is not written until the owner has approved the Prototype (R12.9).
+
+## Decisions to Record in the Design
+
+- **D1. The wall's texture recipe** (boards or courses, pitch, joint width, tones) and how its variation is seeded (R3.1, R3.2), chosen in the Prototype.
+- **D2. The Table_Top and Holder geometry** in room units, and their z-order against the candle and the zone's soft top edge (R3.4 to R3.11).
+- **D3. The Window_Light**: its level, reach and falloff, the combination rule of Light_At_Point, how it is drawn (for example in `.mask-all`, so `.night` stays constant), and the value in `snuffed` (minimum or zero), chosen by eye in the Prototype and checked against R3.15, R3.19, R3.20 and R7.6 (no number is fixed by this document).
+- **D4. The Backdrop_Extent** constants (today x -2200..2800, y -600..1600) and the aspect range they support (R7.2).
+- **D5. The Setting_Tokens**: names, hex values, luminance bounds, and each pair of R10.5.
+- **D6. The Frame, mullions, sill and stars** in room units (R4).
+- **D7. The ghost look**: the three hem variants, the eyes, the glow (inner glow or halo), the tilt, the offset formula and its bound, and whether `DRIFT_UNITS` changes (R5; Q4).
+- **D8. The Door's construction**: where the wood is drawn, the handle and the bar in room units, and how the pool values reach it (R6.6).
+- **D9. The Place's construction**: its layers, the Doorway_Light radius, the sky's link to `--dawn`, the Text_Backing for each text, and the fate of the 60-unit fading margin (R8).
+- **D10. The zone button rectangles** and the gap rule (G and T), with the label-width bound and the new measurements next to the baseline (R9).
+- **D11. The performance budget**, the element counts before and after, and the measurement script (R10.10, R10.11).
+- **D12. The forced-colours behaviour** of the new art (R6.9, R8.14).
+- **D13. The Costume_Reviewer's findings**, pass by pass, with the three weakest elements and their improvements on every pass, PASS included (R11.10).
+- **D14. The Prototype approval gate**: the date and wording of the owner's approval of the Prototype's pictures; `tasks.md` is not written before it (R12.9).
+- **D15. The idle and snuffed difference**: the idle/snuffed luminance ratio chosen in the Prototype (floor 1.10), the idle wall-to-night ratio, and the three non-brightness differences (smoke wisp, stub against whole candle, status text) with the Playwright check E12 (R4.21, R7.7).
+- **D16. The fourth reviewer rule** and how its findings are stored (R11.10, CR1).
+
+## Out of Scope
+
+- Any change to the engine, the scene model, the stored documents, the key map or the timer.
+- New State_Elements, new states, new settings, new text, new copy or new sounds. The art adds none.
+- Themes other than the one room, a day or night switch, parallax, scrolling backgrounds, animated weather, a moving moon or sun.
+- Raster images, an image-based texture, a new font, a canvas, WebGL, video, or a new dependency.
+- Stock Halloween ornaments of any kind.
+- Browser notifications, accounts, sync, and every non-goal of `docs/BRIEF.md` section 9.
+- The Prototype as shipped code: it is not shipped, not under `src/`, not in `dist/`, not imported.
+- A change to the page title, the chime or the behaviour of `sound-and-title`; this spec edits only that spec's screenshot, costume-review and fixture wording, in the first build task (CR9), and never while its build runs (R11.14).
+- Editing `docs/BRIEF.md`, the agent file, the steering files or `KIRO_USAGE.md` in this document or in the design phase (the first build task applies the approved table).
+
+## Open Questions
+
+None open; see Resolved Questions.
+
+## Resolved Questions
+
+| Q | Decision | Landed in |
+|---|---|---|
+| Q1 | Accepted as recommended: a fixed Doorway_Light centred on the return control, constant radius about 520 room units, exists only while the Door is usable. | R8.6, R8.7, D9 |
+| Q2 | Changed by the owner: no Ambient_Floor. The window is a second, dim light source (Window_Light): cool and faint at night, warm at the dawn through `--dawn`; `idle` shows a room, not black; `snuffed` is the darkest state and is told from `idle` by the smoke wisp, the stub and the status text as well as by brightness. Level chosen by eye in the Prototype, with floors 1.10 (idle against night, snuffed against idle). | Introduction, Glossary (Window_Light, Light_At_Point, Wall_Samples), R1.5 to R1.7, R2.3, R3.15, R3.18 to R3.20, R4.15 to R4.21, R7.6, R7.7, R12, P6, P13, E1 to E3, E12, D3, D15 |
+| Q3 | Accepted: no moon; fixed stars that fade at the dawn. | R4.4 to R4.7 |
+| Q4 | Accepted: keep the 12 cells, `GHOST_SLOTS` and `DRIFT_UNITS = 8`; seeded offset, 3 hem variants, tilt up to 6 degrees, inner glow. | R5.5 to R5.8, D7, A20 |
+| Q5 | Accepted: ghost variety carries no information; size is the only state. | R1.12, R5.2, R5.5, CR1 |
+| Q6 | Accepted: the four-number performance budget; the frame script stays outside `npm run verify`. | R10.10, R10.11, D11, CR5 |
+| Q7 | Accepted: keep the `meet` letterbox and every layout number; the Backdrop is drawn outside the stage in the same SVG. | R7.3, R7.4 |
+| Q8 | Accepted: keep the 4.66:1 floor by construction; no lit setting colour is brighter than `#566683` or darker than `#05070d`. | R3.15, R10.6, P8 |
+| Q9 | Accepted: no existing room pixel test is expected to change; a failure is fixed in the art. The Window_Light must still pass the dawn-pane test. | R4.11, Playwright Tests (existing files) |
+| Q10 | Accepted: the Door's wood is drawn in the scene SVG at `DOOR_RECT` below the night layer; no change to `main.ts`. | R6.6, D8, CR8 |
+| Q11 | Accepted: content-fit zone buttons with one inner padding; the value is chosen in the design against the measured baseline (8.7 to 31.6 px today). | R9.2, R9.3, D10 |
+| Q12 | Accepted: the dawn wash stays above the setting at 0.85 opacity; joint-to-board contrast under it at least 1.04 to 1. | R3.17 |
+| Q13 | Accepted: the Place's sky follows `--dawn`. | R8.5, D9 |
+| Q14 | Accepted: text backings do not change. | R8.8 |
+| Q15 | Approved: the Amended Rules table is approved. The first build task applies it, including `docs/BRIEF.md` section 4 and the costume-reviewer agent file; the requirements and design phases edit none of those files. | Amended Rules intro, A10, A23, A24, R11.12, CR1, CR7 |
+| Q16 | Accepted: aspect range 1 to 3.5 (tall) up to 32 to 9 (wide). | R7.2, P4 |
+| Q17 | Changed by the owner: `sound-and-title` batches 1 to 3 finish and are committed first; then `room-art` is built; then `sound-and-title` batch 4 (tasks 19 to 27) runs last, on the finished picture. The builds never run at the same time; the first build task edits the `sound-and-title` spec files; `main.ts` is not touched concurrently. | Introduction (Build order), R11.13 to R11.15, A26, CR8 to CR10, Out of Scope |
+| Q18 | Approved: this spec supersedes `structure.md` line 98 and the earlier costume-review findings F1, F2, F3 and the wall-grain removal. | Amended Rules intro, A7, A13 to A16 |
