@@ -54,17 +54,17 @@ test.describe("E6: the accessibility tree of the view (ariaSnapshot)", () => {
         "- /children: deep-equal",
         `- heading "${STRINGS.graveyard.title}" [level=2]`,
         `- group "${STRINGS.graveyard.graveyardLabel}":`,
-        `  - button "No intent, ${d1}": ${d1} No intent`,
-        `  - text: "No intent. ${d1}. Planned: 15 minutes. Distractions: 0. Time away: 0 seconds"`,
+        `  - button "Unnamed watch, ${d1}": ${d1} Unnamed watch`,
+        `  - text: "Here lies an unnamed watch. ${d1}. Length: 15 minutes. Distractions: 0. Time away: 0 seconds"`,
         `  - button "Write the report, ${d0}": ${d0} Write the report`,
-        `  - text: "Write the report. ${d0}. Planned: 25 minutes. Distractions: 2. Time away: 1 minute 30 seconds"`,
+        `  - text: "Here lies \\"Write the report\\". ${d0}. Length: 25 minutes. Distractions: 2. Time away: 1 minute 30 seconds"`,
         `- group "${STRINGS.graveyard.shelfLabel}":`,
         `  - paragraph: ${d1}`,
-        `  - button "No intent, ${d1}"`,
-        `  - text: "No intent. ${d1}. Planned: 25 minutes. Distractions: 0. Time away: 0 seconds"`,
+        `  - button "Unnamed watch, ${d1}"`,
+        `  - text: "Burned to the end: an unnamed watch. ${d1}. Length: 25 minutes. Distractions: 0. Time away: 0 seconds"`,
         `  - paragraph: ${d0}`,
         `  - button "Review the draft, ${d0}"`,
-        `  - text: "Review the draft. ${d0}. Planned: 50 minutes. Distractions: 1. Time away: 20 seconds"`,
+        `  - text: "Burned to the end: Review the draft. ${d0}. Length: 50 minutes. Distractions: 1. Time away: 20 seconds"`,
         `- button "${STRINGS.graveyard.back}"`,
       ].join("\n");
       await expect(page.locator("#graveyard")).toMatchAriaSnapshot(expected);
@@ -96,9 +96,9 @@ test.describe("E6: the accessibility tree of the view (ariaSnapshot)", () => {
       const shelfTree = await page.getByRole("group", { name: STRINGS.graveyard.shelfLabel }).ariaSnapshot();
       expect(stonesTree.match(/^\s*- button /gm)).toHaveLength(10);
       expect(stonesTree.match(/^\s*- text: /gm)).toHaveLength(10);
-      expect(stonesTree).toContain(`- paragraph: ${snuffed - 10} older stones not shown`);
+      expect(stonesTree).toContain(`- paragraph: ${snuffed - 10} older stones out of sight`);
       expect(shelfTree.match(/^\s*- paragraph: \d+ \w+$/gm)).toHaveLength(3);
-      expect(shelfTree).toMatch(/- paragraph: \d+ older days not shown/);
+      expect(shelfTree).toMatch(/- paragraph: \d+ older days out of sight/);
       await expect(page.locator("#graveyard")).toMatchAriaSnapshot(
         [`- heading "${STRINGS.graveyard.title}" [level=2]`, `- group "${STRINGS.graveyard.graveyardLabel}"`, `- group "${STRINGS.graveyard.shelfLabel}"`, `- button "${STRINGS.graveyard.back}"`].join("\n"),
       );

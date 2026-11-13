@@ -97,30 +97,39 @@ export const STRINGS = {
   region: {
     watch: "The watch",
   },
-  /** Distraction counts in words, used by the scene label (ghosts-and-graveyard design 4.7). Placeholder wording. */
+  /** Distraction counts in words, used by the scene label (ghosts-and-graveyard design 4.7). Final wording, confirmed by sound-and-title (design 4.2). */
   count: { distraction: "{n} distraction", distractions: "{n} distractions" },
   ghosts: { overflow: "+{n}" },
-  /** The graveyard and shelf view (ghosts-and-graveyard design 4.7). Placeholder wording, finalised by sound-and-title. */
+  /** The graveyard and shelf view (ghosts-and-graveyard design 4.7). Final wording, set by sound-and-title (design 4.2). */
   graveyard: {
-    door: "Open the graveyard",
+    door: "Walk out to the graveyard",
     back: "Back to the room",
     title: "The graveyard",
     graveyardLabel: "Graveyard",
     shelfLabel: "Shelf",
-    noStones: "No stones yet",
-    noStubs: "No candles on the shelf yet",
-    noIntent: "No intent",
+    noStones: "Nothing is buried here.",
+    noStubs: "The shelf is bare.",
+    noIntent: "Unnamed watch",
     itemName: "{intent}, {date}",
     carvedDate: "{day} {month}",
     unknownDate: "Unknown date",
     months: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
-    olderStone: "{n} older stone not shown",
-    olderStones: "{n} older stones not shown",
-    olderDay: "{n} older day not shown",
-    olderDays: "{n} older days not shown",
+    olderStone: "{n} older stone out of sight",
+    olderStones: "{n} older stones out of sight",
+    olderDay: "{n} older day out of sight",
+    olderDays: "{n} older days out of sight",
     more: "+{n} more",
-    card: { planned: "Planned: {time}", distractions: "Distractions: {n}", away: "Time away: {time}" },
-    announceOpen: "The graveyard.",
+    card: {
+      planned: "Length: {time}",
+      distractions: "Distractions: {n}",
+      away: "Time away: {time}",
+      // The first card line (sound-and-title design 4.3, D22): the quotes belong to `quoted`, so the unnamed form has none.
+      stoneLine: "Here lies {intent}",
+      stubLine: "Burned to the end: {intent}",
+      unnamed: "an unnamed watch",
+      quoted: '"{text}"',
+    },
+    announceOpen: "The graveyard. Quiet.",
     announceLeave: "Back in the room.",
   },
   /** The page title while a focus session is on or just ended (sound-and-title design 4.2, R6). `{name}` is `title` above. */

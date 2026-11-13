@@ -148,6 +148,67 @@ describe("formatCarvedDate (R2.9, R2.10)", () => {
   });
 });
 
+describe("formatCarvedDate is total and exact (sound-and-title R8.9, R8.10, R9.2)", () => {
+  const unknown = STRINGS.graveyard.unknownDate;
+
+  it("names each of the twelve months, with no leading zero", () => {
+    const names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    names.forEach((name, i) => {
+      const month = String(i + 1).padStart(2, "0");
+      expect(formatCarvedDate(`2026-${month}-07`), month).toBe(`7 ${name}`);
+      expect(formatCarvedDate(`2026-${month}-23`), month).toBe(`23 ${name}`);
+    });
+  });
+
+  it('gives "7 Nov" for "2026-11-07"', () => {
+    expect(formatCarvedDate("2026-11-07")).toBe("7 Nov");
+  });
+
+  it("accepts the last day of every month and rejects the day after it", () => {
+    const last = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    last.forEach((days, i) => {
+      const month = String(i + 1).padStart(2, "0");
+      expect(formatCarvedDate(`2026-${month}-${days}`), `${month}-${days}`).not.toBe(unknown);
+      expect(formatCarvedDate(`2026-${month}-${days + 1}`), `${month}-${days + 1}`).toBe(unknown);
+    });
+  });
+
+  it("knows leap years: 2024 and 2000 have a 29 February; 2026, 1900 and 2100 do not", () => {
+    expect(formatCarvedDate("2024-02-29")).toBe("29 Feb");
+    expect(formatCarvedDate("2000-02-29")).toBe("29 Feb");
+    for (const key of ["2026-02-29", "1900-02-29", "2100-02-29", "2024-02-30"]) expect(formatCarvedDate(key), key).toBe(unknown);
+  });
+
+  it("gives the unknown date for the bad keys of R9.2 and never throws", () => {
+    const bad: (string | null | undefined)[] = [
+      null,
+      undefined,
+      "",
+      "2026-11",
+      "2026/11/07",
+      "2026.11.07",
+      "2026-11-7",
+      "2026-00-10",
+      "2026-13-10",
+      "2026-11-00",
+      "2026-11-32",
+      "2026-02-30",
+      "2026-04-31",
+      "abcd-ef-gh",
+      "2026-1x-07",
+      "2026-11-07\n",
+      "2026-11-07T00:00:00Z",
+      "-2026-11-07",
+    ];
+    for (const key of bad) expect(() => formatCarvedDate(key), String(key)).not.toThrow();
+    for (const key of bad) expect(formatCarvedDate(key), String(key)).toBe(unknown);
+  });
+
+  it("gives the unknown date for a value that is not a string at run time", () => {
+    for (const value of [0, 20261107, {}, [], true, Symbol.iterator]) expect(formatCarvedDate(value as never)).toBe(unknown);
+  });
+});
+
 describe("dayKeyFromParts", () => {
   it("pads the year to four digits and the month and the day to two", () => {
     expect(dayKeyFromParts(2026, 3, 7)).toBe("2026-03-07");

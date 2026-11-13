@@ -293,7 +293,7 @@ Rules:
 - Groups are ordered by `dayKey` descending. `"YYYY-MM-DD"` strings sort the same as the dates, so a plain string comparison is enough (R2.6).
 - `groupByDay` is generic: it groups whatever history it receives. `visibleHistory` filters by outcome first.
 - `dayKeyFromParts(y, m, d)` pads to `YYYY-MM-DD`. It is the only place that builds a key, so the DOM function `localDayKey` and the test functions agree on the format.
-- `formatCarvedDate(dayKey)` splits the key, takes the month name from `STRINGS.graveyard.months` and fills `STRINGS.graveyard.carvedDate` (placeholder `"{day} {month}"`, with no leading zero on the day). A key that is not `YYYY-MM-DD` with a month 01 to 12 returns `STRINGS.graveyard.unknownDate` (section 7). The Stone, the Day_Shelf label, the Item name and the Details_Card all call this one function (R2.9, R4.5).
+- `formatCarvedDate(dayKey)` splits the key, takes the month name from `STRINGS.graveyard.months` and fills `STRINGS.graveyard.carvedDate` (`"{day} {month}"`, with no leading zero on the day; *amended by sound-and-title task 14.2, CR6: the wording is final*). A key that is not `YYYY-MM-DD` with a month 01 to 12 returns `STRINGS.graveyard.unknownDate` (section 7). The Stone, the Day_Shelf label, the Item name and the Details_Card all call this one function (R2.9, R4.5).
 - Days are computed on every build of the view and stored nowhere (R2.12, Decision D1).
 
 ### 3.2 `visible.ts` (graveyard): what is drawn (R8)
@@ -345,7 +345,7 @@ Rules:
 export function itemName(item: Indexed): string;             // "Write the essay, 10 Nov" (R7.1)
 export function stoneIntent(entry: HistoryEntry): string;   // the intent, or the placeholder line (R4.3)
 export function cardLines(item: Indexed): readonly string[]; // the five lines of the Details_Card (R5.1)
-export function stonesCountLine(hidden: number): string | null; // "38 older stones not shown", or null when 0 (R8.8, R8.10)
+export function stonesCountLine(hidden: number): string | null; // "38 older stones out of sight", or null when 0 (R8.8, R8.10; amended by sound-and-title task 14.2, CR6)
 export function daysCountLine(hidden: number): string | null;
 export function moreText(hiddenStubs: number): string | null;  // "+3 more", or null when 0 (R8.5)
 ```
@@ -353,7 +353,7 @@ export function moreText(hiddenStubs: number): string | null;  // "+3 more", or 
 - `stoneIntent` returns `entry.intent` when it is a non-empty string, else `STRINGS.graveyard.noIntent` (R4.3, R5.2, R7.2). The Item name, the Stone face and the card all use it.
 - `itemName(item) = fill(STRINGS.graveyard.itemName, { intent: stoneIntent(entry), date: formatCarvedDate(item.dayKey) })` (R7.1, R7.2).
 - `cardLines` returns exactly five lines, in this order (R5.1, R5.12, R5.13):
-  1. the intent or the placeholder;
+  1. the kind-specific flavour line built from the intent, as in `sound-and-title` design 4.3: a stone (`snuffed`) gives `Here lies "{intent}"`, a stub (`burned-out`) gives `Burned to the end: {intent}`, and a null or empty intent gives the `card.unnamed` text without quotes (`Here lies an unnamed watch`). The intent is passed to `fill` as a value and is never trimmed or cut. *(Amended by sound-and-title task 14.2, CR9. The accessible name and `stoneIntent` are unchanged.)*
   2. the Carved_Date;
   3. the planned length: `fill(lengthMin === 1 ? time.minute : time.minutes, { n: lengthMin })` inside `STRINGS.graveyard.card.planned`;
   4. the distractions: `fill(STRINGS.graveyard.card.distractions, { n: distractions })`, with `n` as plain digits and no `countWords` ("Distractions: 3");
@@ -692,31 +692,35 @@ The ghost layer reads `settings.ghosts` (R11.7 of `controls-and-access`). Turnin
 
 ### 4.7 Strings
 
-`src/strings.ts` gains these groups. Every wording is a placeholder to be finalised by `sound-and-title` (Open Questions of the requirements).
+`src/strings.ts` gains these groups. Final wording, set by `sound-and-title` (section 4.2). *(Amended by sound-and-title task 14.2, CR6: this sentence first said every wording was a placeholder. The ten changed values and the four added keys follow.)*
 
 ```ts
 count: { distraction: "{n} distraction", distractions: "{n} distractions" },
 ghosts: { overflow: "+{n}" },
 graveyard: {
-  door: "Open the graveyard",
+  door: "Walk out to the graveyard",
   back: "Back to the room",
   title: "The graveyard",
   graveyardLabel: "Graveyard",
   shelfLabel: "Shelf",
-  noStones: "No stones yet",
-  noStubs: "No candles on the shelf yet",
-  noIntent: "No intent",
+  noStones: "Nothing is buried here.",
+  noStubs: "The shelf is bare.",
+  noIntent: "Unnamed watch",
   itemName: "{intent}, {date}",
   carvedDate: "{day} {month}",
   unknownDate: "Unknown date",
   months: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
-  olderStone: "{n} older stone not shown",
-  olderStones: "{n} older stones not shown",
-  olderDay: "{n} older day not shown",
-  olderDays: "{n} older days not shown",
+  olderStone: "{n} older stone out of sight",
+  olderStones: "{n} older stones out of sight",
+  olderDay: "{n} older day out of sight",
+  olderDays: "{n} older days out of sight",
   more: "+{n} more",
-  card: { planned: "Planned: {time}", distractions: "Distractions: {n}", away: "Time away: {time}" },
-  announceOpen: "The graveyard.",
+  card: {
+    planned: "Length: {time}", distractions: "Distractions: {n}", away: "Time away: {time}",
+    // added by sound-and-title (CR6, D22): the first card line; the quotes belong to `quoted`, so the unnamed form has none
+    stoneLine: "Here lies {intent}", stubLine: "Burned to the end: {intent}", unnamed: "an unnamed watch", quoted: "\"{text}\"",
+  },
+  announceOpen: "The graveyard. Quiet.",
   announceLeave: "Back in the room.",
 },
 ```
@@ -961,7 +965,7 @@ Reflection on the prework: the requirements' P1 and P3 both concern grouping, bu
 
 ### Property 18: The card text and the Item name equal the entry
 
-*For any* entry, `cardLines` has five lines that contain, in order, the intent (or the placeholder when it is null or empty), the Carved_Date, `lengthMin`, `distractions` and the `spokenTime` of `timeAwayMs`; and `itemName` equals the intent (or the placeholder) and the Carved_Date, joined by the template.
+*For any* entry, `cardLines` has five lines; the first contains the exact intent as a substring when the intent is not null and not empty, and `card.unnamed` when it is; the others contain, in order, the Carved_Date, `lengthMin`, `distractions` and the `spokenTime` of `timeAwayMs`; and `itemName` equals the intent (or `noIntent`) and the Carved_Date, joined by the template. *(Amended by sound-and-title task 14.2, CR9.)*
 
 **Validates: Requirements 5.1, 5.2, 5.12, 5.13, 7.1, 7.2**
 

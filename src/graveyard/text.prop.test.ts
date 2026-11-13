@@ -126,17 +126,24 @@ describe("Feature: ghosts-and-graveyard, Property 18: The card text and the Item
   );
   const fillTemplate = (template: string, values: Record<string, string>): string => template.replace(/\{(\w+)\}/g, (whole, name: string) => values[name] ?? whole);
 
-  it("has five lines holding, in order, the intent or its placeholder, the date, the length, the distractions and the time away", () => {
+  it("has five lines: the first holds the exact intent (or the unnamed text), then the date, the length, the distractions and the time away", () => {
     fc.assert(
       fc.property(arbCardEntry, arbDayKeyFn, (entry, dayKeyOf) => {
         const [item] = indexHistory([entry], dayKeyOf);
         if (!item) throw new Error("no item");
         const lines = cardLines(item);
-        const intent = typeof entry.intent === "string" && entry.intent !== "" ? entry.intent : STRINGS.graveyard.noIntent;
+        const intent = entry.intent;
+        const named = typeof intent === "string" && intent !== "";
         const date = formatCarvedDate(dayKeyOf(entry.endedAt));
 
         expect(lines).toHaveLength(5);
-        expect(lines[0]).toBe(intent);
+        // The first line holds the exact intent as a substring when there is one, and the unnamed text when there is not.
+        expect(lines[0]).toContain(named ? intent : STRINGS.graveyard.card.unnamed);
+        // It opens with the phrase of the kind: a stone (snuffed) or a stub (burned to the end).
+        const template = entry.outcome === "snuffed" ? STRINGS.graveyard.card.stoneLine : STRINGS.graveyard.card.stubLine;
+        expect(lines[0]?.startsWith(template.split("{intent}")[0] ?? "")).toBe(true);
+        // The unnamed form carries no quotes.
+        if (!named) expect(lines[0]).not.toContain('"');
         expect(lines[1]).toBe(date);
         // The length in whole minutes, singular for 1 only; the distractions as plain digits; the time away in words.
         const minutes = fillTemplate(entry.lengthMin === 1 ? STRINGS.time.minute : STRINGS.time.minutes, { n: String(entry.lengthMin) });

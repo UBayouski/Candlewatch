@@ -71,17 +71,29 @@ export function groupByDay(history: readonly HistoryEntry[], dayKeyOf: DayKeyFn)
 
 const DAY_KEY = /^(\d{4})-(\d{2})-(\d{2})$/;
 
+/** True for a leap year of the Gregorian calendar. */
+const isLeap = (year: number): boolean => (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+
+/** The number of days in a month 1 to 12 of a year. */
+const daysInMonth = (year: number, month: number): number => (month === 2 ? (isLeap(year) ? 29 : 28) : [4, 6, 9, 11].includes(month) ? 30 : 31);
+
 /**
  * "10 Nov" from "2026-11-10": the day without a leading zero and the short month name, filled into the template of
- * `STRINGS.graveyard.carvedDate`. No time of day (R2.10). A key that is not `YYYY-MM-DD` with a month 01 to 12 gives
- * `STRINGS.graveyard.unknownDate`. The Stone, the Day_Shelf label, the Item name and the Details_Card all call this (R2.9).
+ * `STRINGS.graveyard.carvedDate`. No year and no time of day (R2.10). Anything that is not a real calendar day written as
+ * `YYYY-MM-DD` (null, undefined, a wrong separator, month 00 or 13, day 00 or 32, a day the month does not have such as
+ * 2026-02-30) gives `STRINGS.graveyard.unknownDate`. Total: it never throws. The Stone, the Day_Shelf label, the Item name and
+ * the Details_Card all call this (R2.9; sound-and-title R8.9, R8.10).
  */
-export function formatCarvedDate(dayKey: DayKey): string {
+export function formatCarvedDate(dayKey: DayKey | null | undefined): string {
+  if (typeof dayKey !== "string") return STRINGS.graveyard.unknownDate;
   const match = DAY_KEY.exec(dayKey);
-  const month = match ? Number(match[2]) : 0;
+  if (!match) return STRINGS.graveyard.unknownDate;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
   const name = STRINGS.graveyard.months[month - 1];
-  if (!match || name === undefined) return STRINGS.graveyard.unknownDate;
-  return fill(STRINGS.graveyard.carvedDate, { day: Number(match[3]), month: name });
+  if (name === undefined || day < 1 || day > daysInMonth(year, month)) return STRINGS.graveyard.unknownDate;
+  return fill(STRINGS.graveyard.carvedDate, { day, month: name });
 }
 
 /** Builds a key from calendar parts, padded to `YYYY-MM-DD`. The only place that builds a key, so every `DayKeyFn` agrees on the format. */

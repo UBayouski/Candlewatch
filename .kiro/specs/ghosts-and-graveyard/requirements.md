@@ -81,7 +81,7 @@ The requirements fix constraints. The layout numbers S (stones drawn), D (days d
 8. WHEN two History_Entries of one Day_Shelf have equal `endedAt`, THE Graveyard_Module SHALL order them by their position in the history document, so that the order is total.
 9. THE Carved_Date of a Stone SHALL be built from the Day_Key of its entry computed by the same DayKeyFn as the Shelf.
 10. THE Carved_Date SHALL show no time of day.
-11. THE Carved_Date format SHALL come from `src/strings.ts` in the style of that file; its exact wording is a placeholder to be finalised by `sound-and-title` (see Open Questions).
+11. THE Carved_Date format SHALL come from `src/strings.ts` in the style of that file; its wording is final, set by `sound-and-title` (section 4.2 of its design): the template `{day} {month}`, for example "10 Nov". *(Amended by sound-and-title task 14.2, CR5.)*
 12. THE Graveyard_Module SHALL compute days at draw time and SHALL store no day key, shelf or grouping.
 13. IF the browser's time zone changes between visits, THEN THE Graveyard_Module MAY move a near-midnight session to a neighbouring Day_Shelf, and the design SHALL record this as a decision.
 
@@ -116,13 +116,13 @@ The requirements fix constraints. The layout numbers S (stones drawn), D (days d
 
 1. THE Graveyard SHALL draw one Stone for each drawn History_Entry whose outcome is `snuffed`.
 2. THE Stone SHALL show the entry's intent and its Carved_Date as real text.
-3. WHERE the entry's intent is null, THE Stone SHALL show a placeholder line from `src/strings.ts`.
+3. WHERE the entry's intent is null, THE Stone SHALL show the line "Unnamed watch" from `src/strings.ts` (`graveyard.noIntent`). *(Amended by sound-and-title task 14.2, CR5.)*
 4. THE Shelf SHALL draw one Day_Shelf for each drawn Day_Key and one Stub for each drawn History_Entry whose outcome is `burned-out`.
 5. THE Day_Shelf SHALL show its Day_Key date as real text, built like the Carved_Date.
 6. THE Stub SHALL show one piece of state only: that a focus session burned out on that day; the Stub's look SHALL carry no other state.
 7. THE Stone SHALL show one piece of state only: that a focus session was snuffed, with its intent and date.
 8. THE Graveyard_View SHALL contain no element that does not map to a piece of state or to an action the user can take.
-9. WHILE a Group has no drawn Items, THE Graveyard_View SHALL show a short line from `src/strings.ts` ("No stones yet" or "No candles on the shelf yet" as placeholder wording) in place of the Group's Items.
+9. WHILE a Group has no drawn Items, THE Graveyard_View SHALL show a short line from `src/strings.ts` ("Nothing is buried here." or "The shelf is bare.", the final wording of `sound-and-title`) in place of the Group's Items. *(Amended by sound-and-title task 14.2, CR5.)*
 10. THE Graveyard_View SHALL NOT scroll in either direction at the viewports 360 by 640, 768 by 1024, 1280 by 800 and 1920 by 1080.
 11. THE Graveyard_View SHALL keep every drawn Item, Count_Line, empty-state line, Details_Card and the Door's return control inside the viewport and clear of one another.
 12. THE Graveyard_View SHALL keep the Floor_Band and the controls of `controls-and-access` that remain visible free of overlap.
@@ -136,8 +136,8 @@ The requirements fix constraints. The layout numbers S (stones drawn), D (days d
 
 #### Acceptance Criteria
 
-1. THE Details_Card SHALL show the intent, the Carved_Date, the planned length, the distraction count and the time away of the History_Entry.
-2. WHERE the entry's intent is null, THE Details_Card SHALL show the same placeholder line as R4.3.
+1. THE Details_Card SHALL show the intent, the Carved_Date, the planned length, the distraction count and the time away of the History_Entry, as five lines: a first line that carries the intent in a kind-specific flavour line (`Here lies "write the report"` for a stone, `Burned to the end: write the report` for a stub), the Carved_Date, "Length: {time}", "Distractions: {n}" and "Time away: {time}" (final wording of `sound-and-title`, section 4.2 and 4.3). *(Amended by sound-and-title task 14.2, CR5, CR9.)*
+2. WHERE the entry's intent is null, THE Details_Card SHALL show "an unnamed watch" (`graveyard.card.unnamed`) in the first line, without quotes (`Here lies an unnamed watch`, `Burned to the end: an unnamed watch`); the Item's accessible name keeps the line of R4.3, "Unnamed watch". *(Amended by sound-and-title task 14.2, CR5, CR9.)*
 3. WHEN an Item receives keyboard focus, THE Graveyard_View SHALL show that Item's Details_Card.
 4. WHEN the mouse pointer hovers an Item, THE Graveyard_View SHALL show that Item's Details_Card.
 5. WHEN the mouse pointer hovers an Item, THE Graveyard_View SHALL NOT move keyboard focus.
@@ -194,7 +194,7 @@ The requirements fix constraints. The layout numbers S (stones drawn), D (days d
 8. THE Count_Line SHALL be real text and SHALL NOT be focusable.
 9. WHEN the Graveyard_View opens, THE page SHALL give a screen reader a heading or label that names the view.
 10. WHEN the view changes, THE page SHALL announce the new view once through the polite live region of `controls-and-access` R9.2, with text from `src/strings.ts`.
-11. THE Door SHALL have an accessible name from `src/strings.ts` that says where it leads, and its state SHALL be exposed to assistive technology (present as a button while usable, absent while shut).
+11. THE Door SHALL have an accessible name from `src/strings.ts` that says where it leads ("Walk out to the graveyard", the final wording of `sound-and-title`), and its state SHALL be exposed to assistive technology (present as a button while usable, absent while shut). *(Amended by sound-and-title task 14.2, CR5: the final name is "Walk out to the graveyard".)*
 
 ### Requirement 8: Large history
 
@@ -206,11 +206,11 @@ The requirements fix constraints. The layout numbers S (stones drawn), D (days d
 2. THE `limits` argument SHALL hold S, D and K and SHALL also take the DayKeyFn.
 3. THE Graveyard SHALL draw the newest S Stones by end time.
 4. THE Shelf SHALL draw the newest D Day_Shelves, and each Day_Shelf SHALL hold at most K Stubs.
-5. WHEN a drawn Day_Shelf holds more than K Stubs, THE Day_Shelf SHALL show "+n more" at its end, with n the number of Stubs left out, as real text.
+5. WHEN a drawn Day_Shelf holds more than K Stubs, THE Day_Shelf SHALL show "+n more" at its end, with n the number of Stubs left out, as real text (final wording of `sound-and-title`; unchanged). *(Amended by sound-and-title task 14.2, CR5.)*
 6. THE design SHALL derive S, D and K from the stage geometry as the largest values that fit at legible size, with Stones and Stubs at or above the minimum hit size of R4.13 and text at or above the contrast of R4.14, and SHALL record the numbers and the derivation as a decision.
 7. THE requirements SHALL NOT fix the numbers S, D and K.
-8. WHEN Stones are left out, THE Graveyard SHALL show one Count_Line stating how many older Stones are not shown (for example "38 older stones not shown").
-9. WHEN Day_Shelves are left out, THE Shelf SHALL show one Count_Line stating how many older days are not shown (for example "12 older days not shown").
+8. WHEN Stones are left out, THE Graveyard SHALL show one Count_Line stating how many older Stones are not shown (for example "38 older stones out of sight"; for one, "1 older stone out of sight"). *(Amended by sound-and-title task 14.2, CR5.)*
+9. WHEN Day_Shelves are left out, THE Shelf SHALL show one Count_Line stating how many older days are not shown (for example "12 older days out of sight"; for one, "1 older day out of sight"). *(Amended by sound-and-title task 14.2, CR5.)*
 10. WHEN nothing is left out of a Group, THE Group SHALL show no Count_Line.
 11. THE Graveyard_View SHALL NOT scroll for any history size.
 12. THE Graveyard_Module SHALL NOT delete, trim or rewrite any History_Entry in storage, and the history document SHALL remain version 1 and complete.
@@ -348,9 +348,14 @@ This spec does not edit `controls-and-access`. The following changes are request
 
 ## Open Questions
 
-- **Carved_Date wording.** The exact format of the date text (for example "10 Nov") is a placeholder for the strings file; `sound-and-title` finalises it.
-- **Overflow_Mark wording.** The "+n" mark and the "+n more" text on a Day_Shelf are placeholders for the strings file.
-- **Count_Line wording.** "n older stones not shown" and "n older days not shown" are placeholders for the strings file.
-- **Empty-state wording.** "No stones yet" and "No candles on the shelf yet" are placeholders for the strings file.
-- **Null-intent placeholder.** The line shown for a session with no intent is a placeholder for the strings file.
-- **Derived numbers.** S, D, K and G are settled in the design, not here.
+- **Derived numbers.** S, D, K and G are settled in the design, not here. Still open in this document.
+
+### Resolved: finalised by `sound-and-title`, section 4.2
+
+*(Amended by sound-and-title task 14.2, CR5: the five wording questions below were open; they are answered.)*
+
+- **Carved_Date wording.** Resolved, finalised by `sound-and-title`, section 4.2: `{day} {month}`, for example "10 Nov".
+- **Overflow_Mark wording.** Resolved, finalised by `sound-and-title`, section 4.2: "+n" beside the Ghosts and "+n more" on a Day_Shelf, unchanged.
+- **Count_Line wording.** Resolved, finalised by `sound-and-title`, section 4.2: "n older stones out of sight" and "n older days out of sight" (singular forms "1 older stone out of sight" and "1 older day out of sight").
+- **Empty-state wording.** Resolved, finalised by `sound-and-title`, section 4.2: "Nothing is buried here." and "The shelf is bare.".
+- **Null-intent line.** Resolved, finalised by `sound-and-title`, section 4.2: "Unnamed watch" for the Stone face and the Item name; "an unnamed watch" inside the first card line.

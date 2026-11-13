@@ -17,15 +17,33 @@ export function itemName(item: Indexed): string {
 }
 
 /**
- * The five lines of the Details_Card, in this order (R5.1, R5.12, R5.13): the intent or the placeholder; the Carved_Date; the
- * planned length ("1 minute", "25 minutes"); the distractions as plain digits ("Distractions: 3", no words for the count); the
- * time away in words.
+ * The first line of the Details_Card (sound-and-title design 4.3, R8.13): a flavour line for the kind of the entry. A stone (a
+ * snuffed session) says `Here lies "the intent"`, a stub (a session that burned to the end) says `Burned to the end: the intent`,
+ * and a null or empty intent gives `an unnamed watch` for both, without quotes. The intent goes to `fill` as a value and is never
+ * trimmed, cut, escaped or case-changed (R8.14).
+ */
+function firstLine(entry: HistoryEntry): string {
+  const stone = entry.outcome === "snuffed";
+  const intent = entry.intent;
+  const subject =
+    typeof intent !== "string" || intent === ""
+      ? STRINGS.graveyard.card.unnamed
+      : stone
+        ? fill(STRINGS.graveyard.card.quoted, { text: intent })
+        : intent;
+  return fill(stone ? STRINGS.graveyard.card.stoneLine : STRINGS.graveyard.card.stubLine, { intent: subject });
+}
+
+/**
+ * The five lines of the Details_Card, in this order (R5.1, R5.12, R5.13): the flavour line built from the intent; the
+ * Carved_Date; the planned length ("1 minute", "25 minutes"); the distractions as plain digits ("Distractions: 3", no words for
+ * the count); the time away in words.
  */
 export function cardLines(item: Indexed): readonly string[] {
   const { entry } = item;
   const planned = fill(entry.lengthMin === 1 ? STRINGS.time.minute : STRINGS.time.minutes, { n: entry.lengthMin });
   return [
-    stoneIntent(entry),
+    firstLine(entry),
     formatCarvedDate(item.dayKey),
     fill(STRINGS.graveyard.card.planned, { time: planned }),
     fill(STRINGS.graveyard.card.distractions, { n: entry.distractions }),
@@ -36,13 +54,13 @@ export function cardLines(item: Indexed): readonly string[] {
 /** A hidden count as a whole number, 0 when it is not a count at all: the lines below are `null` exactly when this is 0. */
 const whole = (n: number): number => (Number.isFinite(n) && n > 0 ? Math.floor(n) : 0);
 
-/** "38 older stones not shown", or `null` when nothing is hidden: a missing value, not an empty string (R8.8, R8.10). */
+/** "38 older stones out of sight", or `null` when nothing is hidden: a missing value, not an empty string (R8.8, R8.10). */
 export function stonesCountLine(hidden: number): string | null {
   const n = whole(hidden);
   return n === 0 ? null : fill(n === 1 ? STRINGS.graveyard.olderStone : STRINGS.graveyard.olderStones, { n });
 }
 
-/** "12 older days not shown", or `null` when nothing is hidden (R8.9, R8.10). */
+/** "12 older days out of sight", or `null` when nothing is hidden (R8.9, R8.10). */
 export function daysCountLine(hidden: number): string | null {
   const n = whole(hidden);
   return n === 0 ? null : fill(n === 1 ? STRINGS.graveyard.olderDay : STRINGS.graveyard.olderDays, { n });

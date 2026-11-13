@@ -110,7 +110,7 @@ export function fill(template: string, values: Readonly<Record<string, string | 
 - `seconds = ms > 0 ? Math.ceil(ms / 1000) : 0` (and `0` for a non-finite `ms`); `mm = floor(seconds / 60)` padded to at least 2, `ss = seconds % 60` padded to 2.
 - Rounding up means the text reads `25:00` for a whole 25-minute candle (time left equals the length), shows `00:00` only at exactly zero, and never shows a time that is already past. It also matches how the candle will look at the same instant: when the text says `00:01` the candle still has a second.
 - `spokenTime` uses the unit templates of `strings.ts` (`minute`, `minutes`, `second`, `seconds`), skips a zero unit, and says "0 seconds" for zero. The digits it names equal `formatTime`'s (P1).
-- `formatTime` is exported for `sound-and-title` (the page title), unchanged.
+- `formatTime` is exported for `sound-and-title` (the page title), unchanged. *(Amended by sound-and-title task 14.1, CR4: fulfilled, read by `titleFor` in `src/page/title.ts`; behaviour unchanged.)*
 
 ### 3.2 `length.ts`
 
@@ -358,13 +358,17 @@ if (app) {
   // 2. state: restore, then settle by the reload step (as now)
   let state: State = step(INITIAL_STATE, { type: "reload", state: storage.load() }, Date.now());
 
-  // 3. the one dispatch (as now)
+  // 3. the one dispatch (as now), plus the post-step hook of sound-and-title
+  //    (Amended by sound-and-title task 14.1, CR1: the block is the one of sound-and-title design 2.3 and 3.9)
   const dispatch = (event: Event, now: number): void => {
-    const next = step(state, event, now);
-    if (next !== state) { storage.save(state, next); state = next; }
+    const prev = state;
+    const next = step(prev, event, now);
+    if (next !== prev) { storage.save(prev, next); state = next; }
+    afterStep(prev, next, event, now);   // Cue, page title, Hidden_Tick control; runs for every event, never throws
   };
 
   // 4. visibility: sync once after the reload step, then watch (distraction-tracking R11)
+  //    (Amended by sound-and-title task 14.1, CR3: unchanged; `afterStep` starts the Hidden_Tick after a `hide` and stops it after a `show`; no second listener)
   const target = browserVisibilityTarget();
   if (target !== null) {
     const wiring = { target, clock: Date.now, send: (type, now) => dispatch({ type }, now) };
@@ -575,7 +579,7 @@ What the check shows about the requirements:
 - The element is `div#time[role="timer"]`. `role="timer"` has an implicit `aria-live="off"`, so a screen reader reads it when visited and does not read it every second (R9.1). Its text is the digits. It also carries an `aria-label` with the spoken form from the view model (`timeWords`, for example "12 minutes 31 seconds left"; none for an invalid custom length). The label sits on the same `role="timer"` element and it is not a live region, so changing it every second announces nothing; the announcements still come from the live region and the T key.
 - It lies in the text area (6.5), is `timeSize` px high (36 compact; 32 to 44 wide, by the zone height, 6.3), bold, with `font-variant-numeric: tabular-nums` so digits do not jitter, and uses `--ui-text` (ivory).
 - It is written only when the string changes (`apply` compares), which is once a second in a running session and never in a paused one.
-- It is the same value the page title will show; `sound-and-title` calls `formatTime`.
+- It is the same value the page title will show; `sound-and-title` calls `formatTime`. *(Amended by sound-and-title task 14.1, CR4: fulfilled, `titleFor` calls `formatTime`; behaviour unchanged.)*
 
 ### 7.2 The status line
 
@@ -778,7 +782,7 @@ export function createSettingsStore(kv: KeyValueStore | null): SettingsStore;
 
 ### 11.2 In the interface
 
-`createInterface` takes the loaded `Settings` and an `onSettings` callback. Settings changes are not handled by `uiStep` (it has no settings action or effect; batch 1 decision 2). The panel's switch and chooser handlers in the DOM layer build the next `Settings`, call `onSettings(next)` at once and let the next `viewOf` show it; `main.ts` stores it. To `uiStep` a settings change is a UI-only input that changes nothing the engine sees (P8). Sound on means sound is allowed: nothing plays here, and nothing may play before the first user gesture (Decision Q6, brief section 7); `sound-and-title` reads `settings.sound`. Ghosts off hides ghosts only; the distraction count is untouched, and the setting is not an input of the engine (P8).
+`createInterface` takes the loaded `Settings` and an `onSettings` callback. Settings changes are not handled by `uiStep` (it has no settings action or effect; batch 1 decision 2). The panel's switch and chooser handlers in the DOM layer build the next `Settings`, call `onSettings(next)` at once and let the next `viewOf` show it; `main.ts` stores it. To `uiStep` a settings change is a UI-only input that changes nothing the engine sees (P8). Sound on means sound is allowed: nothing plays here, and nothing may play before the first user gesture (Decision Q6, brief section 7); `sound-and-title` reads `settings.sound`. *(Amended by sound-and-title task 14.1, CR2: implemented by `sound-and-title`; the setting now decides whether Cues play, read at the moment of each Transition, and turning it on is a First_Gesture. Changing it still sends no engine event and changes neither the timer nor the distraction count.)* Ghosts off hides ghosts only; the distraction count is untouched, and the setting is not an input of the engine (P8).
 
 The default length sets the initial `UiState.length` the next time the chooser is built (page load) and the selected stop of the main chooser **only if the user has not chosen a length since** (a change in the panel while idle updates the main chooser's selection, a change during a session does not touch the running session).
 

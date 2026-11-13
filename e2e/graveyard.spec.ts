@@ -57,8 +57,9 @@ const cardLines = (page: Page): Promise<string[] | null> =>
   });
 
 /**
- * The five card lines for an entry, built from the stored values (not from src/graveyard): the intent or the placeholder, the end
- * day as "<day> <month>" in the browser's own calendar, the planned length, the distractions as digits, the time away in words.
+ * The five card lines for an entry, built from the stored values (not from src/graveyard): the flavour line of the entry's kind
+ * (sound-and-title R8.13, written out here), the end day as "<day> <month>" in the browser's own calendar, the length, the
+ * distractions as digits, the time away in words.
  */
 async function expectedLines(page: Page, entry: HistoryEntry): Promise<string[]> {
   const { day, month } = await page.evaluate((t) => {
@@ -66,8 +67,17 @@ async function expectedLines(page: Page, entry: HistoryEntry): Promise<string[]>
     return { day: d.getDate(), month: d.getMonth() };
   }, entry.endedAt);
   const planned = fill(entry.lengthMin === 1 ? STRINGS.time.minute : STRINGS.time.minutes, { n: entry.lengthMin });
+  const named = entry.intent !== null && entry.intent !== "";
+  const first =
+    entry.outcome === "snuffed"
+      ? named
+        ? `Here lies "${entry.intent}"`
+        : "Here lies an unnamed watch"
+      : named
+        ? `Burned to the end: ${entry.intent}`
+        : "Burned to the end: an unnamed watch";
   return [
-    entry.intent === null || entry.intent === "" ? STRINGS.graveyard.noIntent : entry.intent,
+    first,
     `${day} ${STRINGS.graveyard.months[month] ?? ""}`,
     fill(STRINGS.graveyard.card.planned, { time: planned }),
     fill(STRINGS.graveyard.card.distractions, { n: entry.distractions }),

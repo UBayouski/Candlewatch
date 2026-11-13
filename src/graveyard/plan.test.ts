@@ -49,7 +49,7 @@ describe("planView", () => {
 
   it("uses the placeholder for a missing intent", () => {
     const plan = planView(visibleHistory([entry(10, "snuffed", null)], { ...DEFAULT_LIMITS, dayKeyOf }));
-    expect(plan.stones[0]?.intent).toBe("No intent");
+    expect(plan.stones[0]?.intent).toBe("Unnamed watch");
   });
 
   it("has no count lines and no more-text when nothing is hidden, and has them when something is", () => {
@@ -61,7 +61,7 @@ describe("planView", () => {
     const many = [...Array.from({ length: 11 }, (_, i) => entry(i, "snuffed")), ...Array.from({ length: 6 }, (_, i) => entry(10 + i, "burned-out"))];
     const plan = planView(visibleHistory(many, { ...DEFAULT_LIMITS, dayKeyOf }));
     expect(plan.stones).toHaveLength(10);
-    expect(plan.stonesCount).toBe("1 older stone not shown");
+    expect(plan.stonesCount).toBe("1 older stone out of sight");
     expect(plan.rows[0]?.stubs).toHaveLength(4);
     expect(plan.rows[0]?.more).toEqual({ text: "+2 more", rect: moreRect(0) });
   });

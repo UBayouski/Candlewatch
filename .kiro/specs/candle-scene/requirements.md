@@ -128,7 +128,7 @@ The scene never owns time. It reads engine state only through the session-engine
 3. WHEN the dawn amount changes, THE renderer MAY ease the early light in over a few seconds. In reduced motion the light SHALL change at once.
 4. In the dawn, the room SHALL fill with pale early light (cool at the window, warm low on the wall) and the candle SHALL be an unlit stub. The look SHALL still be different from `idle` in colour and brightness, so that the dawn can be told from a dim waiting room in the still version.
 5. The model SHALL give the break flag `cooling`, equal to `isBreak(state, now)`. WHILE `cooling` is true, THE renderer SHALL show a faint warm glow on the wick of the stub ("the wax cools"). The glow ends when `cooling` turns false. It does not change the dawn amount, the light radius or the flame mode. The glow is a still shape and colour, so it is shown in reduced motion too; only any easing of it is motion.
-6. The chime that goes with the dawn belongs to the `sound-and-title` spec.
+6. The chime that goes with the dawn belongs to the `sound-and-title` spec. *(Amended by sound-and-title task 14.1, CR14: done by `sound-and-title`: the `chime` plays at the dawn, `titleFor` writes the page title.)*
 7. The dawn SHALL be a wash layered above the night layer. The night layer SHALL NOT be faded by the dawn, so that each layer shows one thing (costume review F4). The window pane SHALL have a faint, constant night colour at rest that is visible against the wall, so the dawn reads as the window lighting up; the colour carries no state (costume review F3).
 
 ### R9. Reduced motion
@@ -209,7 +209,7 @@ Playwright tests (not property-based) cover: each state's custom properties and 
 
 - Ghosts and their drift, the graveyard and the shelf (`ghosts-and-graveyard`), including the remaining-wax detail of a snuffed session. The scene only keeps the edge of the room clear.
 - Controls, the confirm dialog, settings, keyboard handling, the time text and its contrast, focus, the door (`controls-and-access`). This spec only publishes the room's darkest and brightest background colours (R7.7).
-- Sound, including the chime at dawn, and the page title (`sound-and-title`).
+- Sound, including the chime at dawn, and the page title (`sound-and-title`). *(Amended by sound-and-title task 14.1, CR14: done by `sound-and-title`: the `chime` plays at the dawn, `titleFor` writes the page title.)*
 - Fonts. The scene shows no text.
 - Distraction tracking (`distraction-tracking`). Distractions never change the timer and so never change this scene.
 - Any change to the engine. If the scene needs something the selectors do not give, that is a question for the engine spec, not a change here.

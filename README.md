@@ -10,7 +10,7 @@ Candlewatch is a static site on Render's free tier: https://candlewatch.onrender
 
 It has no accounts, no tracking and no server. It is rebuilt and redeployed from `main` on every push. To check the live site, run `npm run smoke`.
 
-**What you will see today:** a dark room with an unlit candle, a length chooser (15, 25, 50 or a custom 5 to 90 minutes), an optional one-line intent, and a Light button. Light a focus session, pause and resume it, and let it go dark, with the keyboard (Enter, Space, Esc) or by touch, and open the settings panel. Leave the tab during a session and a ghost appears; when no candle burns, the Door opens on the graveyard and the shelf. No sound yet. See Status below.
+**What you will see today:** a dark room with an unlit candle, a length chooser (15, 25, 50 or a custom 5 to 90 minutes), an optional one-line intent, and a Light button. Light a focus session, pause and resume it, and let it go dark, with the keyboard (Enter, Space, Esc) or by touch, and open the settings panel. Leave the tab during a session and a ghost appears; when no candle burns, the Door opens on the graveyard and the shelf. Three short sounds are made in code with Web Audio (a strike when the wick catches, a chime at the dawn, a breath when the candle goes dark), stay silent until your first key press or tap, and can be switched off in Settings. While a session runs, the page title counts down the time left. See Status below.
 
 ## The rule
 
@@ -41,7 +41,7 @@ Built and tested:
 
 **What a visitor sees today:** they can light a focus session, watch the candle burn down with the time left in text, pause and resume it, and let it go dark, by keyboard or touch. Each time they leave the tab, a ghost joins the room. A session survives a reload. When it ends, the room fills with early light and "Light another" appears, and the Door opens on the graveyard and the shelf.
 
-Not built yet: sound (the chime of the dawn) and the page-title countdown. Every row of the table above is live today except the dawn's chime.
+Sound and the page-title countdown are built: the three cues (strike, chime, breath), the title that shows the time left, and a timer that keeps both on time while the tab is hidden, as far as the browser lets a hidden tab run. Their browser tests and screenshots come in the last batch of the `sound-and-title` spec. Every row of the table above is live today.
 
 ## Quick start
 
@@ -76,7 +76,7 @@ Scripts from `package.json`:
 Kiro wrote most of this repo from the brief in `docs/BRIEF.md`.
 
 - **Steering.** `.kiro/steering/` holds `product.md`, `tech.md` and `structure.md`. They are always loaded. `scene.md` loads only when work touches `src/scene/**` or CSS.
-- **Specs.** `.kiro/specs/` has requirements, design and tasks for `session-engine`, `distraction-tracking`, `candle-scene`, `controls-and-access` and `hosting`. The first three are built, and so is `hosting` apart from two dated smoke checks that are still to be run. `controls-and-access` and `ghosts-and-graveyard` are built and reviewed: the pure modules, the DOM layers, the stylesheets, the end-to-end tests, mutation checks and the 59 screenshots. `sound-and-title` is specified (requirements, design and tasks) but not built.
+- **Specs.** `.kiro/specs/` has requirements, design and tasks for `session-engine`, `distraction-tracking`, `candle-scene`, `controls-and-access`, `hosting`, `ghosts-and-graveyard` and `sound-and-title`. The first three are built, and so is `hosting` apart from two dated smoke checks that are still to be run. `controls-and-access` and `ghosts-and-graveyard` are built and reviewed: the pure modules, the DOM layers, the stylesheets, the end-to-end tests, mutation checks and the 59 screenshots. `sound-and-title` is built up to its wiring (the cue, title and hidden-tick modules, the `main.ts` wiring and the final wording); its browser tests, screenshots and costume review are still to come.
 - **Hooks.** One runs `npm test` when a file under `src/` is saved. One runs `npm run check` when the agent stops. One plays a chime when the agent stops.
 - **MCP.** `.kiro/settings/mcp.json` configures the Playwright MCP server. It is used to look at the scene in a real browser and to capture screenshots.
 - **Custom agent.** `costume-reviewer` is a read-only agent. It checks scene and interface changes against the table above: every spooky element shows one piece of state, the reduced-motion version still shows it, and the time text keeps its contrast. It has reviewed the finished scene (once), the finished controls (four passes, the last a PASS) and the ghosts, graveyard and shelf (two passes, the last a PASS).

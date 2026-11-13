@@ -59,22 +59,22 @@ describe("stoneIntent (R4.3, R5.2)", () => {
 describe("cardLines (R5.1, R5.12, R5.13)", () => {
   it("gives exactly five lines for a known entry: planned 25 minutes, 3 distractions, time away 1:01", () => {
     expect(cardLines(item(entry()))).toEqual([
-      "Write the essay",
+      'Here lies "Write the essay"',
       "10 Nov",
-      "Planned: 25 minutes",
+      "Length: 25 minutes",
       "Distractions: 3",
       "Time away: 1 minute 1 second",
     ]);
   });
 
   it("says 1 minute, in the singular, for a one-minute session", () => {
-    expect(cardLines(item(entry({ lengthMin: 1 })))[2]).toBe("Planned: 1 minute");
+    expect(cardLines(item(entry({ lengthMin: 1 })))[2]).toBe("Length: 1 minute");
   });
 
-  it("gives the placeholder as the first line for a null intent", () => {
+  it("gives the unnamed flavour line as the first line for a null intent, without quotes", () => {
     const lines = cardLines(item(entry({ intent: null })));
     expect(lines).toHaveLength(5);
-    expect(lines[0]).toBe(STRINGS.graveyard.noIntent);
+    expect(lines[0]).toBe("Here lies an unnamed watch");
   });
 
   it("states the distractions as plain digits, never in words", () => {
@@ -93,6 +93,51 @@ describe("cardLines (R5.1, R5.12, R5.13)", () => {
   });
 });
 
+describe("the first card line is a flavour line for the kind (sound-and-title R8.13 to R8.15, design 4.3)", () => {
+  const first = (e: Partial<HistoryEntry>): string | undefined => cardLines(item(entry(e)))[0];
+
+  it("is the four rows of design 4.3, compared with the literal strings", () => {
+    expect(first({ outcome: "snuffed", intent: "write the report" })).toBe('Here lies "write the report"');
+    expect(first({ outcome: "snuffed", intent: null })).toBe("Here lies an unnamed watch");
+    expect(first({ outcome: "burned-out", intent: "write the report" })).toBe("Burned to the end: write the report");
+    expect(first({ outcome: "burned-out", intent: null })).toBe("Burned to the end: an unnamed watch");
+  });
+
+  it("treats an empty intent as unnamed, for both kinds", () => {
+    expect(first({ outcome: "snuffed", intent: "" })).toBe("Here lies an unnamed watch");
+    expect(first({ outcome: "burned-out", intent: "" })).toBe("Burned to the end: an unnamed watch");
+  });
+
+  it("keeps the intent exactly as typed: no trim, no cut, no escape, no case change, and `$&`, `{n}` and `{intent}` stay as they are", () => {
+    for (const odd of ["  spaces  ", "$&", "{n}", "{intent}", "{text}", "$1 $$ $`", "<b>\"x\"</b> & more", "ÄÖ ß İ", "x".repeat(80)]) {
+      expect(first({ outcome: "snuffed", intent: odd })).toBe(`Here lies "${odd}"`);
+      expect(first({ outcome: "burned-out", intent: odd })).toBe(`Burned to the end: ${odd}`);
+    }
+  });
+
+  it("changes only the first line: the other four are the same for a stone and a stub", () => {
+    const stone = cardLines(item(entry({ outcome: "snuffed" })));
+    const stub = cardLines(item(entry({ outcome: "burned-out" })));
+    expect(stone).toHaveLength(5);
+    expect(stub).toHaveLength(5);
+    expect(stone.slice(1)).toEqual(stub.slice(1));
+    expect(stone[0]).not.toBe(stub[0]);
+  });
+
+  it("never puts the flavour phrases into the Item name or the Stone face (R8.15)", () => {
+    for (const outcome of ["snuffed", "burned-out"] as const) {
+      for (const intent of ["write the report", null, ""]) {
+        const e = entry({ outcome, intent });
+        const name = itemName(item(e));
+        expect(name).not.toContain("Here lies");
+        expect(name).not.toContain("Burned to the end");
+        expect(name).toBe(`${intent === null || intent === "" ? STRINGS.graveyard.noIntent : intent}, 10 Nov`);
+        expect(stoneIntent(e)).not.toContain("Here lies");
+      }
+    }
+  });
+});
+
 describe("the count lines (R8.8 to R8.10)", () => {
   it("are null for 0: a missing value, not an empty string", () => {
     expect(stonesCountLine(0)).toBeNull();
@@ -101,10 +146,10 @@ describe("the count lines (R8.8 to R8.10)", () => {
   });
 
   it("say the exact number, in the singular for 1", () => {
-    expect(stonesCountLine(1)).toBe(`1 older stone not shown`);
-    expect(stonesCountLine(38)).toBe("38 older stones not shown");
-    expect(daysCountLine(1)).toBe("1 older day not shown");
-    expect(daysCountLine(12)).toBe("12 older days not shown");
+    expect(stonesCountLine(1)).toBe(`1 older stone out of sight`);
+    expect(stonesCountLine(38)).toBe("38 older stones out of sight");
+    expect(daysCountLine(1)).toBe("1 older day out of sight");
+    expect(daysCountLine(12)).toBe("12 older days out of sight");
   });
 
   it("are null for what is not a count: negative, NaN, infinite", () => {
@@ -116,7 +161,7 @@ describe("the count lines (R8.8 to R8.10)", () => {
   });
 
   it("read a fraction as its whole part, and below 1 as nothing", () => {
-    expect(stonesCountLine(2.9)).toBe("2 older stones not shown");
+    expect(stonesCountLine(2.9)).toBe("2 older stones out of sight");
     expect(stonesCountLine(0.9)).toBeNull();
   });
 

@@ -1,5 +1,8 @@
 import { INITIAL_STATE, distractionCount, ghostSpansMs, step } from "./engine";
 import type { Event, State } from "./engine";
+import { createAfterStep } from "./after-step";
+import { browserAudioFactory, createAudioPlayer } from "./audio/audio-player";
+import { armFirstGesture } from "./audio/gesture";
 import { browserVisibilityTarget } from "./distraction/visibility";
 import { countWords } from "./ghosts/label";
 import { createGhostLayer } from "./ghosts/layer";
@@ -12,6 +15,9 @@ import type { View, ViewInput } from "./graveyard/view";
 import { createGraveyard } from "./graveyard/view-dom";
 import { createScene, sceneModel } from "./scene";
 import "./scene/scene.css";
+import { createHiddenTick } from "./page/hidden-tick";
+import { titleFor } from "./page/title";
+import { createTitleAdapter } from "./page/title-adapter";
 import { browserStore, createStorage } from "./storage/storage";
 import { createSettingsStore } from "./storage/settings";
 import { STRINGS } from "./strings";
@@ -28,6 +34,16 @@ const kv = browserStore();
 const storage = createStorage(kv);
 const settingsStore = createSettingsStore(kv);
 const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+// Settings are read first: the player, the first-gesture listener and `afterStep` all follow `settings.sound` (sound-and-title D16).
+let settings = settingsStore.load();
+
+// Sound: nothing is created until a user gesture. The capture listeners are armed before any control exists, so the key press or
+// click that lights the candle unlocks audio first (R4.16, D31).
+const player = createAudioPlayer({ factory: browserAudioFactory(), sound: settings.sound });
+armFirstGesture(document, () => settings.sound, player.unlock);
+
+const titleAdapter = createTitleAdapter(document);
 
 const app = document.getElementById("app");
 if (app) {
@@ -52,15 +68,33 @@ if (app) {
   const scene = createScene(sceneRoot);
   const ghostLayer = createGhostLayer(ghostRoot);
 
-  // A stored session whose time ran out while the page was closed is settled by the first reload step.
-  let state: State = step(INITIAL_STATE, { type: "reload", state: storage.load() }, Date.now());
+  // A stored session whose time ran out while the page was closed is settled by the first reload step. This path does not use
+  // `dispatch` and never reaches `afterStep`, so it plays no Cue (R2.6, R2.10); the title is written once (R6.14).
+  const loadNow = Date.now();
+  let state: State = step(INITIAL_STATE, { type: "reload", state: storage.load() }, loadNow);
+  titleAdapter.write(titleFor(state, loadNow));
+
+  // The Hidden_Tick keeps a hidden tab honest: a plain timer chain that sends `tick` through `dispatch` (declared just below; the
+  // closure reads it only when it runs).
+  const hidden = createHiddenTick({
+    schedule: (fn, ms) => window.setTimeout(fn, ms),
+    cancel: (id) => window.clearTimeout(id),
+    clock: Date.now,
+    dispatch: (event, now) => dispatch(event, now),
+    getState: () => state,
+  });
+
+  const afterStep = createAfterStep({ sound: () => settings.sound, play: player.play, writeTitle: titleAdapter.write, hidden });
 
   const dispatch = (event: Event, now: number): void => {
-    const next = step(state, event, now);
-    if (next !== state) {
-      storage.save(state, next);
+    const prev = state;
+    const next = step(prev, event, now);
+    if (next !== prev) {
+      storage.save(prev, next);
       state = next;
     }
+    // Last: the Cue, the title and the Hidden_Tick control can never delay or lose the save (D18).
+    afterStep(prev, next, event, now);
   };
 
   // Visibility: sync once after the reload step and before the first frame, then watch for the life of the page.
@@ -70,7 +104,6 @@ if (app) {
   let view: View = "room";
 
   // Settings and the controls. The interface gets `dispatch`, never `step`.
-  let settings = settingsStore.load();
   const ui = createInterface({
     root: uiRoot,
     sceneRoot,
@@ -81,6 +114,7 @@ if (app) {
     settings,
     onSettings: (next) => {
       settings = next;
+      player.setSound(next.sound); // turning sound on is a gesture: it unlocks inside this click (R4.5)
       settingsStore.save(next);
     },
   });
