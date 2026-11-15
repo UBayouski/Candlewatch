@@ -1,0 +1,552 @@
+# Implementation Plan: room-art
+
+## Overview
+
+Implements `design.md` against `requirements.md` in this folder: the Lit Setting rule and its tests; the lit setting of the room (wall B, Wall_Veil, table, Holder, window frame, Door wood) under the night mask, with the Window_Light, its edge shade and the pool's warm tint; the new ghost shapes; the wooden Door; the Place; the equal-padding zone buttons; and the edge-to-edge Backdrop. The picture to match is the approved **Prototype**, `.kiro/specs/room-art/prototype/` (`index.html`, `art.mjs`, `wall-b.mjs`, and the 24 `proto-*.png` pictures, approved by the owner on 2026-11-15, design D14). The Prototype is a reference and is never shipped, never imported by a source file and never copied into `src/` or `public/` (R12.6); the build reads its numbers from `design.md` and from the files named in each task, and writes its own code.
+
+The plan follows the design's order: first the rule, the reviewer, the change requests and the usage log (task 1, as R11.12 and R11.13 require); then the pure modules with their required property tasks (`setting.ts`, `light.ts`, `backdrop.ts`, ghost placement and shapes, `place.ts` of the graveyard); then the markup and CSS of the room, the ghosts, the Door, the Place and the zone buttons, each with the existing tests that change on purpose; then the Playwright tests E1 to E15; then the screenshots this spec owns and the costume review, which is the last task.
+
+The plan runs in **five CLI batches**. Each batch ends with a checkpoint and a marker line ("Batch N ends here"). Start a new CLI session per batch, run the tasks of that batch in order, and stop at the marker.
+
+| Batch | Tasks | Task count | Content |
+|---|---|---|---|
+| 1 | 1 to 2 | 2 tasks, 7 sub-tasks | The rule and the documents: the Amended Rules table (steering files, `docs/BRIEF.md`, the costume-reviewer agent file), the change requests to `candle-scene` (including F20, the zone's shadow), `ghosts-and-graveyard`, `controls-and-access` and `sound-and-title`, and the `KIRO_USAGE.md` entry for the requirements, design and prototype phases. One source edit: `scene.css` lines 176 to 178 (CR12) |
+| 2 | 3 to 10 | 8 tasks, 17 sub-tasks | The pure modules and their required property tasks: `setting.ts` with wall B (P14, P7), `light.ts` (P6, P13), `backdrop.ts` (P4, P5), ghost placement and the three shapes (P1, P2, P3), the graveyard's `place.ts` (P11), the purity tests, the Prototype match test. Nothing is wired: the picture stays as it was |
+| 3 | 11 to 18 | 8 tasks, 17 sub-tasks | Markup and CSS: the setting group, the tint and the window's mask (P9, P6 markup, P8), the ghost layer, the Door, the Place (P6b), the zone buttons (P10), the costume-rule tests, the budget tests and P12; each with the existing tests that change on purpose |
+| 4 | 19 to 26 | 8 tasks, 14 sub-tasks | The Playwright tests E1 to E15 with their fixtures, the post-build checks (headers, the Prototype not shipped, the byte budget) |
+| 5 | 27 to 31 | 5 tasks, 6 sub-tasks | The screenshot tests and the retake of the 62 files (every picture looked at), the frame-interval measurement, the final steering corrections, and the costume review as the last task; the final checkpoint |
+
+**Build order (R11.14, R11.15, CR10).** `sound-and-title` batches 1 to 3 finish and are committed first (they are: the commit "sound-and-title batch 3" is in `git log`). **This spec is built second. `sound-and-title` batch 4 (its tasks 19 to 27: browser tests, screenshots, costume review, wrap-up) runs after this spec's last task (task 30, the costume review, and checkpoint 31), so that its screenshots and its costume review are taken on the finished picture. The two builds never run at the same time**, and neither edits `main.ts` while the other runs; this spec does not need to edit `main.ts` at all (design section 2, CR8). Before task 1, check that the working tree holds nothing of another build (`git status`), that `src/audio/audio-player.ts` and `src/page/title-adapter.ts` exist, and that `.kiro/specs/sound-and-title/tasks.md` shows its tasks 1 to 18 ticked; if not, **stop and report**.
+
+Conventions for every task:
+
+- TypeScript strict, no `any`, exact dependency versions, **no new dependency** of any kind, runtime or test (R2.7). No image file, no font, no `<img>`, `<canvas>`, WebGL or video element, no network request. No DOM library for Vitest: pure modules take their inputs as arguments and the DOM files are covered by the e2e suites.
+- **No test hook in shipped code** (R11.6). No `window.__...` global, no exported setter, no `if (test)` branch in a shipped file. Browser tests drive the page's own `visibilitychange` listener (`setVisibility` in `e2e/graveyard-fixtures.ts`) and their own `page.evaluate`.
+- Tests are colocated next to the source (`*.test.ts`, `*.prop.test.ts`); Playwright tests are `*.spec.ts` in `e2e/`. Test-only helpers (`src/ghosts/test-kit.ts`, `src/graveyard/test-kit.ts`, `src/scene/scene-kit.ts`, `src/ui/test-kit.ts`, `e2e/*-fixtures.ts`) are never imported by a shipped file; the purity tests check it.
+- **Pure files** are `src/scene/setting.ts`, `light.ts`, `backdrop.ts`, `src/ghosts/place.ts`, `src/ghosts/silhouette.ts` and `src/graveyard/place.ts`. They import only the folders their folder may import (`structure.md` Boundaries: `scene/` imports the engine's `index.ts`, `strings.ts` and its own files; `ghosts/` and `graveyard/` also the pure `ui/format.ts` and `ui/layout.ts`; none imports another of the three) and contain none of `window`, `document`, `localStorage`, `Date`, `performance`, `Math.random`, `matchMedia`, `setTimeout`, `setInterval`, `requestAnimationFrame` (R2.4). Every "random" choice comes from a fixed seed (R1.11).
+- **The shipped markup and CSS** use classes and `style.setProperty`; there is no `style` attribute, no inline `<style>` element, no data URL, no remote reference (R10.2, `headers-local.spec.ts`). The one `<pattern>` and every other definition of the setting sit inside `.setting`'s own `<defs>`. None of `feTurbulence`, `feDisplacementMap`, `feMorphology`, `feConvolveMatrix` appears (R10.10). No animation, transition or model custom property is read by any rule that selects a `.setting` descendant (R1.6).
+- All user-visible text lives in `src/strings.ts`, and this spec adds **no new string** (R2.6). The word "Pomodoro" appears nowhere (R2.8); where a test must name it, build it at run time from fragments, as the existing strings test does.
+- Property-test tasks are **required**, not optional. Every property test uses the engine's shared `PROP_PARAMS` (300 runs) from `src/engine/test-kit.ts`, never a literal lower `numRuns`, and carries the tag `Feature: room-art, Property N: <title>`. Never weaken a property to make it pass. If a property fails, report the shrunk counterexample and the seed, say whether the bug is in the code or the test, and fix the right one.
+- **Mutation check:** where a property task names one, apply the named fault to the source by hand, run only that property file (`npx vitest --run <file>`), confirm it fails, then revert the fault and check with `git diff` that the source is back. If the property survives, strengthen the test (a sharper assertion or generator), never the code under test, and note it in the task result. A property that cannot fail is not accepted.
+- Pixel tests in Playwright pause the clock before the page loads (`page.clock.pauseAt(now - 5000)`, `goto`, `runFor(5040)`), read 3 by 3 pixel patches converted from room units with `stageBox`, build stored sessions with the engine's serializers, and move the Wall_Samples to the block centres (R3.2, Q24); they never read fixed pixels of the wall. A failure caused by the new art in an existing test is a finding to fix in the art, not to loosen.
+- **Looking at pictures (R11.9):** every retaken screenshot and every picture a task asks for is opened with the image reader and looked at; the task result says what was seen.
+- A task is done only when `npm run verify` passes (type-check and lint, unit tests, build, e2e) unless its note names a narrower check. Run it as the one command.
+- **`KIRO_USAGE.md` entries (R11.12):** one entry at each of the five checkpoints (tasks 2, 10, 18, 26 and 31) in the manner of the other specs (surface, what was asked, what was produced, what was changed by hand, notable), holding the unit file and test counts, property failures with their seeds (or none), the mutation results, and, from batch 5, the screenshot checks and the costume review. Task 1.6 writes the earlier entry for the requirements, design and prototype phases.
+- The idle joint ratio (1.127 against the floor 1.10 at 360 wide) is the thinnest margin of the wall (D1): every task that touches the wall's colours or the joint token re-reads it at 360 by 640 and reports it.
+
+## Tasks
+
+- [ ] 1. The Amended Rules, the reviewer, the change requests and the usage entry (R11.12, R11.13)
+  - [ ] 1.1 The steering files: A1 to A9, CR5 and CR6
+    - Read `.kiro/steering/product.md`, `scene.md`, `structure.md` and `tech.md` first, and change only what rows A1 to A9 of the Amended Rules table (requirements) name, quoting each current wording exactly as the table gives it and writing the new wording of the same row, in the style of each file. `product.md` (A1, A2): the rule paragraph becomes the four sentences of the Lit Setting rule, and the table under it gets the row "Setting (wall, table, holder, window frame, door wood, ground)". `scene.md` (A3 to A6): the first paragraph, the third and fourth bullets of "The look", the third bullet of "Contrast" plus the new bullet "Setting colours stay between the room's darkest and brightest published stops, after lighting". `structure.md` (A7, A8, CR6): line 98 of Boundaries becomes the Lit Setting wording; the folder list gains `setting.ts`, `light.ts`, `backdrop.ts`, `ghosts/place.ts`, `graveyard/place.ts` and the screenshot count 62, **marked "(room-art, being built)"** because the files do not exist yet (task 29.2 removes the note). `tech.md` (A9, CR5): the Scene paragraph gains "Setting: one group below the night layer, lit by the pool's mask and the window's light.", and the performance budget of design D11 is added as a bullet (JS and CSS in `dist/` at most 120 000 bytes; at most 300 more elements than before the work; none of `feTurbulence`, `feDisplacementMap`, `feMorphology`, `feConvolveMatrix`; the frame-interval script outside `npm run verify`).
+    - Also state in `scene.md` and `structure.md` the three facts the design added to the rule: the pool carries a warm tint and is not drawn in idle; the Window_Light and the wall fade toward the left and right edges by the Edge_Shade and the Wall_Veil; the zone's shadow is short.
+    - Files: `.kiro/steering/product.md`, `.kiro/steering/scene.md`, `.kiro/steering/structure.md`, `.kiro/steering/tech.md`.
+    - _Requirements: R1.1, R11.12, A1 to A9, CR5, CR6_
+
+  - [ ] 1.2 `docs/BRIEF.md` section 4 and the costume-reviewer agent file: A10, A23, A24, CR1, CR7
+    - `docs/BRIEF.md` section 4, first paragraph: replace "Each spooky element shows one piece of state. Nothing is decoration only." with the A10 wording (the owner approved this edit, Q15). Change nothing else in the file.
+    - `.kiro/agents/costume-reviewer.json`: the `description` becomes the A23 wording and the `prompt` takes the checklist of CR1: rule 1 as four checks (a to d), rule 2 with "every Still_Setting is identical with reduced motion", rule 3 with the new pairs of R10.5, a new rule 4 **exactly**: "The picture reads at a glance as a candlelit room at night, and the graveyard as a place outside it. Name the three weakest-looking elements and what would improve each.", a rule 5 ("the setting reaches both edges at 360 to 3840 px; flag any empty band" and "idle shows a room, not black; snuffed is the darkest state and differs from idle by more than brightness"), the pass criterion ("a pass needs no element that reads as a placeholder: a flat rectangle standing for an object, an outline standing for a surface"), the instruction to compare the finished screenshots with the Prototype's pictures (`.kiro/specs/room-art/prototype/proto-*.png`), and the three checks that this plan adds to the review: the idle joint ratio at 360 wide, no vertical banding at 2560 and 3840 wide, and the dish and the table's lit edge recognisable at 360 by 640. Keep the file valid JSON, keep the read-only tools and permissions, add `file://.kiro/specs/room-art/design.md` to `resources`, and leave the `kiroUpgrade` block as it is (report it if a tool later recomputes it).
+    - Files: `docs/BRIEF.md`, `.kiro/agents/costume-reviewer.json`.
+    - _Requirements: R11.10, R11.11, R11.12, A10, A23, A24, CR1, CR7_
+
+  - [ ] 1.3 `candle-scene`: A11 to A16, A27 to A29, CR12 and CR13 (documents), and CR12 in `scene.css`
+    - Edit `.kiro/specs/candle-scene/requirements.md` (R11.8 and R8.7 per A11 and A12; R7.2 per A28; the "constant intensity" sentence of R7 per A29) and `design.md` (F1, F2, F3 and 17.3 pass 2 per A13 to A16; 5.4 per A28), quoting each current line as the table gives it and writing the new wording of the row. Mark each edited place with the words "room-art" so the origin is visible.
+    - **CR12, the one source edit of this batch:** in `src/scene/scene.css` change line 177 (`.zone-rest`) and line 178 (`.zone-dawn`) from `drop-shadow(0 -8px 6px ...)` to `drop-shadow(0 -2px 3px ...)`, keep every other character of the two rules, and change the comment on line 176 to say the shadow is short so that the table and the Holder above the floor line stay lit. `src/scene/scene.css.test.ts` lines 158 and 159 match any pixel numbers and pass unchanged. Run `npm test` and `npm run e2e`: the e2e suite must still pass (the zone's pixel tests in `scene.spec.ts` read the band, not the 8 units above it); if one fails, report it and fix the cause, never the assertion. Do **not** retake screenshots here (task 28 does). CR13 (the idle rule for `.pool` and `.pool-tint`) is **not** applied here: `.pool-tint` does not exist yet (task 12.1).
+    - Files: `.kiro/specs/candle-scene/requirements.md`, `.kiro/specs/candle-scene/design.md`, `src/scene/scene.css`.
+    - _Requirements: R3.23, R3.24, A11 to A16, A27 to A29, CR4, CR12, CR13_
+
+  - [ ] 1.4 `ghosts-and-graveyard` and `controls-and-access`: A17 to A22, CR2, CR3
+    - `.kiro/specs/ghosts-and-graveyard/requirements.md` (Introduction last bullet per A17, R4.8 per A18) and `design.md` (D8 and D18 per A19, D23 per A20, the L11 table rows per A21); `.kiro/specs/controls-and-access/requirements.md` R8.6 and `design.md` section 6 per A22 (the new wide-layout rectangles of design 3.8: Pause 98 and Resume 110 wide, Let it go dark 140, Settings 111, one inner padding of about 16.1 px, G = 8, T = 100 on both sides; R8.10 and R8.11 stay). Quote each current line as the table gives it; mark each edit with the words "room-art".
+    - Files: `.kiro/specs/ghosts-and-graveyard/requirements.md`, `.kiro/specs/ghosts-and-graveyard/design.md`, `.kiro/specs/controls-and-access/requirements.md`, `.kiro/specs/controls-and-access/design.md`.
+    - _Requirements: A17 to A22, CR2, CR3_
+
+  - [ ] 1.5 `sound-and-title`: A26 and CR9
+    - Edit `.kiro/specs/sound-and-title/tasks.md` (its screenshot tasks 25.1 and 25.2 and its costume-review task 26.1), `design.md` (sections 8.6 and 8.5) and, where needed, `requirements.md`, so that they: expect the new art; name the 62-file screenshot list (59 today plus `candle-lit-half-wide.png`, `candle-lit-half-4k.png`, `graveyard-large-wide.png`) and say that `room-art` retook all 62 for its own review (task 28) so that task 25 retakes the files its own changes touch and looks at every retaken picture; expect the Lit Setting rule and the updated reviewer checklist (CR1); and say that their e2e fixtures and pixel samples read room-unit positions through `stageBox`, the layout and the Wall_Samples at block centres, never fixed pixels. Keep every other task, number, tick and result of that spec as it is. Do not edit `src/` for that spec. The overview of that spec already says batch 4 follows this one; add one sentence to it that `room-art` is built between its batch 3 and its batch 4 and that the two builds never run at the same time.
+    - Files: `.kiro/specs/sound-and-title/tasks.md`, `.kiro/specs/sound-and-title/design.md`, `.kiro/specs/sound-and-title/requirements.md` (only if a passage needs it).
+    - _Requirements: R11.13, R11.14, R11.15, A26, CR9, CR10_
+
+  - [ ] 1.6 The `KIRO_USAGE.md` entry for the requirements, design and prototype phases (R11.12)
+    - Check first that `KIRO_USAGE.md` has no entry for the `room-art` requirements and design yet. Append one entry in the manner of the others (surface, what was asked, what was produced, what was changed by hand, notable). It records, from `design.md` section 0, section 9 and Decisions D13 and D14 and from `requirements.md` Q1 to Q42: the requirements phase (the Lit Setting rule replacing the old costume rule, the Amended Rules table the owner approved, the Window_Light, the build order); the design phase and the **four prototype passes**, one line each with **what the owner asked to change after it**: after the first pictures, the findings F1 to F14 (accepted F1 to F7 and F11 to F14, the 3 s ease F9, the night level 0.5 F10, the lighthouse Q32), then the new ghost shapes (Q33), the Door's and the Stones' relief (Q34), the redrawn table, Holder, Door and Place; after the second pictures, F16 adopted (the warm pool), F15 and F17 accepted (no pool in idle), F18 left as it is, and the request for one narrow pass on the wall and the composition (make the warm pictures the default, soften the wall so it sits behind the candle, make the periphery recede at 1920, 2560 and 3840 wide within the edge floor, add `proto-lit-half-4k.png`); after the third pictures, the request for a wall alternative (A), the candle's base (B1 and B2) and four document fixes (D15's figures, the repeat figure with the edge fade removed, F16 as one decision, the light model with the edge shade and the tint); after the fourth pictures, the **A/B choices** (wall B adopted, base B2 adopted with the `candle-scene` change request F20/CR12) and **the approval on 2026-11-15**, confirmed on the 24 combined pictures. Say what the prototype scripts measured (every floor at 7 sizes and 7 states) and that the tightest margins are the idle joint ratio 1.127 against 1.10, the dawn joint 1.060 against 1.04, the Door wood 1.112 against 1.10 and the edge patch 11 against 8. Take dates from `git log` and the document headers; write "Nothing was changed by hand" only if true.
+    - Files: `KIRO_USAGE.md`.
+    - _Requirements: R11.12, R12.9_
+
+  - [ ] 1.7 Check task 1
+    - Run `git diff --stat`: only the files named in 1.1 to 1.6 changed (no `src/` file other than `src/scene/scene.css`, no `e2e/` file). Run `npm run verify` as one command and report the unit file and test counts and the e2e counts.
+    - Files: none.
+    - _Requirements: R11.12, R11.13_
+
+- [ ] 2. Checkpoint - Batch 1 ends here
+  - Run `npm run verify`. Ensure all tests pass, ask the user if questions arise. Confirm that every row of the Amended Rules table (A1 to A29 except A25, which is not amended) is applied or marked as applied by a later task (CR13's rule in task 12.1, the folder-list note in task 29.2), that the reviewer's file is valid JSON with the fourth rule exactly, and that `git diff --stat` shows only the intended files. Report the unit file and test counts.
+  - Add the batch 1 entry to `KIRO_USAGE.md` (R11.12): surface, what was applied (tasks 1.1 to 1.5, one line per file), property failures "none yet", mutation results "none yet", screenshots and costume review "none yet", and the counts.
+  - Files: `KIRO_USAGE.md`.
+
+> **Batch 1 ends here.** Stop this CLI session. Start batch 2 with task 3.
+
+- [ ] 3. The setting's constants and wall B (`src/scene/setting.ts`)
+  - [ ] 3.1 `setting.ts` and its unit tests
+    - Create `src/scene/setting.ts` with the exports of design 3.1: `TABLE` (y 884, h 16, top surface to 889, lit lip to 891.4, under-line at 891.9, front face from 892.4), `HOLDER` (x 238, w 124, y 886, h 14, rim and inside ellipses of D2), `PANE_FRAME` (frame 8 units, mullions `{ vx: 276, vw: 6, hy: 110, hh: 6 }`, sill y 250..260), `PANES` (the four rects of `art.mjs`), `STARS` (the nine `[x, y, r]` of `art.mjs`), `DOOR_WOOD` (arch, recess, planks, hinges, latch plate, threshold, from `doorWood()` of `art.mjs`), `SETTING_TOKENS` (the 44 names of D5), `WINDOW_LIGHT` (centre, reach, profile, levels 0.5, 0.09, 1), `EDGE = { near: 320, far: 800, windowShade: 0.82, veil: 0.75 }`, `WARM_TINT = { token: "--set-warm-tint", alpha: 0.42 }`, and the wall: `WALL = { seed: 20261204, tileW: 960, courses: 8, minWidth: 105, maxWidth: 240, inset: [2.1, 3.3], step: 6, gap: 30 }`, `WALL_ORIGIN_X = -2195`, `WALL_ORIGIN_Y = -600`, `wallCoursesB(seed)` and `wallBlocks(seed)`. **Port `prototype/wall-b.mjs` function for function** (the same `mulberry32`, the same order of draws: heights, widths and start offsets, tones, bottom offsets, then the 16 jitter numbers and 4 insets per block, the same rounding to two decimals in the paths), so that the shipped pattern equals the Prototype's. `wallBlocks` returns, for each block, its tone class, its polygon (top and bottom polylines), its centre, and the joint below it at the block's centre x (the centre of the gap and its width). The module imports nothing from the DOM and nothing from the Prototype.
+    - Create `src/scene/setting.test.ts`: every number of D1 and D2 (eight course heights 79, 84, 75, 68, 78, 81, 95 and 68; tile 960 by 628; 42 blocks; widths 105 to 240; tone counts 12, 11, 11, 6 and 2; 0 stacked accent columns; the longest vertical run of one tone 3); the joint width at every block centre is at least 3.4 units and the mean is 5.5 within 0.1; the table's parts are inside y 884..900 and the front face ends on y 900; the Holder's box is inside x 236..364 and at most 14 high and its rim ellipse starts at y 886 or lower; every star is inside one pane and on no mullion; the pane rectangle is x 240..360, y 50..260; the nine star circles have a diameter of 1 to 2 units; `SETTING_TOKENS` has 44 names with the `--set-` prefix; two calls of `wallCoursesB(20261204)` are deeply equal.
+    - Files: `src/scene/setting.ts`, `src/scene/setting.test.ts`.
+    - _Requirements: R1.11, R2.3, R2.4, R3.1, R3.4, R3.7, R4.1, R4.4, D1, D2, D6_
+
+  - [ ] 3.2 Required: P14, wall B's generator keeps its invariants
+    - **Property 14: Wall B's generator keeps its invariants**
+    - Create `src/scene/setting.prop.test.ts` (tag Property 14): over `fc.integer()` seeds plus the shipped seed 20261204, `wallCoursesB(seed)` has eight courses; each course's widths lie in 105..240 and sum to 960; the vertical joints of neighbouring courses and of the last and the first are at least 30 units apart; every bottom offset is in -6..6 and neighbours in a course differ by at least 3; no accent block (tone 3 or 4) touches another accent (beside, above, below or across the tile edge); two calls are equal and the output depends on nothing but the seed; for the shipped seed the joint width at every block centre is at least 3.4 units.
+    - Mutation check (P14), each applied, caught and reverted: set the stagger gap to 10; allow a block width of 250; let neighbouring bottom offsets differ by 1; let an accent follow an accent; read `Math.random` in the jitter draw; shrink the inset so a joint is 2 units wide.
+    - Files: `src/scene/setting.prop.test.ts`.
+    - **Validates: Requirements 1.11, 3.1, 3.2**
+
+  - [ ] 3.3 Required: P7, the stars lie in the glass and change only with the dawn
+    - **Property 7: The Window_Sky's stars lie in the glass**
+    - Add Property 7 to `src/scene/setting.prop.test.ts` (tag Property 7): over `dawn` in [0, 1], every star circle (centre plus or minus its radius) lies inside one of the four panes and on no mullion; the list is the same on every call; the opacity function `starOpacity(dawn) = 1 - dawn` is 1 at 0 and 0 at 1 and reads nothing else; there are at most 9 stars with a diameter of 1 to 2 units (add `starOpacity` to `setting.ts`).
+    - Mutation check (P7): move a star onto a mullion; make a star's radius 1.4; make the opacity depend on a second argument; confirm each fails, revert.
+    - Files: `src/scene/setting.ts` (`starOpacity`), `src/scene/setting.prop.test.ts`.
+    - **Validates: Requirements 4.4, 4.5, 4.6, 4.7**
+
+- [ ] 4. The light model (`src/scene/light.ts`)
+  - [ ] 4.1 `light.ts` and its unit tests
+    - Create `src/scene/light.ts` exactly as design 3.1 gives it: `poolLight(dx, dy, r)`, `poolRadiusDrawn(phase, r)`, `edgeShade(x)`, `windowLight(r, dawn)`, `windowLightAt(x, y, r, dawn)`, `lightAt(x, y, flameY, rDrawn, r, dawn)`, `tintAt(x, y, flameY, rDrawn)`, `veilAt(x)`, `settingColour(token, isWall, x, y, flameY, rDrawn)` and `litColour(...)`, with the constants of `setting.ts` (`WINDOW_LIGHT`, `EDGE`, `WARM_TINT`) and the pool's stops (1 at 0, 0.75 at 0.6, 0 at 1 of the radius `700 * r`). Colours are `[r, g, b]` triples mixed linearly in sRGB, as the SVG mask and `color-mix` do. The combination rule is the union `1 - (1 - a)(1 - b)`.
+    - Create `src/scene/light.test.ts`: one example per function (pool at the centre is 1, at 0.6 of the radius 0.75, at the edge 0; `edgeShade` 0 at 320, 0.41 at 560, 0.82 at 800 and 1500; `windowLightAt` at the axis equals the level times the profile; `lightAt` equals the other input when one is 0; `tintAt` is 0 in idle through `poolRadiusDrawn("idle", 0.2)`; `veilAt` 0 at 320 and 0.75 at 800); `poolRadiusDrawn` returns 0 only in `idle`; non-finite inputs give 0 and never throw.
+    - Files: `src/scene/light.ts`, `src/scene/light.test.ts`.
+    - _Requirements: R1.7, R2.3, R2.4, R3.18, R3.21, R3.22, R3.23, R4.15 to R4.19, R4.22_
+
+  - [ ] 4.2 Required: P6, the light model mirrors the picture (the pure half)
+    - **Property 6: The light model mirrors the picture**
+    - Create `src/scene/light.prop.test.ts` (tag Property 6) over `x` in -2200..2800, `y` in -600..1000, `flameY` in 400..820, `r` in 0..1, `dawn` in 0..1 and `phase`: `lightAt` is in [0, 1], non-increasing in distance (pool and window each) and non-decreasing in `r` and in the Window_Light; `poolLight` is 0 outside the pool and at `r = 0`; outside the pool `lightAt = windowLightAt`; `windowLightAt` at fixed `y`, `r`, `dawn` is non-increasing in `abs(x - 300)`, equals its unshaded value within 320 units and 0.18 of it from 800 units out (the same at 800 and at 1500); `edgeShade` reads neither `r` nor `dawn`; with the pool over a point at `abs(x - 300) >= 800` `lightAt` is at least the pool's value (the pool is not attenuated); `tintAt` is 0 outside the pool, at `r = 0` and in idle and at most 0.42; `veilAt` is 0 up to 320 and 0.75 from 800. The half of P6 that compares the stops with `ROOM_SVG` is added in task 11.2, when the markup exists.
+    - Mutation check (P6): change one stop of the pool profile; use `max` for the union; let `poolLight` return 1 at the edge; drop the `(1 - edgeShade)` factor; apply the shade to the pool; let `edgeShade` fall again beyond 800; read `dawn` in `edgeShade`; set the veil's far alpha to 1; draw the tint in idle. Each is applied, caught and reverted.
+    - Files: `src/scene/light.prop.test.ts`.
+    - **Validates: Requirements 1.6, 1.7, 3.18, 3.21, 3.22, 3.23, 4.15, 4.22**
+
+  - [ ] 4.3 Required: P13, the window's light carries no time left
+    - **Property 13: The Window_Light carries no time left**
+    - Add Property 13 to `src/scene/light.prop.test.ts` (tag Property 13): for `r` in (0, 1] pairs, `dawn` 0 and 1 and any `x`: `windowLight(r, 0)` is equal for all `r > 0`; `windowLight(0, 0)` is not above `windowLight(r, 0)`; `windowLight(r, 1)` is the dawn level for every `r`; `lightAt` is non-decreasing in `dawn` at night levels; `windowLightAt` at `abs(x - 300) >= 800` is 0.18 of `windowLight(r, dawn)` times the profile for every `r > 0` and at both `dawn` 0 and 1, and at `x = 300` equals the unshaded value.
+    - Mutation check (P13): let `windowLight` return `night * r`; set `snuffed` above `night`; let the shade depend on `dawn` or on `r`. Each is applied, caught and reverted.
+    - Files: `src/scene/light.prop.test.ts`.
+    - **Validates: Requirements 4.15 to 4.19, 4.22**
+
+- [ ] 5. The Backdrop (`src/scene/backdrop.ts`)
+  - [ ] 5.1 `backdrop.ts` and its unit tests
+    - Create `src/scene/backdrop.ts`: `BACKDROP = { x0: -2200, x1: 2800, y0: -600, y1: 1600 }` and `backdropExtent(vw, vh) -> { x0, x1, y0, y1 }` with its own copy of the `meet` rule (`scale = min(vw / 600, vh / 1000)`, `ox = (vw - 600 scale) / 2`, `oy = (vh - 1000 scale) / 2`, `x0 = -ox / scale`, `x1 = 600 + ox / scale`, likewise y). Create `src/scene/backdrop.test.ts`: the seven VIEWPORTS_ART sizes against hand-computed extents (1920 by 1080 gives x -888.9..1488.9; 3840 by 2160 the same; 360 by 640 gives y -33..1033), the extent is inside `BACKDROP` with 50 units to spare for 1:3.5 (y -550..1550) and for 32:9 (x -1478..2078).
+    - Files: `src/scene/backdrop.ts`, `src/scene/backdrop.test.ts`.
+    - _Requirements: R2.3, R7.2, R7.5_
+
+  - [ ] 5.2 Required: P4, the Backdrop covers the viewport
+    - **Property 4: The Backdrop covers the viewport**
+    - Create `src/scene/backdrop.prop.test.ts` (tag Property 4): for `vw` 360..3840 and `vh` 640..2160 with the aspect filtered to 1:3.5 up to 32:9, `backdropExtent(vw, vh)` contains the viewport's room rectangle with a margin of at least 50 units inside `BACKDROP`.
+    - Mutation check (P4): shrink `BACKDROP.x1` to 2400; drop the `oy / scale` term. Each is applied, caught and reverted.
+    - Files: `src/scene/backdrop.prop.test.ts`.
+    - **Validates: Requirements 7.2, 7.5**
+
+  - [ ] 5.3 Required: P5, `backdropExtent` agrees with `stageBox`
+    - **Property 5: backdropExtent agrees with stageBox**
+    - Add Property 5 to `src/scene/backdrop.prop.test.ts` (tag Property 5): over the same viewports (and the seven of VIEWPORTS_ART as examples), the scale and offsets that `backdropExtent` implies equal `stageBox(vw, vh)` of `src/ui/layout.ts` (the test imports `layout.ts`; the module does not).
+    - Mutation check (P5): use `max` instead of `min` for the scale. Applied, caught and reverted.
+    - Files: `src/scene/backdrop.prop.test.ts`.
+    - **Validates: Requirements 7.4, 7.5**
+
+- [ ] 6. Ghost placement and the three body shapes (`src/ghosts/`)
+  - [ ] 6.1 `src/ghosts/place.ts` and its unit tests
+    - Create `src/ghosts/place.ts` exactly as design 3.5 gives it: `ghostLook(index)` (`variant = index mod 3`; `tilt = (frac(index * 0.7548776662) * 2 - 1) * 3`; `fx = frac(index * 0.6180339887) * 2 - 1`; `fy = frac(index * 0.4142135623 + 0.3) * 2 - 1`) and `placeGhost(slot, index, size)` (the slot centre from `GHOST_SLOTS` plus `(fx * spareX, fy * spareY)` with `spareX = max(0, 45 - 8 - size * (35 cos 3deg + 37.5 sin 3deg))` and `spareY = max(0, 47.5 - 8 - size * (37.5 cos 3deg + 35 sin 3deg))`), copying `GHOST_BOX` and `DRIFT_UNITS` from `slots.ts` only through their own copies in this file with a test that compares them (R2.9). Create `src/ghosts/place.test.ts`: the spare room at size 1, 0.5 and 0.25 (0.09, 18.5, 27.8 and 0.22, 21.2), `|dx|, |dy| <= 2` at size 1, `variant = index mod 3`, `|tilt| <= 3`, results for indexes 0 to 11 against a hand-computed table.
+    - Files: `src/ghosts/place.ts`, `src/ghosts/place.test.ts`.
+    - _Requirements: R1.12, R2.3, R5.5, R5.6, R5.7, R5.9_
+
+  - [ ] 6.2 The three body shapes in `silhouette.ts`, and the test that changes on purpose
+    - In `src/ghosts/silhouette.ts` add `ghostShape(variant)` (the three paths of `GHOST_SHAPES` in `prototype/art.mjs`, centred on the origin, inside the 70 by 75 box) and `GHOST_EYES` (`(-8,-19) (5,-19)`, `(-4,-19) (9,-19)`, `(-11,-21) (2,-21)`, eyes `rx 3.7`, `ry 5.3`, fill `#0b1020`). Keep `silhouettePath()` until task 13.1 switches the layer.
+    - `src/ghosts/silhouette.test.ts` (section 7 of the design): run the four existing tests for each of the three shapes with `it.each`. "Fits the box", "one closed subpath" and "finite numbers in pairs" hold unchanged. **"Touches the box on all four sides" changes on purpose:** old, min and max x are -35 and 35 and min and max y are -37.5 and 37.5; new, the shape touches the top (y -37.5) and the bottom (y 37.5), reaches 35 on the side of its wisp, and its other side is within 14 units of the box (at x <= -21 or >= 21). Record the reason in the test: the shapes are narrow-shouldered and asymmetric (R5.5, Q33).
+    - Files: `src/ghosts/silhouette.ts`, `src/ghosts/silhouette.test.ts`.
+    - _Requirements: R5.1, R5.3, R5.5, R11.5, Q33_
+
+  - [ ] 6.3 Required: P1, a ghost stays inside its cell
+    - **Property 1: A ghost stays inside its cell**
+    - Create `src/ghosts/place.prop.test.ts` (tag Property 1) over `fc.integer(0..11)` slot, `fc.nat()` index, `fc.double(0.25..1)` size and the drift at the four corners (plus or minus 8, plus or minus 8): the tilted box at `size`, at `placeGhost`'s offset plus the drift, lies inside `GHOST_CELLS[slot]`; at size 1 `|dx|, |dy| <= 2`.
+    - Mutation check (P1): allow a tilt of 6 degrees; drop the `- 8` drift from `spareX`; replace `47.5` by `50` in `spareY`. Each is applied, caught and reverted.
+    - Files: `src/ghosts/place.prop.test.ts`.
+    - **Validates: Requirements 5.6, 5.7, 5.11**
+
+  - [ ] 6.4 Required: P2 and P3, placement is deterministic and spreads a column
+    - **Property 2: Placement is deterministic and independent of other ghosts**; **Property 3: A column of small ghosts does not read as a straight line**
+    - Add to `src/ghosts/place.prop.test.ts` (tags Property 2 and Property 3). P2: over the same triple plus a second array of other ghosts, `placeGhost` and `ghostLook` equal themselves on recompute and ignore the other indexes. P3: over a start index, six consecutive same-parity indexes (one column) and sizes at most 0.5, the resting x positions span at least 8 units, and `variant` is in {0, 1, 2} and equals `index mod 3`.
+    - Mutation check (P2): read `Math.random` in `ghostLook`; make `fx` depend on the count of ghosts. (P3): set `fx` constant; use `index mod 4`. Each is applied, caught and reverted.
+    - Files: `src/ghosts/place.prop.test.ts`.
+    - **Validates: Requirements 1.11, 5.5, 5.8, 5.9**
+
+- [ ] 7. The Place's rectangles and marks (`src/graveyard/place.ts`)
+  - [ ] 7.1 `place.ts` and its unit tests
+    - Create `src/graveyard/place.ts` exactly as design 3.1 and 3.7 give it: `HORIZON_Y = 224`, `HAZE = 60`, `DOORWAY = { cx: 60, cy: 847.5, r: 760, sx: 1.7 }`, `PLACE_CLIP_Y = 900`, `shelfBoard(rowY, count)` (x 109, y = row top + 69, 12 high, width `count * 84 + 8`), `stoneSide(rect)` (four copies of the arch offset up and to the right by a total of (9, -6)), `stoneMound(rect)` (26 units wider each side, 17 below the foot), `stoneShadow(rect)` (a quadrilateral 46 long from the foot, along the direction from the doorway to the Stone, flattened to 0.45) and `groundMarks(seed, avoid)` (fixed-seed dart throwing: 150 pebbles with a minimum gap of 26 and 90 blades with a gap of 40, in x -1100..1700, y 254..890, off every rectangle of `avoid`). Port the functions `scatter`, `placeSvg` helpers and `textRects` of `prototype/art.mjs` (seeds 7741 and 9173), pure and returning numbers, not markup. Create `src/graveyard/place.test.ts` with the numbers of D9 and the Item rectangles of `geometry.ts` unchanged.
+    - Files: `src/graveyard/place.ts`, `src/graveyard/place.test.ts`.
+    - _Requirements: R1.11, R2.3, R8.1, R8.6, R8.11, R8.12, R8.16_
+
+  - [ ] 7.2 Required: P11, the Place's rectangles keep to the view's rules
+    - **Property 11: The Place keeps off every text line**
+    - Create `src/graveyard/place.prop.test.ts` (tag Property 11) over `fc.array` of history entries and the real limits `S`, `D`, `K` of `visible.ts`: the Place's rectangles (ground, shelf boards, mounds, the sky) intersect no text line's rectangle (labels, date labels, "+n more", count lines) and contain every Stone's foot and every Stub; every Item rectangle equals the one `geometry.ts` gives; every ground mark lies off the text rectangles.
+    - Mutation check (P11): widen a board to 130 past the "+n more" rectangle; put the horizon at 230. Each is applied, caught and reverted.
+    - Files: `src/graveyard/place.prop.test.ts`.
+    - **Validates: Requirements 8.11, 8.12**
+
+- [ ] 8. Purity tests for the new pure files
+  - [ ] 8.1 Extend the three `purity.test.ts` files
+    - Add `src/scene/setting.ts`, `light.ts` and `backdrop.ts` to the pure lists of `src/scene/purity.test.ts`, `src/ghosts/place.ts` to `src/ghosts/purity.test.ts` (and check `silhouette.ts` is already there), and `src/graveyard/place.ts` to `src/graveyard/purity.test.ts`, keeping every check those files have today. Each fails if a listed file contains any of `window`, `document`, `localStorage`, `Date`, `performance`, `Math.random`, `matchMedia`, `setTimeout`, `setInterval`, `requestAnimationFrame`, or imports outside the allowed list (R2.4, R2.5, R2.9); `scene/` imports none of `ghosts/` and `graveyard/`, and the reverse; no file imports a `test-kit` or the Prototype. Add a check that `src/strings.ts` has the same set of keys as before (R2.6: no new string): compare with a stored list of key paths in the test, built from the current file.
+    - Fault checks, each applied, caught and reverted: `Date` in `setting.ts`; `Math.random` in `light.ts`; an import of `../ghosts` in `backdrop.ts`; an import of `../scene` in `place.ts` of the ghosts; a new key in `strings.ts`.
+    - Files: `src/scene/purity.test.ts`, `src/ghosts/purity.test.ts`, `src/graveyard/purity.test.ts`, `src/strings.test.ts` (or the file that holds the key-list check).
+    - _Requirements: R2.4, R2.5, R2.6, R2.9, R2.10_
+
+- [ ] 9. The Prototype match test
+  - [ ] 9.1 `src/hosting/prototype.test.ts` (test-only)
+    - Create `src/hosting/prototype.test.ts` (the folder is test-only, like `blueprint.ts`'s tests), reading with `node:fs` and never importing the Prototype: (a) `prototype/tokens.json` (scene stops, window colours, geometry: the 600 by 1000 stage, `DOOR_RECT`, `GHOST_CELLS`, the window pane, the floor line 900, `stone0`, `stub00`) equals the values the stylesheets and `layout.ts`, `geometry.ts` give; (b) the colour tokens of the Prototype's CSS (read from `art.mjs`) equal the tokens the stylesheets of `src/` define: **this half is added in task 12.2**, when the tokens exist, so this task asserts only (a), (c) and (d); (c) the wall: the joint rect and the five block paths of the pattern in `prototype/index.html` equal the markup that `setting.ts` generates for the same seed (compare the `d` strings and the geometry of the tile, after removing the `cwN-` id prefix); (d) the Prototype is not under `src/` or `public/` and no file of `src/` mentions `prototype/`.
+    - Fault checks: change `WALL.step` to 7 in `setting.ts`; change `DOOR_RECT` in a copy of `tokens.json`; each caught, reverted.
+    - Files: `src/hosting/prototype.test.ts`.
+    - _Requirements: R12.5, R12.6_
+
+- [ ] 10. Checkpoint - Batch 2 ends here
+  - Run `npm run verify`. Ensure all tests pass, ask the user if questions arise. Confirm P1, P2, P3, P4, P5, P6 (the pure half), P7, P11, P13 and P14 ran at 300 runs through `PROP_PARAMS` with no skipped, `only` or `todo` tests, that every mutation named above was caught and reverted (`git diff` on the sources shows only the intended files), and that no shipped file imports the new pure modules except through the tasks of batch 3 (nothing is wired yet, so the picture is as it was). Report the unit file and test counts.
+  - Add the batch 2 entry to `KIRO_USAGE.md` (R11.12): surface, what was built (tasks 3 to 9), property failures with their seeds or "none", the mutation results, screenshots and costume review "none yet", and the counts.
+  - Files: `KIRO_USAGE.md`.
+
+> **Batch 2 ends here.** Stop this CLI session. Start batch 3 with task 11.
+
+- [ ] 11. The setting group, the tint and the window in the room's markup (`src/scene/room.ts`)
+  - [ ] 11.1 The markup
+    - Read `src/scene/room.ts`, `constants.ts` and `room.test.ts` first, and the Prototype's `art.mjs` (`defsArt`, `settingGroup`, `MASK_ART`, `STARS_GROUP`, `TINT_DEFS`, `TINT_RECT`) and `build.mjs` (`roomSvg`, which patches four places of the real `ROOM_SVG`). Change `ROOM_SVG` so that it equals the Prototype's room, built from the constants of `setting.ts`, `light.ts` (the stops) and `backdrop.ts` (`BACKDROP`, the one place that types -2200, 2800, -600 and 1600), with no number typed twice:
+      the layers, back to front, are `.wall`, **`.setting`**, **`.warm-tint`**, `.night`, `.dawn-wash`, `.window` (the same two rects, the same area, the same blur, now `mask="url(#cw-panes)"`), **`.stars`**, `.candle`, `.lit`, `.zone` (design section 1);
+      `<g class="setting">` holds, first, its own `<defs>` (`<pattern id="cw-stone">` of wall B generated by `wallBlocks`, `#cw-veil-grad`, `#cw-table-grad`, `#cw-door-clip`), then `.wall-stone`, `.wall-veil`, `.table` (top surface, seams, back line, lit lip, under-line, front face), `.holder`, `.frame` (frame wood, highlights, sill) and `.door-wood` (design 3.6), with no attribute but classes and no animation, transition or model property (R1.6);
+      the main `<defs>` gain `#cw-win-hole` (seven stops from `WINDOW_LIGHT.profile`, class `st-wl`), `#cw-win-edge-grad`, `#cw-panes` (the four pane rects), `#cw-tint-hole` and `#cw-tint-mask`;
+      `#cw-pool-mask` holds, in this order, `.mask-all`, `<circle class="win-light" ... r="2600">`, `<rect class="win-edge" ...>` and the existing `<circle class="pool">` (unchanged); the `.warm-tint` rect uses `mask="url(#cw-tint-mask)"` whose circle has class `pool-tint`.
+      Every id keeps the `cw-` prefix and uses only `[a-z-]`. Nothing is painted below the floor line except the zone and the table's exact y 884..900 (the table's front face ends on 900). `Door` HTML, the ghost layer and the interface are not touched here. Run `npm test`; the tests that must change on purpose fail until 11.2, so do 11.1 and 11.2 together.
+    - Files: `src/scene/room.ts`, `src/scene/constants.ts` (only if a shared number must move), `src/scene/index.ts` (export only what shipped code imports).
+    - _Requirements: R1.4, R1.5, R1.6, R3.1, R3.4, R3.5, R3.7 to R3.12, R3.21 to R3.24, R4.1 to R4.4, R4.22, R6.6, R7.3_
+
+  - [ ] 11.2 The tests that change on purpose, P9, and the markup half of P6
+    - Change `src/scene/room.test.ts` as design section 7 says, each with its reason written in the test: (1) *"has the seven layers in the documented order, with .zone last"* becomes the ten layers in the order of 11.1 and the new assertion that `class="stars"` lies between `window` and `candle` and `.warm-tint` between `.setting` and `.night`; (2) *"has no grain, texture or other decoration-only layer"* becomes zero `feTurbulence`, zero `<pattern>` outside `.setting` and no id containing "grain"; (3) *"has no table, dish or floor element (F1, F2)"* becomes: every element whose class token is `table`, `holder`, `dish` or `floor` is a descendant of `.setting`; (4) *"is only its two pane rects, with no frame, sill or curtain"* becomes: the `.window` group is still exactly the two rects `window-rest` and `window-dawn`, has `mask="url(#cw-panes)"`, and the frame and sill exist only inside `.setting .frame`. Add: `.wall-veil` lies inside `.setting` after `.wall-stone` and before `.table`; the pool mask holds `.mask-all`, `.win-light`, `.win-edge`, `.pool` in that order. Keep unchanged and check by reading: "uses no raster ... every url is `#cw-...`", "prefixes every id with cw-", "nothing but the zone is painted below the floor line", ".wall and .night end at the floor line", the mask test, the pool test, the `.lit` group and clip tests, the window area and blur tests (R11.4).
+    - Create **P9** in `src/scene/room.prop.test.ts` (tag Property 9) over `fc.double(0..1)` wax height: the Holder's and the table's markup come **before** `.candle` in `ROOM_SVG`; the Holder's box is inside x 236..364 and at most 14 high; the table is at most 16 high and its front face ends on y 900; the drawn candle height equals the scene's own `candleHeightUnits(model)` (the function `scene-kit.ts` or the model tests already use); no Holder or table path lies above y 886 (Holder) or 884 (table); the Holder covers no pixel of `.body`, `.stub`, `.head` or the drips (document order). Mutation check (P9): move `.holder` after `.candle`; make the holder 16 high. Each applied, caught and reverted.
+    - Add the markup half of **P6** to `src/scene/light.prop.test.ts` (tag Property 6): the stops of `#cw-pool-hole`, `#cw-win-hole`, `#cw-win-edge-grad`, `#cw-veil-grad` and `#cw-tint-hole` parsed from `ROOM_SVG` equal the model's (`poolLight`'s stops, `WINDOW_LIGHT.profile`, `edgeShade`'s three levels, `veilAt`'s, the tint's with alpha 0.42). Mutation check: change one stop of one hole in `room.ts`; confirm it fails; revert.
+    - Files: `src/scene/room.test.ts`, `src/scene/room.prop.test.ts`, `src/scene/light.prop.test.ts`.
+    - **Validates: Requirements 1.4, 1.5, 1.6, 3.9, 3.10, 3.12, 4.22, 11.3, 11.4**
+    - _Requirements: R3.9, R3.10, R11.3, R11.4_
+
+- [ ] 12. The setting's CSS (`src/scene/scene.css`)
+  - [ ] 12.1 The rules
+    - Read `src/scene/scene.css` and the Prototype's `ART_CSS` (`art.mjs`) first. Append the setting's rules to `scene.css` (no new CSS file, so `main.ts` needs no import, design section 2): the **44 `--set-*` tokens of design D5** on `.candle-scene`; `--wl-night: 0.5; --wl-snuffed: 0.09; --wl-dawn: 1; --wl-k: var(--dawn); --wl-now` and `--wl` as in design 3.3 with `@property --wl-k { syntax: "<number>"; inherits: true; initial-value: 0 }` and `.candle-scene[data-settled="true"][data-ease="true"] { transition: --wl-k 3s ease }`; `.st-wl`, `.st-wedge`, `.st-veil` stop rules (`--k` per stop, `--wl-edge: 0.82`, `--veil: 0.75`); the static fills of the setting (`.s-joint` at 0.6, `.s-b0` to `.s-b4`, `.t-*`, `.h-*`, `.f-*`, `.w-*`, with the prototype's values); `.stars { opacity: calc(1 - var(--dawn)) }` with the 3 s dawn transition added to the existing `data-settled`/`data-ease` selector list; `.warm-tint { fill: var(--set-warm-tint); fill-opacity: 0.42 }` and `.pool-tint { transform: translate(300px, calc(400px + (1 - var(--wax-height)) * 420px)) scale(var(--light-radius)) }`; **CR13**: `.candle-scene[data-phase="idle"] .pool, .candle-scene[data-phase="idle"] .pool-tint { display: none }`; the reduced-motion rule (`transition: none !important`) gains `.candle-scene` itself and `.stars`, and stays the first rule of its block; `@media (forced-colors: active) { .setting, .warm-tint, .door-wood { display: none } }` (D12). No rule selecting a `.setting` descendant has an animation, a transition or a model custom property. Do not copy the Prototype-only parts (the `.pic` picture switching, the per-picture `#id` rules, the Place's rules, which belong to `graveyard.css`). The zone's shadow is already `0 -2px 3px` (task 1.3).
+    - Files: `src/scene/scene.css`.
+    - _Requirements: R1.6, R3.21 to R3.23, R4.5, R4.6, R4.9, R4.15 to R4.19, R4.22, R10.2, R10.7, R10.11, R4.22_
+
+  - [ ] 12.2 The tests, P8, and the token half of the Prototype match
+    - In `src/scene/scene.css.test.ts` add: every `--set-*` token is parsed and lies between `--room-bg-darkest` and `--room-bg-brightest` in luminance; no rule selecting a `.setting` descendant has an animation, a transition or a custom property of the scene model (the list is the property table of `render.ts`); the registered `--wl-k`, its 3 s transition and the reduced-motion override; the idle rule; the forced-colours rule; `.pool` still has no opacity rule. The existing test *"has no table, dish or floor in the stylesheet (F1, F2)"* passes unchanged as long as no selector is `.table`, `.dish`, `.floor` or `--table`, `--dish`, `--floor` (the setting's selectors are `.t-*`, `.h-*`, `.s-*`); if it fails, change it on purpose with its reason, never the selectors silently. Its zone-shadow test (lines 158 and 159) passes with `0 -2px 3px`. Add the token half (b) to `src/hosting/prototype.test.ts` (task 9.1): the colour tokens of the Prototype's CSS equal those of the stylesheets.
+    - Create **P8** in `src/scene/setting.prop.test.ts` (tag Property 8): every `--set-*` token parsed from `scene.css`, `ghosts.css` and `graveyard.css` (including `--set-veil` and `--set-warm-tint`), over `x`, `y`, `flameY`, `r`, `dawn`, `phase` and `isWall`: its luminance is in `[L(#05070d), L(#566683)]`; `settingColour` (the token mixed with the veil by `veilAt` and with the tint by `tintAt`) stays in the range for every token; `litColour` stays in the range at any point and phase. Mutation check (P8): set one token to `#8e96a9`; set `--set-warm-tint` to `#ffb347`; set `--set-veil` to `#8e96a9`. Each applied, caught and reverted.
+    - Files: `src/scene/scene.css.test.ts`, `src/scene/setting.prop.test.ts`, `src/hosting/prototype.test.ts`.
+    - **Validates: Requirements 3.15, 10.6**
+    - _Requirements: R3.15, R10.6, R10.7, R12.5_
+
+- [ ] 13. The ghost layer: new shapes, eyes, glow and offsets
+  - [ ] 13.1 `layer.ts` and `ghosts.css`
+    - Read `src/ghosts/layer.ts`, `slots.ts`, `visible.ts`, `ghosts.css` first. The layer draws each ghost as `<g class="ghost" transform="translate(x y) rotate(tilt) scale(size)">` with `<g class="drift">` holding the body path `ghostShape(variant)`, an inner glow ellipse (a radial gradient, `#cw-ghost-glow`, white 0.85 to 0, inside the body) and two eyes from `GHOST_EYES`, with `(x, y, tilt, variant)` from `placeGhost(slot, index, size)`; the slot rule `index mod 12`, `ghostSize`, the cap, the Overflow_Mark at its place (x 545, baseline y 860, 24 units), `aria-hidden`, the drift keyframes (`DRIFT_UNITS` 8) and the fade stay as they are. `ghosts.css` gains the eye fill token (`#0b1020`), the glow, and keeps the body in `--ghost-fill` and `--ghost-stroke` only (no flame or wax colour, R5.1). With `prefers-reduced-motion: reduce` the ghosts have the same body, eyes, glow, variant, offset, tilt and size and no drift or fade (R5.12). With the setting "ghosts" off nothing is drawn and the Scene_Label still gives the count (R5.13). After the switch, delete `silhouettePath()` and its test only if nothing else imports it (search first); the Impostor check of task 17.1 uses `ghostShape`.
+    - Files: `src/ghosts/layer.ts`, `src/ghosts/ghosts.css`, `src/ghosts/silhouette.ts`, `src/ghosts/silhouette.test.ts`.
+    - _Requirements: R5.1 to R5.5, R5.10 to R5.14, R5.15_
+
+  - [ ] 13.2 The tests that change on purpose
+    - `e2e/ghosts.spec.ts` and `e2e/graveyard-fixtures.ts` ("ghost readings"): they read `GHOST_SLOTS[k]` as the resting centre today; read `placeGhost(slot, index, size)` instead (R11.5): old, expected centre `(cx, cy)`; new, `(cx + fx * spareX, cy + fy * spareY)`; `slots.test.ts` stays unchanged. `src/ghosts/contrast.test.ts` gains the eyes pair (eye `#0b1020` on the body fill composed over the brightest room, at least 3:1, about 8:1) and keeps the stroke and fill pairs; the ghost outline against the glow-lit room stays at least 3:1 (R5.4). `src/ghosts/test-kit.ts` gains whatever the new tests need (test-only).
+    - Files: `e2e/ghosts.spec.ts`, `e2e/graveyard-fixtures.ts`, `src/ghosts/contrast.test.ts`, `src/ghosts/test-kit.ts`.
+    - _Requirements: R5.3, R5.4, R10.5, R11.5_
+
+- [ ] 14. The Door's construction (`src/graveyard/`)
+  - [ ] 14.1 The HTML Door and its CSS
+    - Read `src/graveyard/view-dom.ts` and `graveyard.css` first. The Door's wood is already in the scene SVG (task 11.1). Make the HTML Door's face transparent with its 2 px ivory outline, the amber handle (11 units, 1 px night ring) on the usable Door and the full-width bar (7 units, `--g-text-subtle`, ring) on the shut Door, using the rules of the Prototype's `ART_CSS` ("the Door (D8)": `#ui .graveyard button.door, .door-shut { background: transparent }`, `::before` off, the bar's `top: calc(36 * var(--u))`, the handle's `top: calc(40 * var(--u)); right: calc(14 * var(--u))`). The Door keeps its rectangle (`DOOR_RECT` 20..100 by 805..890), key `g`, hit area (at least 44 by 44, 48 by 51 at the smallest scale), Tab and accessibility rules; a shut Door is absent from the Tab order and the accessibility tree (R6.8). Forced colours: the outline and the bar take `CanvasText`, the handle `Highlight`, the wood is dropped (task 12.1). No transition on the Door in any mode (R6.10).
+    - Files: `src/graveyard/graveyard.css`, `src/graveyard/view-dom.ts` (only if a class or element must change).
+    - _Requirements: R6.1 to R6.10_
+
+  - [ ] 14.2 The contrast pairs
+    - In `src/graveyard/contrast.test.ts` add the Door's pairs computed from the stylesheets (R6.5, R10.5): outline `#efe6cf` on the brightest plank `#7a5a38` (about 5.9:1), handle `#e6c27a` (about 4.1:1), bar `#cfc2a2` (about 4.4:1), each at least 3:1; the Door's outline against `--g-face` stays 13.0:1 (the existing pair keeps its figure). Every existing pair passes unchanged.
+    - Files: `src/graveyard/contrast.test.ts`.
+    - _Requirements: R6.5, R10.4, R10.5_
+
+- [ ] 15. The Place (`src/graveyard/view-dom.ts`, `graveyard.css`)
+  - [ ] 15.1 Build the Place
+    - Read `view-dom.ts`, `graveyard.css`, `plan.ts`, `geometry.ts` and the Prototype's `placeSvg` (`art.mjs`) first. `view-dom.ts` builds `<svg class="place" aria-hidden="true" viewBox="0 0 600 1000">` as the **first child of the graveyard root**, clipped to y <= 900, only while the view is open, and removes it in the same render when the view closes (R8.7): the sky (three stops mixed with the dawn colours by `--dawn`), 30 fixed stars (opacity `1 - --dawn`), three hill layers and the one unlit lighthouse, the haze ground gradient, the 150 pebbles and 90 blades from `groundMarks`, for each Stone its side, mound, tufts and shadow, for each Day_Shelf its board, and the Doorway_Light mask (one black hole at `(60, 847.5)`, radius 760 stretched 1.7, peak 0.95). The opaque `.panel` is no longer built. The view writes `--dawn` itself on its root with its existing `writeVar` (`state.phase === "burned-out" ? 1 : 0`, the rule of `sceneModel`). Stones, Stubs, labels, cards and the return control keep every rectangle (R8.11). `graveyard.css` gains the Place's tokens (D5: `--set-earth-a`, `-b`, `-pebble`, `-blade`, `-mound`, `--set-stone-side`, `--set-shadow`, `--set-board-*`, `--set-sky-low`, `--set-hill-*`, with the scene tokens it reuses copied and compared by a contrast test, as the existing pattern does), the sky and ground rules, and the forced-colours rule that drops the Place (R8.14). Reduced motion: nothing moves in the Place.
+    - Files: `src/graveyard/view-dom.ts`, `src/graveyard/graveyard.css`.
+    - _Requirements: R8.1 to R8.8, R8.13 to R8.16, R1.16_
+
+  - [ ] 15.2 P6b, the Place's contrast pairs and the existing view tests
+    - Create **P6b** in `src/graveyard/place.prop.test.ts` (tag Property 6b): over `fc.constantFrom(phases)` and engine scripts, the `--dawn` that the view writes equals `sceneModel(state).dawn` for every state, and is 0 for `idle`. Mutation check (P6b): write `1` for `idle`. Applied, caught and reverted. (`view-dom.ts` has no unit test of its own; export the pure rule `dawnFor(state)` from `view.ts` or `place.ts` and use it in both.)
+    - In `src/graveyard/contrast.test.ts` add the Place's pairs (R8.8, R10.5): subtle text `#cfc2a2` on the brightest ground behind text `--set-earth-a` (about 4.7:1, at least 4.5), ivory on it (about 6.8:1), a Stub's wax on its board (`#efe6cf` on `--set-board-top`, about 5:1, at least 3), a Stone's edge on its ground (`#8a93a6` on `--set-earth-a`, about 3.2:1, the existing pair's figure not lowered). Run and keep unchanged: `geometry.prop.test.ts`, `geometry.test.ts`, `plan.test.ts`, `visible.prop.test.ts`, `view.prop.test.ts`, `ui-only.prop.test.ts`, `focus.prop.test.ts`, `card.prop.test.ts`, `days.prop.test.ts`, `text.prop.test.ts`, `purity.test.ts`; search the repo for any read of the removed `.panel` and fix the reader (`e2e/graveyard-*.spec.ts`, `graveyard-fixtures.ts`) only where it names the panel.
+    - Files: `src/graveyard/place.prop.test.ts`, `src/graveyard/view.ts` or `place.ts`, `src/graveyard/contrast.test.ts`, `e2e/graveyard-fixtures.ts` (only if it reads the panel).
+    - **Validates: Requirements 8.5, 8.8, 8.10**
+    - _Requirements: R8.5, R8.8, R8.9, R8.10, R10.5_
+
+- [ ] 16. The zone buttons (`src/ui/`)
+  - [ ] 16.1 `layout.ts`, `view.ts` and `ui.css`
+    - Read `src/ui/layout.ts` (`placeControls`, `zoneControls`, `stageBox`), `view.ts` and `ui.css` first. Add `ZONE_WIDTHS` (Pause 98, Resume 110, Let it go dark 140, Settings 111, G = 8, the 16 px anchors) and `zoneControls.resume` to the wide layout of `placeControls`: Pause's right edge stays at `textArea.x - 16`, Let it go dark's left edge at `textArea.right + 16`, Settings follows at gap 8, so T is 100 on both sides; the compact layout (44 by 44, gaps 72, 20, 8 at 360 by 640) is unchanged. `view.ts` picks the `resume` rectangle when the phase is `paused`. `ui.css` keeps the buttons content-fit with `justify-content: center`, so the icon edge and the label edge differ by at most 1 px (design 3.8). Names, roles, Tab order and the focus ring (3 px outline, 3 px offset) are unchanged (R9.6).
+    - Files: `src/ui/layout.ts`, `src/ui/view.ts`, `src/ui/ui.css`.
+    - _Requirements: R9.1 to R9.8_
+
+  - [ ] 16.2 The tests and P10
+    - `layout.test.ts` gains the wide-layout table for 1280 by 800 (Pause `{374, 738, 98, 44}`, Resume `{362, 738, 110, 44}`, Let it go dark `{808, 738, 140, 44}`, Settings `{956, 738, 111, 44}`, the status line at rest `{332, 764, 616, 20}`, running `{488, 764, 304, 20}` unchanged); `view.test.ts` keeps "narrow rectangle while Pause and Let it go dark are shown" unchanged and gains a case for the `resume` rectangle; a unit test checks the label character counts of `strings.ts` against the bound of design 3.8 (6, 6 or 7, 14, 8) (R9.7).
+    - Extend **P10** in `src/ui/layout.prop.test.ts` (tag Property 10) over every integer `vw` 360..2560 and `vh` 640..1440 (plus the four named sizes): the placed zone buttons are 44 high; wide: the padding `(W - 28 - label) / 2` is within 1 px across the three buttons and across the Pause and Resume states with the label table; `G = 8`; the two `T` agree within 1 px; every existing clause of `controls-and-access` P10 holds (inside the viewport, at least 44 by 44, at least 4 px apart, clear of the keep-clear rectangles, order Pause or Resume, time text, Let it go dark, Settings) for both Pause rectangles. Mutation check (P10): set Settings' width to 96; anchor Pause at `textArea.x - 8`. Each applied, caught and reverted.
+    - Files: `src/ui/layout.test.ts`, `src/ui/layout.prop.test.ts`, `src/ui/view.test.ts`.
+    - **Validates: Requirements 9.1 to 9.5**
+    - _Requirements: R9.1 to R9.5, R9.7, R9.8_
+
+  - [ ] 16.3 The e2e tests that change on purpose
+    - `e2e/controls-layout.spec.ts`, *"1280 x 800 at rest and while a session runs"*: old, at rest `#settings-button` `[976, 738, 96, 44]`, `#status` `[312, 764, 656, 20]`; running `#pause` `[344, 738, 128, 44]`, `#snuff` `[808, 738, 160, 44]`, `#settings-button` `[976, 738, 96, 44]`, `#status` `[488, 764, 304, 20]`; new, at rest `#settings-button` `[956, 738, 111, 44]`, `#status` `[332, 764, 616, 20]`; running `#pause` `[374, 738, 98, 44]`, `#snuff` `[808, 738, 140, 44]`, `#settings-button` `[956, 738, 111, 44]`, `#status` `[488, 764, 304, 20]` unchanged. Reason: R9. `e2e/controls-a11y.spec.ts` keeps names, roles, Tab order and the focus ring and gets one comparison with the values before the change. Run every other `controls-*.spec.ts` and `settings.spec.ts`; adjust only a rectangle that the change names, with the reason in the test.
+    - Files: `e2e/controls-layout.spec.ts`, `e2e/controls-a11y.spec.ts`.
+    - _Requirements: R9.5, R9.6, R11.5_
+
+- [ ] 17. The costume rule's tests, the budgets and P12
+  - [ ] 17.1 The costume-rule tests (R11.2)
+    - Create `src/scene/costume.test.ts` that fails with a message naming the offending file, element or selector when it finds one violation: (a) a whole-word, case-insensitive scan of `src/scene/`, `src/ghosts/`, `src/graveyard/` and `src/strings.ts` for the Ornament_Words (bat, bats, pumpkin, jack-o-lantern, cobweb, cobwebs, spiderweb, spider, skull, skeleton, bones, cauldron, witch, broom, coffin, raven, crow) in any identifier, class, id, data attribute, string or comment (zero matches; build the list in the test as data and exempt the test file itself); (b) every element of `ROOM_SVG` outside the State_Element groups (`.candle`, `.lit`, `.zone`, `.window`, `.stars`, `.dawn-wash`, `.night`, `.wall`, the masks and defs) is a descendant of `.setting`; (c) `.setting` precedes `.night`; (d) the Setting_Tokens against the stops (already in 12.2; assert the test exists); (e) no rule selecting a `.setting` descendant has an animation, a transition or a model custom property; (f) no Still_Setting path equals a State_Element path (the flame paths, the drip path, the candle rects, `ghostShape(0..2)`), and the Impostor rule (b) of R1.8 is applied to Props only (frame, table, holder, door wood, shelf boards: no bounding box meets the flame, halo, wax body, Ghost_Cell or the time-text zone, except the table and holder at the candle's base), listing the Surfaces by class (`wall-stone`, `wall-veil`, the Place's `p-ground` and `p-sky`). Fault checks, each applied, caught and reverted: a class `bat` in a stylesheet; an element outside `.setting`; `.setting` moved after `.night`; an animation in `.t-top`; a table path equal to the flame path.
+    - Files: `src/scene/costume.test.ts`.
+    - _Requirements: R1.8, R1.9, R1.10, R11.2_
+
+  - [ ] 17.2 The budget tests (R10.10)
+    - Create `src/scene/budget.test.ts`: (a) the element count of `ROOM_SVG`, of the ghost layer at 12 ghosts and of the Place with 10 Stones and 3 rows of 4 Stubs (`DEFAULT_LIMITS`) is at most the count before the work plus 300 (before: scene 79, 12 ghosts of 3 elements, no Place = 115; limit 415; the Prototype's `count.mjs` gives 375); (b) none of `feTurbulence`, `feDisplacementMap`, `feMorphology`, `feConvolveMatrix` in any shipped SVG string or stylesheet; (c) the only CSS `filter` properties are the glass blur's `filter` attribute and the zone's drop shadow (not repainted per frame). The byte budget (JS and CSS in `dist/` at most 120 000) needs a build and is task 25.2.
+    - Files: `src/scene/budget.test.ts`.
+    - _Requirements: R10.10, R10.11_
+
+  - [ ] 17.3 Required: P12, art-only inputs never change the engine's state
+    - **Property 12: Art-only inputs never change the engine's state**
+    - Create `src/graveyard/art-only.prop.test.ts` (tag Property 12), in the manner of `ui-only.prop.test.ts` (read it first): engine scripts of `light`, `pause`, `resume`, `snuff`, `tick`, `hide`, `show` interleaved with the art-only inputs `{ viewSwitch, openCard, reducedMotion, ghostsOff }` (the pure functions of `view.ts`, `card.ts`, `ui-state.ts` and `storage/settings.ts`): the engine state after the script equals the state after the same script without them.
+    - Mutation check (P12): make `openCard` dispatch `tick`. Applied, caught and reverted.
+    - Files: `src/graveyard/art-only.prop.test.ts`.
+    - **Validates: Requirements 2.1, 2.2**
+
+  - [ ] 17.4 `scripts/frame-budget.mjs` (outside `npm run verify`)
+    - Create `scripts/frame-budget.mjs`: it builds nothing, serves `dist/` with `vite preview`, opens the page at 1920 by 1080 with Playwright and the **real clock**, lights a 25-minute session, records `requestAnimationFrame` intervals for at least 600 frames and prints the median and the 95th percentile with the budget (median 17.5 ms or less, 95th percentile 25 ms or less on the author's machine); it exits 1 over budget. Keep `npm run check` green (lint the script as the repo's config does; add it to the config's ignores only if the existing `.mjs` files are treated so). It is not part of `npm run verify`. Running it is task 29.1.
+    - Files: `scripts/frame-budget.mjs`.
+    - _Requirements: R10.10, R10.11_
+
+- [ ] 18. Checkpoint - Batch 3 ends here
+  - Run `npm run verify`. Ensure all tests pass, ask the user if questions arise. Confirm P6 (both halves), P7, P8, P9, P6b, P10, P12 ran at 300 runs through `PROP_PARAMS`, the existing suites named in 12.2, 13.2, 15.2 and 16.3 pass, every mutation of tasks 11 to 17 was caught and reverted, no `style` attribute and no forbidden filter is shipped, and the new art is in the running app (open `npm run dev` or `vite preview` once and say what is seen). Report the unit file and test counts and the e2e counts.
+  - Add the batch 3 entry to `KIRO_USAGE.md` (R11.12): surface, what was built (tasks 11 to 17), property failures with their seeds or "none", the mutation results, the existing tests that changed on purpose (each with its reason), screenshots and costume review "none yet", and the counts.
+  - Files: `KIRO_USAGE.md`.
+
+> **Batch 3 ends here.** Stop this CLI session. Start batch 4 with task 19.
+
+- [ ] 19. Browser test helpers
+  - [ ] 19.1 `e2e/room-art-fixtures.ts`
+    - Read `e2e/scene-fixtures.ts` (stored sessions and pixel helpers), `controls-fixtures.ts` (`openApp`, `settle`) and `graveyard-fixtures.ts` (`setVisibility`, histories) first, and reuse what they have. Create `e2e/room-art-fixtures.ts` with: `VIEWPORTS_ART` (the seven sizes); `roomToPx(w, h, x, y)` through `stageBox` of `src/ui/layout.ts`; `patch(png, x, y)`, the 3 by 3 mean of the channels, and `ratio(a, b)`, the WCAG form `(L1 + 0.05) / (L2 + 0.05)`; `wallSample(sx, sy)` that finds, with `wallBlocks` of `src/scene/setting.ts`, the block whose centre is nearest the Wall_Sample and returns its centre and the centre of the joint below it (R3.2, Q24; never fixed pixels); the stored states of the seven pictures (idle, lit start, lit half, last minute, paused, burned-out at dawn, snuffed) built with the engine's serializers, each opened with the clock rule of the Conventions (`openApp`, `openScene`); `reducedMotion` as an option; `hideInterface` that adds `#ui, .ghost-layer { display: none !important }` for room pixel reads. Add the new file to `e2e/fixtures-imports.spec.ts`'s check that no shipped file imports a fixture.
+    - Files: `e2e/room-art-fixtures.ts`, `e2e/fixtures-imports.spec.ts`.
+    - _Requirements: R11.6, R11.7_
+
+- [ ] 20. E1, E4 and E12: light, base and idle against snuffed
+  - [ ] 20.1 E1 and E4 in `e2e/room-art-light.spec.ts`
+    - **E1.** At lit start and at the last minute: a wall point between the two pool edges is brighter at lit start (a block centre that `wallSample` picks between radii 230 and 650 from the flame); a point inside both pools differs by 2 channel units or less; a point outside both pools and in the window's reach differs by 2 or less; the glass differs by 2 or less (R1.7, R4.8, R4.16). **E4.** The candle body's height over its start height equals the wax height at five wax heights (the existing test of `scene.spec.ts`, rerun); the Holder covers no `.body` pixel (compare the body's patch with and without the holder group hidden by a style tag) (R3.9, R3.10).
+    - Mutation check: scale the window level with `--light-radius` (E1); draw the holder after the candle (E4). Each applied to the source, caught, reverted.
+    - Files: `e2e/room-art-light.spec.ts`.
+    - _Requirements: R1.7, R3.9, R3.10, R4.8, R4.16_
+
+  - [ ] 20.2 E12 in `e2e/room-art-light.spec.ts`
+    - **E12.** In `idle` the `.pool` and `.pool-tint` have computed `display: none` and at lit start they have not (R3.23); the four Wall_Samples (read at block centres) are each at least 1.10 to 1 brighter in `idle` than in `snuffed` (the prototype reads 1.422, 1.422, 1.30, 1.261); no `snuffed` sample is brighter than the same sample in any other state, within 2 channel units; the wall, table, frame and Door wood are each at least 1.10 to 1 from `--room-night` in `idle` (prototype minima 1.463, 1.214, 1.335, 1.112); and `snuffed` differs from `idle` by more than brightness: the computed opacity of `.smoke-wisp` is 1 in `snuffed` and 0 in `idle`, the `.body` and `.stub` boxes show `STUB_H` against `CANDLE_H`, and the status line equals `strings.status.snuffed` against `strings.status.idle`. Run at all seven sizes.
+    - Mutation check: set `--wl-snuffed` to 0.6. Applied, caught and reverted.
+    - Files: `e2e/room-art-light.spec.ts`.
+    - _Requirements: R3.19, R3.20, R3.23, R4.21, R7.7_
+
+- [ ] 21. E2 and E14: edge to edge and the receding periphery
+  - [ ] 21.1 E2 in `e2e/room-art-wide.spec.ts`
+    - **E2.** At each of the seven sizes, in `idle`, lit start, paused and burned-out: the left and right edge patches (3 by 3 centred 2 px in, at 30, 60 and 80 percent of the height) are at least 8 summed channel units from `--room-night`; no scrollbar (document scroll width and height not above the viewport's). **A patch on a horizontal joint passes:** at 1920 by 1080 pick the edge patch whose centre lies on the joint line of `wallBlocks` and assert it too (R7.6, Q24). **At 2560 by 1080** (not in VIEWPORTS_ART) the same patches are at least 8: the edge shade is held beyond 800 units. The prototype reads 11 at 1920 and wider, 13.8 at 1280, 11 at 2560 by 1080; assert the floor 8, not the reading.
+    - Mutation check: set `--set-joint` opacity to 1; let the edge shade fall again beyond 800 units. Each applied, caught and reverted.
+    - Files: `e2e/room-art-wide.spec.ts`.
+    - _Requirements: R7.1, R7.2, R7.6, R7.8, R7.9, R7.11_
+
+  - [ ] 21.2 E14 in `e2e/room-art-wide.spec.ts`
+    - **E14.** At 1920 by 1080, 2560 by 1440 and 3840 by 2160 (and 2560 by 1080): the wall's mean luminance, read in columns over the wall rows 330..860 units, falls from the window's axis to each edge within 1 percent; the largest step between neighbouring 4-pixel column means beyond 320 units from the axis is at most 2 percent of the mean (no vertical banding); with `.wall-veil` and `.win-edge` hidden by a style tag the idle wall's column residual (the standard deviation of the column means smoothed over 130 units after a 600-unit trend is removed, over the mean) is at most 6 percent at 1280, 1920 and 2560 wide (the prototype reads 3.0 percent; the limit is not raised) (R7.11, R7.12).
+    - Mutation check: put a step in the veil gradient; raise the edge shade to 0.9. Each applied, caught and reverted.
+    - Files: `e2e/room-art-wide.spec.ts`.
+    - _Requirements: R7.6, R7.11, R7.12_
+
+- [ ] 22. E3 and E9: the wall and the window, and reduced motion
+  - [ ] 22.1 E3 in `e2e/room-art-wall.spec.ts`
+    - **E3.** The board at the centre of the block beside the joint, and the joint on its own centre line below it (`wallSample`): at lit start near the candle at least 1.10 to 1 (prototype 1.264); in `idle` at (200, 150) and (400, 150) at least 1.10 to 1; **at 360 by 640 the idle joint ratio, the thinnest margin of the wall, is read and asserted at least 1.10 (the prototype reads 1.127)**, and the dawn ratio under the wash is at least 1.04 (1.060) (R3.17); the Frame is seen at lit start and in idle and has the same luminance at the last minute as at lit start (F2, Q20); the frame against the glass is at least 1.10 at rest and the glass against the frame at least 1.15 at dawn (prototype 1.112 and 1.294); the stars are seen in every non-dawn state and hidden at dawn; the existing dawn-glass test of `scene.spec.ts` passes (the glass centre equals `--window-dawn` within 6 channel units and is 30 or more brighter than 60 px left).
+    - Mutation check: remove the mask from `.window` (the frame vanishes); move the mullion cross to the centre (the dawn test fails). Each applied, caught and reverted.
+    - Files: `e2e/room-art-wall.spec.ts`.
+    - _Requirements: R3.2, R3.17, R3.20, R4.2 to R4.11_
+
+  - [ ] 22.2 E9 in `e2e/room-art-wall.spec.ts`
+    - **E9.** For each state, with reduced motion on and off: every Still_Setting reading (wall, table, frame and Door wood patches) equals within 2 channel units, and the State_Element readings (the flame's patch, the halo's, the ghosts' positions) equal; the computed animation and transition durations of every Room_Art element are 0 s with reduced motion (R10.7). Run at 1280 by 800 and 360 by 640.
+    - Mutation check: add an animation to a setting rule. Applied, caught and reverted.
+    - Files: `e2e/room-art-wall.spec.ts`.
+    - _Requirements: R10.7_
+
+- [ ] 23. E5 and E6: the ghosts and the Door
+  - [ ] 23.1 E5 in `e2e/room-art-ghosts.spec.ts`
+    - **E5.** With 1, 5, 12 and 21 distractions at 1280 by 800 and 360 by 640: every ghost's bounding box is inside its cell, outside the candle column, the Door and the controls; the x positions in a column are not all equal; reduced motion gives the same positions and zero animations; ghosts off shows none and the Scene_Label still gives the count. Read the resting positions through `placeGhost`.
+    - Mutation check: raise the drift to 12; make `fx` constant. Each applied, caught and reverted.
+    - Files: `e2e/room-art-ghosts.spec.ts`.
+    - _Requirements: R5.6, R5.8, R5.11, R5.12, R5.13_
+
+  - [ ] 23.2 E6 in `e2e/room-art-ghosts.spec.ts` (the Door)
+    - **E6.** A usable Door shows a handle and no bar (a DOM check and a pixel patch at the handle); a shut Door shows a bar and no handle; the hit box is at least 44 by 44; Tab never reaches the shut Door; with forced colours (`page.emulateMedia({ forcedColors: "active" })`) the wood is dropped and the outline and bar are drawn.
+    - Mutation check: show both the handle and the bar. Applied, caught and reverted.
+    - Files: `e2e/room-art-ghosts.spec.ts`.
+    - _Requirements: R6.2 to R6.9_
+
+- [ ] 24. E7 and E8: the Place and the zone buttons
+  - [ ] 24.1 E7 in `e2e/room-art-place.spec.ts`
+    - **E7.** At the seven sizes the view has no scroll, the sky and the ground reach both edge patches, every Item and card is inside the viewport, **text patches meet 4.5 to 1 against the sampled backing for every text line**, the `graveyard-a11y.spec.ts` snapshots pass unchanged, and no pixel of the candle, flame, halo or a room ghost lies inside a text line's rectangle. With forced colours the Place's art is dropped.
+    - Mutation check: lengthen the Doorway ellipse to cover the subtle text with a bright board. Applied, caught and reverted.
+    - Files: `e2e/room-art-place.spec.ts`.
+    - _Requirements: R8.2, R8.3, R8.9, R8.13, R8.14_
+
+  - [ ] 24.2 E8 in `e2e/room-art-zone.spec.ts`
+    - **E8.** The three zone buttons are 44 px high; at 1280 by 800 and 1920 by 1080 the padding spread (the distance from the border to the icon and from the label to the border) is at most 1 px at lit start **and paused**; the Let it go dark to Settings gap is 8 within 1 px; the two T values agree within 1 px; each label string of `strings.ts` fits the bound of design 3.8 with the real font (Pause 46 px, Resume 58, Let it go dark 88, Settings 59). The baseline of 22.9 px at 1280 by 800 is the failing case before the change.
+    - Mutation check: restore the old widths 128, 160 and 96. Applied, caught and reverted.
+    - Files: `e2e/room-art-zone.spec.ts`.
+    - _Requirements: R9.1 to R9.3, R9.7, R9.9_
+
+- [ ] 25. E15, E10, E13 and the post-build checks
+  - [ ] 25.1 E15 in `e2e/room-art-base.spec.ts`
+    - **E15.** At lit half at 360 by 640 and at 1280 by 800 (WCAG ratio of 3 by 3 patch means, the zone's filter on): the dish's ring (room x 244, y 891) against the dish's inside (x 259, y 891.6) is at least 1.4 to 1 (prototype 1.50 and 1.78) and against the table's front face (x 150, y 896) at least 1.5 to 1 (1.64 and 1.71); the table's lip (a row mean at y 890.2, x 146..154) against its under-line (y 891.9) is at least 1.2 to 1 (1.29 and 1.56) and against its top surface (y 886.5) at least 1.05 to 1 (1.09 and 1.37); the zone's shadow (the picture with the zone's filter on and off, the alpha read per row) reaches half darkness at or below y 896.5 (prototype 897.2 and 897.1); the time text and the status line read 15.83 to 1 at rest and 7.53 to 1 at the dawn, read from the pixels beside the text. These numbers are the check that **the dish and the table's lit edge are recognisable at 360 by 640**.
+    - Mutation check: restore `drop-shadow(0 -8px 6px ...)`; draw the dish rim at y 886..891.6. Each applied, caught and reverted.
+    - Files: `e2e/room-art-base.spec.ts`.
+    - _Requirements: R3.24, R10.4_
+
+  - [ ] 25.2 E10 and the post-build checks in `e2e/room-art-build.spec.ts`
+    - **E10.** `headers-local.spec.ts` and `live.spec.ts` pass unchanged; the console shows no CSP violation at lit start, in idle and in the graveyard view. Add, to run in `npm run e2e` against the real build (`vite preview`): no file of the Prototype is in `dist/` (R12.6: no path containing `prototype`, no `proto-` file, no `wall-b.mjs`); the sum of the JS and CSS files in `dist/` is at most 120 000 bytes (R10.10; 89 360 before, the design's estimate 113 to 119 KB is unverified: if it is over, report it and trim, do not raise the limit); no `feTurbulence`, `feDisplacementMap`, `feMorphology` or `feConvolveMatrix` in `dist/`; no `style=` attribute in the served HTML at lit start.
+    - Mutation check: copy a prototype file into `public/`; add `feTurbulence` to a shipped SVG string. Each applied, caught and reverted.
+    - Files: `e2e/room-art-build.spec.ts`.
+    - _Requirements: R10.2, R10.10, R12.6_
+
+  - [ ] 25.3 E13 outside `npm run verify`
+    - **E13.** Create `e2e/prototype.spec.ts` that runs only when `CANDLEWATCH_PROTOTYPE=1` (a `test.skip` otherwise, so `npm run verify` is unchanged): with JavaScript disabled `prototype/index.html` opens; each of the nine pictures shows at its id (`:target`) and `idle` shows with no hash; the 24 `proto-*.png` files exist; `tokens.json` matches the stylesheets (the Vitest check of 9.1 already fails on a mismatch).
+    - Mutation check: rename a section id in `index.html`. Applied, caught and reverted (rebuild with `node .kiro/specs/room-art/prototype/build.mjs` afterwards).
+    - Files: `e2e/prototype.spec.ts`.
+    - _Requirements: R12.1 to R12.4, R12.11_
+
+- [ ] 26. Checkpoint - Batch 4 ends here
+  - Run `npm run verify`. Ensure all tests pass, ask the user if questions arise. Confirm E1 to E12, E14 and E15 ran, E13 was run once with `CANDLEWATCH_PROTOTYPE=1`, every mutation of tasks 20 to 25 was caught and reverted, the existing Playwright files listed in the requirements (`scene.spec.ts`, `controls*.spec.ts`, `settings.spec.ts`, `graveyard*.spec.ts`, `ghosts.spec.ts` except its slot reads, `fixtures-imports.spec.ts`, `smoke.spec.ts`, `headers-local.spec.ts`, `live.spec.ts`) pass, and that the three thinnest margins were read on the real build: the idle joint ratio at 360 by 640 (floor 1.10, prototype 1.127), the dawn joint ratio (1.04, 1.060) and the edge patch (8, 11). Report the unit file and test counts and the e2e passed and skipped counts.
+  - Add the batch 4 entry to `KIRO_USAGE.md` (R11.12): surface, what was built (tasks 19 to 25), property failures "none" (batch 4 has none), the mutation results, the figures read on the build against the Prototype's, screenshots and costume review "none yet", and the counts.
+  - Files: `KIRO_USAGE.md`.
+
+> **Batch 4 ends here.** Stop this CLI session. Start batch 5 with task 27.
+
+- [ ] 27. The screenshot tests (E11)
+  - [ ] 27.1 The three new files and the 62-file list
+    - Read `e2e/screenshots.spec.ts` (21 `candle-*`, 9 `ghosts-*` and 9 `graveyard-*` cases, the opt-in rule `CANDLEWATCH_SHOTS=1` that writes into `docs/screenshots/`) and `e2e/controls-screenshots.spec.ts` (20 `controls-*`). Add three cases to `screenshots.spec.ts`: `candle-lit-half-wide.png` (lit half at 1920 by 1080), `candle-lit-half-4k.png` (lit half at 3840 by 2160) and `graveyard-large-wide.png` (the large history at 1920 by 1080), each with the clock rule and the same fixtures as its neighbours. Export the 62 file names from one list (`e2e/screenshot-list.ts`, test-only) and add **E11**: a spec that fails when a name of the list is written by no screenshot case, or when `docs/screenshots/` holds a file that is not in the list, or when a listed file is missing (62 in all: 59 plus the three).
+    - Mutation check: drop one case; delete one file from the list. Each applied, caught and reverted.
+    - Files: `e2e/screenshots.spec.ts`, `e2e/screenshot-list.ts`, `e2e/room-art-screenshots.spec.ts`.
+    - _Requirements: R11.8, R11.9_
+
+- [ ] 28. Retake and look
+  - [ ] 28.1 Retake the 62 screenshots
+    - The new art changes every screen, and the costume review of task 30 needs them, so retake **all 62** here with the opt-in rule: run the two screenshot specs with `CANDLEWATCH_SHOTS=1` (with a grep filter on the names if a run is split), then clear the variable. `sound-and-title` task 25 (edited in task 1.5) later retakes the files its own changes touch and looks at them again. Check that `docs/screenshots/` holds exactly the 62 names and that `git status` shows no other file changed by the run.
+    - Files: `docs/screenshots/*.png` (62).
+    - _Requirements: R11.8, R11.9, R11.14_
+
+  - [ ] 28.2 Look at every picture
+    - **Open every one of the 62 PNGs with the image reader and look at it** (R11.9), and compare the room, ghost, Door, window and Place pictures with the Prototype's `proto-*.png` of the same state and size. For each, say what is drawn and confirm it shows the screen in its name. Record every difference from the Prototype as fixed (and retake) or accepted with a reason. Look in particular at: the 21 `candle-*` (every state), `candle-lit-half-wide.png` and `candle-lit-half-4k.png`, the nine `ghosts-*` (the three shapes, the sizes, the Overflow_Mark), the nine `graveyard-*` and `graveyard-large-wide.png` (the Place, the Stones with their side, mound and shadow, the shelf boards, the card not covering its Item, F18 left as it is), and the 20 `controls-*` (the zone buttons with equal padding).
+    - **The three checks this plan adds** (record each result in the task result): (1) **the idle joint ratio is the thinnest margin (1.127 against 1.10) and is checked at 360 wide:** read the joint and the board of `candle-idle-phone.png` (the board at the block centre, the joint on its own centre line below it) and report the ratio, at least 1.10; (2) **at 2560 and 3840 wide the fading wall at the edges shows no vertical banding:** look at `candle-lit-half-4k.png` and at one uncommitted picture at 2560 by 1440 (lit half, written to a temporary folder by a one-off `page.screenshot`), and confirm a smooth fade with no visible step; (3) **the dish and the table's lit edge are recognisable at 360 by 640:** take an uncommitted 3-times crop of the base (room x 160..440, y 850..920, device scale factor 3) at 360 by 640 and at 1280 by 800, look at both, and confirm a pewter ring with a dark inside on both sides of the candle and a lip lighter than the table's top.
+    - Files: `docs/screenshots/*.png` only if one is retaken.
+    - _Requirements: R3.20, R3.24, R7.11, R11.8, R11.9_
+
+- [ ] 29. The frame interval and the final steering corrections
+  - [ ] 29.1 Measure the frame interval
+    - Run `npm run build`, then `node scripts/frame-budget.mjs` on the author's machine (outside `npm run verify`) and record the median and the 95th percentile of at least 600 frames of a lit session at 1920 by 1080 with the real clock, against 17.5 ms and 25 ms. If it is over budget, apply the fallback of design D11 (one pre-composed mask for the setting) in `scene.css` and `room.ts`, rerun `npm run verify` and measure again; if it is still over, stop and report the figures to the owner (a decision, not a task). Write the figures into `design.md` D11 (the row "frame interval", now "measured").
+    - Files: `.kiro/specs/room-art/design.md` (D11 only), and the fallback's files if needed.
+    - _Requirements: R10.10, R10.11_
+
+  - [ ] 29.2 The steering documents, README and the design's measured rows
+    - Read `.kiro/steering/structure.md`, `tech.md`, `scene.md`, `product.md` and `README.md` first. In `structure.md` remove the "(room-art, being built)" notes of task 1.1, list the files that now exist (`src/scene/setting.ts`, `light.ts`, `backdrop.ts`, `src/ghosts/place.ts`, `src/graveyard/place.ts`, `scripts/frame-budget.mjs`, the new `e2e/room-art-*.spec.ts` and `e2e/room-art-fixtures.ts`, `e2e/screenshot-list.ts`, `e2e/prototype.spec.ts`, `src/hosting/prototype.test.ts`, `.kiro/specs/room-art/prototype/`) in the style of the file, and say 62 screenshots; in `tech.md` write the measured byte total and frame figures next to the budget; `README.md`'s Specs bullet lists `room-art` as built. Change nothing else. In `design.md` D11 write the measured byte total and element count (the expected 375 against 415).
+    - Files: `.kiro/steering/structure.md`, `.kiro/steering/tech.md`, `README.md`, `.kiro/specs/room-art/design.md` (D11 only).
+    - _Requirements: R10.10, R11.12, CR5, CR6_
+
+- [ ] 30. Costume review (the last task)
+  - [ ] 30.1 Run the Costume_Reviewer and record its findings in Decision D13
+    - Invoke the `costume-reviewer` agent (in the Kiro CLI: `kiro-cli chat --agent costume-reviewer`, or as a sub-agent where the session offers it) on the finished room, ghosts, Door, window, wide screens and Place, with the updated checklist (task 1.2), `design.md`, the 62 screenshots of tasks 28.1 and 28.2 and the Prototype's `proto-*.png` as input. It applies the four checks of rule 1 (state on everything that moves, light on every still setting, no Impostor, no ornament), rule 2 (reduced motion), rule 3 (contrast, with the pairs of R10.5), the fourth rule (the picture reads at a glance as a candlelit room at night, and the graveyard as a place outside it, with the three weakest elements and what would improve each) and rule 5 (both edges at 360 to 3840 px, idle a room and not black, snuffed the darkest and different by more than brightness). **Ask it explicitly for the three checks of 28.2:** the idle joint ratio at 360 wide against its floor, no vertical banding at 2560 and 3840 wide, and the dish and the table's lit edge recognisable at 360 by 640.
+    - Record its verdict, **the three weakest-looking elements and what would improve each, and every finding** in `design.md` Decision **D13** as a new dated block (design D16), each finding with an outcome of **fixed** or **accepted with a reason**, even on PASS (R11.10). A PASS needs no element that reads as a placeholder. Apply the fixes (retake and look at any affected screenshot and rerun `npm run verify`) and run the agent again until it passes. If the agent cannot be run, say so and stop: do not substitute another review and call it this one. Edit `design.md` only in D13 and keep the file valid.
+    - Files: `.kiro/specs/room-art/design.md` (D13 only), `KIRO_USAGE.md` (the raw review output, as D16 says), and whatever the findings change.
+    - _Requirements: R11.10, R11.11, R10.5_
+
+- [ ] 31. Checkpoint - Batch 5 ends here
+  - Run `npm run verify` as one command. Ensure all tests pass, ask the user if questions arise. Confirm every property test P1 to P14 and P6b ran with its full number of runs (all through `PROP_PARAMS`, no literal lower `numRuns`, no skipped, `only` or `todo` tests) and that every mutation of the plan was caught and reverted (`git diff` on the sources shows only intended changes). Confirm the shipped folders hold no image file, no font, no new dependency (`package.json` and `package-lock.json` unchanged), no `window.__` global, no `style` attribute, and that `src/engine/`, `src/storage/`, `src/distraction/`, `src/main.ts`, `render.yaml` and the scene model (`SceneModel`, the property table of `render.ts`) are unchanged by this spec (`git diff --stat`).
+  - Write the summary: the screenshots retaken (the 62 files) and looked at, the three added checks and their results, the measured figures against the Prototype's (the idle joint ratio at 360 wide, the dawn ratio, the edge patch, the byte total, the frame interval), the costume review's last verdict, and what was not done on purpose. Say that **`sound-and-title` batch 4 (its tasks 19 to 27) runs next, after this spec's last task, and that the two builds never run at the same time**; that the owner should look at the room once on a laptop and a phone; and that the byte budget estimate was unverified until task 25.2.
+  - Add the final entry to `KIRO_USAGE.md` (R11.12): the surface; what was built (modules, markup and CSS, DOM, tests, the change requests applied); property failures with their seeds, or "none"; the mutation results; the screenshot checks (the 62 files looked at, the three added checks); the costume review (the verdict of each pass and each finding with its outcome); the counts (unit files and tests, e2e passed and skipped, against the counts of the batch entries); the steering edits; and what was not done on purpose.
+  - Files: `KIRO_USAGE.md`.
+
+> **Batch 5 ends here.** The spec is complete when `npm run verify` passes and the costume reviewer's last pass is PASS. Then `sound-and-title` batch 4 may start.
+
+## Notes
+
+- Property tasks are required in this plan; none is marked optional. Each carries its property number from design section 5 and the requirement clauses it validates. Every property P1 to P14 and P6b is in exactly one task, except P6, whose pure half is task 4.2 and whose markup half is task 11.2 (see the table below).
+- Mutation checks are those of design section 5: P1, P2, P3, P4, P5, P6, P6b, P7, P8, P9, P10, P11, P12, P13, P14. Tasks 8.1, 9.1, 17.1 and the Playwright tasks add faults of their own.
+- The DOM files (`layer.ts`, `view-dom.ts`) have no unit tests (no DOM library for Vitest, no new test dependency, R2.7); they are covered by the existing e2e suites (tasks 13.2, 15.2, 16.3) and by E1 to E15.
+- The existing tests that change on purpose are listed in design section 7 and are changed in the task that causes them: `room.test.ts` (4 tests, task 11.2), `silhouette.test.ts` (task 6.2), `layout.test.ts`, `layout.prop.test.ts`, `view.test.ts` and `controls-layout.spec.ts` (tasks 16.2 and 16.3), the slot reads of `ghosts.spec.ts` and `graveyard-fixtures.ts` (task 13.2), the contrast tests (tasks 13.2, 14.2, 15.2) and the purity tests (task 8.1). `scene.css.test.ts` figures, `model.test.ts`, `model.prop.test.ts`, `flicker.*`, `types.test.ts`, `render.test.ts`, `scene-kit.test.ts` and the scene `purity.test.ts` pass unchanged (R3.13, R3.14).
+- Not in any task, and why: F18 (the unlit upper right of the graveyard view) is left as the owner decided; widening the Doorway ellipse to `sx` 2.2 is listed in D13 as the improvement if the owner changes his mind. A per-block luminance variation of the wall (D13, weakest element 2) is not built: it costs elements and the owner approved the pictures without it. The label-width bound of the zone buttons is tested with the real font only in e2e (task 24.2). No change to `main.ts` is planned (design section 2, CR8); if a task finds one is needed, stop and ask.
+- Batch boundaries: batch 1 is tasks 1 to 2, batch 2 is 3 to 10, batch 3 is 11 to 18, batch 4 is 19 to 26, batch 5 is 27 to 31. Within a batch, run tasks in order; the dependency graph below is a guide to which tasks touch different files.
+
+## Coverage check
+
+| Requirement | Tasks |
+|---|---|
+| R1 | 1.1, 1.2, 3.1, 3.2, 4.2, 6.1, 8.1, 11.1, 11.2, 12.1, 15.1, 17.1, 20.1 |
+| R2 | 3.1, 4.1, 5.1, 6.1, 7.1, 8.1, 17.3, 31 |
+| R3 | 3.1, 3.2, 4.1, 4.2, 11.1, 11.2, 12.1, 12.2, 20.1, 20.2, 22.1, 25.1, 28.2 |
+| R4 | 3.1, 3.3, 4.1 to 4.3, 11.1, 12.1, 20.1, 20.2, 22.1 |
+| R5 | 6.1 to 6.4, 13.1, 13.2, 23.1 |
+| R6 | 11.1, 14.1, 14.2, 23.2 |
+| R7 | 5.1 to 5.3, 21.1, 21.2, 28.2 |
+| R8 | 7.1, 7.2, 15.1, 15.2, 24.1 |
+| R9 | 16.1 to 16.3, 24.2 |
+| R10 | 12.1, 12.2, 13.2, 14.2, 15.2, 17.2, 17.4, 22.2, 25.1, 25.2, 29.1, 29.2 |
+| R11 | 1.1 to 1.7, 11.2, 13.2, 17.1, 19.1, 27.1, 28.1, 28.2, 30.1, 31; checkpoints 2, 10, 18, 26 and 31 (usage entries) |
+| R12 | 1.6, 9.1, 25.3 |
+
+| Property | Task |
+|---|---|
+| P1 | 6.3 |
+| P2 | 6.4 |
+| P3 | 6.4 |
+| P4 | 5.2 |
+| P5 | 5.3 |
+| P6 | 4.2 (pure half), 11.2 (markup half) |
+| P6b | 15.2 |
+| P7 | 3.3 |
+| P8 | 12.2 |
+| P9 | 11.2 |
+| P10 | 16.2 |
+| P11 | 7.2 |
+| P12 | 17.3 |
+| P13 | 4.3 |
+| P14 | 3.2 |
+
+| Playwright test | Task |
+|---|---|
+| E1, E4 | 20.1 |
+| E12 | 20.2 |
+| E2 | 21.1 |
+| E14 | 21.2 |
+| E3 | 22.1 |
+| E9 | 22.2 |
+| E5 | 23.1 |
+| E6 | 23.2 |
+| E7 | 24.1 |
+| E8 | 24.2 |
+| E15 | 25.1 |
+| E10 | 25.2 |
+| E13 | 25.3 |
+| E11 | 27.1 |
+
+## Task Dependency Graph
+
+```json
+{
+  "waves": [
+    { "id": 0, "tasks": ["1.1", "1.2", "1.3", "1.4", "1.5"] },
+    { "id": 1, "tasks": ["1.6"] },
+    { "id": 2, "tasks": ["1.7"] },
+    { "id": 3, "tasks": ["3.1", "4.1", "5.1", "6.1", "7.1"] },
+    { "id": 4, "tasks": ["3.2", "3.3", "4.2", "5.2", "6.2", "7.2"] },
+    { "id": 5, "tasks": ["4.3", "5.3", "6.3", "6.4", "8.1"] },
+    { "id": 6, "tasks": ["9.1"] },
+    { "id": 7, "tasks": ["11.1"] },
+    { "id": 8, "tasks": ["11.2", "12.1"] },
+    { "id": 9, "tasks": ["12.2", "13.1", "14.1", "15.1", "16.1"] },
+    { "id": 10, "tasks": ["13.2", "14.2", "15.2", "16.2"] },
+    { "id": 11, "tasks": ["16.3", "17.1", "17.2", "17.3", "17.4"] },
+    { "id": 12, "tasks": ["19.1"] },
+    { "id": 13, "tasks": ["20.1", "20.2", "21.1", "21.2", "22.1", "22.2", "23.1", "23.2", "24.1", "24.2"] },
+    { "id": 14, "tasks": ["25.1", "25.2", "25.3"] },
+    { "id": 15, "tasks": ["27.1"] },
+    { "id": 16, "tasks": ["28.1"] },
+    { "id": 17, "tasks": ["28.2", "29.1"] },
+    { "id": 18, "tasks": ["29.2"] },
+    { "id": 19, "tasks": ["30.1"] }
+  ]
+}
+```

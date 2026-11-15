@@ -1,0 +1,8041 @@
+{
+ "definitions": {
+  "patch": "3 by 3 pixels, mean of the channels, read from a screenshot with the interface and the room ghosts hidden",
+  "ratio": "(L1 + 0.05) / (L2 + 0.05) with L1 the larger relative luminance (WCAG contrast), 3 decimals",
+  "poolRatio": "poolRatioWcag = (L_in + 0.05) / (L_out + 0.05); poolRatioLum = L_in / L_out; both for two blocks of the SAME tone class (class 0, the commonest cool tone): 'in' is the nearest such block to the pool, outside the halo (centre 125 units or more from the flame, so the halo's amber glow does not add), inside half the pool radius or 125 units whichever is larger; 'out' is the nearest such block to 140 units beyond the pool's edge, at the same distance from the window within about 30 percent. Also read with the halo hidden."
+ },
+ "viewports": {
+  "360x640": {
+   "idle": {
+    "edgeMin": 80.9,
+    "edge": [
+     111.7,
+     100.4,
+     94,
+     94,
+     80.9,
+     93
+    ],
+    "samples": {
+     "200,150": {
+      "block": [
+       136.15843812925732,
+       67.06873768944571
+      ],
+      "board": [
+       38.1,
+       46,
+       61
+      ],
+      "joint": [
+       26,
+       29.7,
+       40.3
+      ],
+      "jointWidth": 5.66,
+      "wallPatch": [
+       38.1,
+       46,
+       61
+      ],
+      "boardToNight": 1.478,
+      "jointVsBoard": 1.225
+     },
+     "400,150": {
+      "block": [
+       493.1635247707368,
+       148.6388082317342
+      ],
+      "board": [
+       38,
+       45.9,
+       60.9
+      ],
+      "joint": [
+       23.7,
+       27.2,
+       37
+      ],
+      "jointWidth": 6.11,
+      "wallPatch": [
+       38,
+       45.9,
+       60.9
+      ],
+      "boardToNight": 1.476,
+      "jointVsBoard": 1.258
+     },
+     "120,500": {
+      "block": [
+       83.65173674179232,
+       544.918918554026
+      ],
+      "board": [
+       33,
+       38.4,
+       53
+      ],
+      "joint": [
+       24,
+       26.8,
+       36.3
+      ],
+      "jointWidth": 4.77,
+      "wallPatch": [
+       33,
+       38.4,
+       53
+      ],
+      "boardToNight": 1.341,
+      "jointVsBoard": 1.147
+     },
+     "480,500": {
+      "block": [
+       533.9012437412048,
+       541.6356428252325
+      ],
+      "board": [
+       31,
+       36,
+       51
+      ],
+      "joint": [
+       23.1,
+       25.6,
+       35
+      ],
+      "jointWidth": 4.95,
+      "wallPatch": [
+       31,
+       36,
+       51
+      ],
+      "boardToNight": 1.303,
+      "jointVsBoard": 1.127
+     }
+    },
+    "parts": {
+     "table": [
+      34.7,
+      30.8,
+      30.4
+     ],
+     "frame": [
+      32,
+      38,
+      53.8
+     ],
+     "doorWood": [
+      27.9,
+      22.2,
+      19.9
+     ],
+     "glass": [
+      19,
+      28,
+      49.7
+     ],
+     "wall": [
+      38,
+      45,
+      61
+     ]
+    },
+    "partsToNight": {
+     "table": 1.231,
+     "frame": 1.335,
+     "doorWood": 1.127,
+     "glass": 1.189,
+     "wall": 1.463
+    },
+    "frameVsGlass": 1.123
+   },
+   "lit-start": {
+    "edgeMin": 154.1,
+    "edge": [
+     224.8,
+     208.8,
+     211.1,
+     211.2,
+     154.1,
+     172.1
+    ],
+    "samples": {
+     "200,150": {
+      "block": [
+       136.15843812925732,
+       67.06873768944571
+      ],
+      "board": [
+       81.8,
+       80.8,
+       85.1
+      ],
+      "joint": [
+       67,
+       60,
+       59
+      ],
+      "jointWidth": 5.66,
+      "wallPatch": [
+       81.8,
+       80.8,
+       85.1
+      ],
+      "boardToNight": 2.551,
+      "jointVsBoard": 1.365
+     },
+     "400,150": {
+      "block": [
+       493.1635247707368,
+       148.6388082317342
+      ],
+      "board": [
+       83.2,
+       82,
+       85.9
+      ],
+      "joint": [
+       65.6,
+       58.7,
+       55
+      ],
+      "jointWidth": 6.11,
+      "wallPatch": [
+       83.2,
+       82,
+       85.9
+      ],
+      "boardToNight": 2.6,
+      "jointVsBoard": 1.424
+     },
+     "120,500": {
+      "block": [
+       83.65173674179232,
+       544.918918554026
+      ],
+      "board": [
+       82,
+       79.3,
+       83.3
+      ],
+      "joint": [
+       70.2,
+       62,
+       58.7
+      ],
+      "jointWidth": 4.77,
+      "wallPatch": [
+       82,
+       79.3,
+       83.3
+      ],
+      "boardToNight": 2.505,
+      "jointVsBoard": 1.297
+     },
+     "480,500": {
+      "block": [
+       533.9012437412048,
+       541.6356428252325
+      ],
+      "board": [
+       79.1,
+       76,
+       79.4
+      ],
+      "joint": [
+       68.9,
+       60.3,
+       56.4
+      ],
+      "jointWidth": 4.95,
+      "wallPatch": [
+       79.1,
+       76,
+       79.4
+      ],
+      "boardToNight": 2.38,
+      "jointVsBoard": 1.264
+     }
+    },
+    "parts": {
+     "table": [
+      64.1,
+      52.2,
+      43.7
+     ],
+     "frame": [
+      75,
+      71,
+      74
+     ],
+     "doorWood": [
+      54.2,
+      40.8,
+      28.1
+     ],
+     "glass": [
+      19,
+      28,
+      49.7
+     ],
+     "wall": [
+      83,
+      80,
+      84.2
+     ]
+    },
+    "partsToNight": {
+     "table": 1.678,
+     "frame": 2.205,
+     "doorWood": 1.428,
+     "glass": 1.189,
+     "wall": 2.536
+    },
+    "frameVsGlass": 1.855,
+    "maxWallLuminance": 0.0953
+   },
+   "lit-half": {
+    "edgeMin": 100.4,
+    "edge": [
+     111.7,
+     100.4,
+     176.2,
+     176.2,
+     116.6,
+     133.3
+    ],
+    "samples": {
+     "200,150": {
+      "block": [
+       136.15843812925732,
+       67.06873768944571
+      ],
+      "board": [
+       38.1,
+       46,
+       61
+      ],
+      "joint": [
+       26,
+       29.7,
+       40.3
+      ],
+      "jointWidth": 5.66,
+      "wallPatch": [
+       38.1,
+       46,
+       61
+      ],
+      "boardToNight": 1.478,
+      "jointVsBoard": 1.225
+     },
+     "400,150": {
+      "block": [
+       493.1635247707368,
+       148.6388082317342
+      ],
+      "board": [
+       38,
+       45.9,
+       60.9
+      ],
+      "joint": [
+       23.7,
+       27.2,
+       37
+      ],
+      "jointWidth": 6.11,
+      "wallPatch": [
+       38,
+       45.9,
+       60.9
+      ],
+      "boardToNight": 1.476,
+      "jointVsBoard": 1.258
+     },
+     "120,500": {
+      "block": [
+       83.65173674179232,
+       544.918918554026
+      ],
+      "board": [
+       78.8,
+       76.6,
+       81.6
+      ],
+      "joint": [
+       67.3,
+       60.4,
+       58.6
+      ],
+      "jointWidth": 4.77,
+      "wallPatch": [
+       78.8,
+       76.6,
+       81.6
+      ],
+      "boardToNight": 2.399,
+      "jointVsBoard": 1.278
+     },
+     "480,500": {
+      "block": [
+       533.9012437412048,
+       541.6356428252325
+      ],
+      "board": [
+       74.3,
+       72,
+       78
+      ],
+      "joint": [
+       64.9,
+       57.2,
+       56
+      ],
+      "jointWidth": 4.95,
+      "wallPatch": [
+       74.3,
+       72,
+       78
+      ],
+      "boardToNight": 2.235,
+      "jointVsBoard": 1.246
+     }
+    },
+    "parts": {
+     "table": [
+      56,
+      47,
+      40.6
+     ],
+     "frame": [
+      32,
+      38,
+      53.8
+     ],
+     "doorWood": [
+      43.3,
+      33.7,
+      25.2
+     ],
+     "glass": [
+      19,
+      28,
+      49.7
+     ],
+     "wall": [
+      38,
+      45,
+      61
+     ]
+    },
+    "partsToNight": {
+     "table": 1.541,
+     "frame": 1.335,
+     "doorWood": 1.289,
+     "glass": 1.189,
+     "wall": 1.463
+    },
+    "frameVsGlass": 1.123,
+    "maxWallLuminance": 0.0879
+   },
+   "last-minute": {
+    "edgeMin": 80.9,
+    "edge": [
+     111.7,
+     100.4,
+     94,
+     94,
+     80.9,
+     93
+    ],
+    "samples": {
+     "200,150": {
+      "block": [
+       136.15843812925732,
+       67.06873768944571
+      ],
+      "board": [
+       38.1,
+       46,
+       61
+      ],
+      "joint": [
+       26,
+       29.7,
+       40.3
+      ],
+      "jointWidth": 5.66,
+      "wallPatch": [
+       38.1,
+       46,
+       61
+      ],
+      "boardToNight": 1.478,
+      "jointVsBoard": 1.225
+     },
+     "400,150": {
+      "block": [
+       493.1635247707368,
+       148.6388082317342
+      ],
+      "board": [
+       38,
+       45.9,
+       60.9
+      ],
+      "joint": [
+       23.7,
+       27.2,
+       37
+      ],
+      "jointWidth": 6.11,
+      "wallPatch": [
+       38,
+       45.9,
+       60.9
+      ],
+      "boardToNight": 1.476,
+      "jointVsBoard": 1.258
+     },
+     "120,500": {
+      "block": [
+       83.65173674179232,
+       544.918918554026
+      ],
+      "board": [
+       33,
+       38.4,
+       53
+      ],
+      "joint": [
+       24,
+       26.8,
+       36.3
+      ],
+      "jointWidth": 4.77,
+      "wallPatch": [
+       33,
+       38.4,
+       53
+      ],
+      "boardToNight": 1.341,
+      "jointVsBoard": 1.147
+     },
+     "480,500": {
+      "block": [
+       533.9012437412048,
+       541.6356428252325
+      ],
+      "board": [
+       31,
+       36,
+       51
+      ],
+      "joint": [
+       23.1,
+       25.6,
+       35
+      ],
+      "jointWidth": 4.95,
+      "wallPatch": [
+       31,
+       36,
+       51
+      ],
+      "boardToNight": 1.303,
+      "jointVsBoard": 1.127
+     }
+    },
+    "parts": {
+     "table": [
+      34.7,
+      30.8,
+      30.4
+     ],
+     "frame": [
+      32,
+      38,
+      53.8
+     ],
+     "doorWood": [
+      27.9,
+      22.2,
+      19.9
+     ],
+     "glass": [
+      19,
+      28,
+      49.7
+     ],
+     "wall": [
+      38,
+      45,
+      61
+     ]
+    },
+    "partsToNight": {
+     "table": 1.231,
+     "frame": 1.335,
+     "doorWood": 1.127,
+     "glass": 1.189,
+     "wall": 1.463
+    },
+    "frameVsGlass": 1.123,
+    "maxWallLuminance": 0.0294
+   },
+   "paused": {
+    "edgeMin": 100.4,
+    "edge": [
+     111.7,
+     100.4,
+     176.2,
+     176.2,
+     116.6,
+     133.3
+    ],
+    "samples": {
+     "200,150": {
+      "block": [
+       136.15843812925732,
+       67.06873768944571
+      ],
+      "board": [
+       38.1,
+       46,
+       61
+      ],
+      "joint": [
+       26,
+       29.7,
+       40.3
+      ],
+      "jointWidth": 5.66,
+      "wallPatch": [
+       38.1,
+       46,
+       61
+      ],
+      "boardToNight": 1.478,
+      "jointVsBoard": 1.225
+     },
+     "400,150": {
+      "block": [
+       493.1635247707368,
+       148.6388082317342
+      ],
+      "board": [
+       38,
+       45.9,
+       60.9
+      ],
+      "joint": [
+       23.7,
+       27.2,
+       37
+      ],
+      "jointWidth": 6.11,
+      "wallPatch": [
+       38,
+       45.9,
+       60.9
+      ],
+      "boardToNight": 1.476,
+      "jointVsBoard": 1.258
+     },
+     "120,500": {
+      "block": [
+       83.65173674179232,
+       544.918918554026
+      ],
+      "board": [
+       78.8,
+       76.6,
+       81.6
+      ],
+      "joint": [
+       67.3,
+       60.4,
+       58.6
+      ],
+      "jointWidth": 4.77,
+      "wallPatch": [
+       78.8,
+       76.6,
+       81.6
+      ],
+      "boardToNight": 2.399,
+      "jointVsBoard": 1.278
+     },
+     "480,500": {
+      "block": [
+       533.9012437412048,
+       541.6356428252325
+      ],
+      "board": [
+       74.3,
+       72,
+       78
+      ],
+      "joint": [
+       64.9,
+       57.2,
+       56
+      ],
+      "jointWidth": 4.95,
+      "wallPatch": [
+       74.3,
+       72,
+       78
+      ],
+      "boardToNight": 2.235,
+      "jointVsBoard": 1.246
+     }
+    },
+    "parts": {
+     "table": [
+      56,
+      47,
+      40.6
+     ],
+     "frame": [
+      32,
+      38,
+      53.8
+     ],
+     "doorWood": [
+      43.3,
+      33.7,
+      25.2
+     ],
+     "glass": [
+      19,
+      28,
+      49.7
+     ],
+     "wall": [
+      38,
+      45,
+      61
+     ]
+    },
+    "partsToNight": {
+     "table": 1.541,
+     "frame": 1.335,
+     "doorWood": 1.289,
+     "glass": 1.189,
+     "wall": 1.463
+    },
+    "frameVsGlass": 1.123
+   },
+   "burned-out": {
+    "edgeMin": 215.3,
+    "edge": [
+     243.4,
+     240,
+     227.1,
+     227.3,
+     215.3,
+     218.9
+    ],
+    "samples": {
+     "200,150": {
+      "block": [
+       136.15843812925732,
+       67.06873768944571
+      ],
+      "board": [
+       74.6,
+       88.2,
+       116
+      ],
+      "joint": [
+       71.8,
+       82.7,
+       108.2
+      ],
+      "jointWidth": 5.66,
+      "wallPatch": [
+       74.6,
+       88.2,
+       116
+      ],
+      "boardToNight": 2.83,
+      "jointVsBoard": 1.085
+     },
+     "400,150": {
+      "block": [
+       493.1635247707368,
+       148.6388082317342
+      ],
+      "board": [
+       75.9,
+       87,
+       113
+      ],
+      "joint": [
+       71.9,
+       80.9,
+       104.3
+      ],
+      "jointWidth": 6.11,
+      "wallPatch": [
+       75.9,
+       87,
+       113
+      ],
+      "boardToNight": 2.789,
+      "jointVsBoard": 1.097
+     },
+     "120,500": {
+      "block": [
+       83.65173674179232,
+       544.918918554026
+      ],
+      "board": [
+       80.6,
+       78.9,
+       96.6
+      ],
+      "joint": [
+       78.6,
+       74.4,
+       89.7
+      ],
+      "jointWidth": 4.77,
+      "wallPatch": [
+       80.6,
+       78.9,
+       96.6
+      ],
+      "boardToNight": 2.525,
+      "jointVsBoard": 1.068
+     },
+     "480,500": {
+      "block": [
+       533.9012437412048,
+       541.6356428252325
+      ],
+      "board": [
+       79.7,
+       78.3,
+       95.8
+      ],
+      "joint": [
+       78.1,
+       74.3,
+       89.4
+      ],
+      "jointWidth": 4.95,
+      "wallPatch": [
+       79.7,
+       78.3,
+       95.8
+      ],
+      "boardToNight": 2.498,
+      "jointVsBoard": 1.06
+     }
+    },
+    "parts": {
+     "table": [
+      86.1,
+      71.4,
+      77.4
+     ],
+     "frame": [
+      73.9,
+      84.3,
+      110.6
+     ],
+     "doorWood": [
+      83.7,
+      69.4,
+      75.3
+     ],
+     "glass": [
+      86,
+      102,
+      131
+     ],
+     "wall": [
+      75.8,
+      86.6,
+      113
+     ]
+    },
+    "partsToNight": {
+     "table": 2.318,
+     "frame": 2.681,
+     "doorWood": 2.242,
+     "glass": 3.476,
+     "wall": 2.776
+    },
+    "frameVsGlass": 1.296
+   },
+   "snuffed": {
+    "edgeMin": 15.1,
+    "edge": [
+     20,
+     17,
+     17.8,
+     17.9,
+     15.1,
+     17.9
+    ],
+    "samples": {
+     "200,150": {
+      "block": [
+       136.15843812925732,
+       67.06873768944571
+      ],
+      "board": [
+       11,
+       13,
+       22
+      ],
+      "joint": [
+       8.7,
+       10.3,
+       17.7
+      ],
+      "jointWidth": 5.66,
+      "wallPatch": [
+       11,
+       13,
+       22
+      ],
+      "boardToNight": 1.039,
+      "jointVsBoard": 1.018
+     },
+     "400,150": {
+      "block": [
+       493.1635247707368,
+       148.6388082317342
+      ],
+      "board": [
+       11,
+       13,
+       22
+      ],
+      "joint": [
+       8.3,
+       10,
+       17.3
+      ],
+      "jointWidth": 6.11,
+      "wallPatch": [
+       11,
+       13,
+       22
+      ],
+      "boardToNight": 1.039,
+      "jointVsBoard": 1.02
+     },
+     "120,500": {
+      "block": [
+       83.65173674179232,
+       544.918918554026
+      ],
+      "board": [
+       10,
+       12.6,
+       20
+      ],
+      "joint": [
+       8.3,
+       11,
+       16.8
+      ],
+      "jointWidth": 4.77,
+      "wallPatch": [
+       10,
+       12.6,
+       20
+      ],
+      "boardToNight": 1.034,
+      "jointVsBoard": 1.011
+     },
+     "480,500": {
+      "block": [
+       533.9012437412048,
+       541.6356428252325
+      ],
+      "board": [
+       10,
+       12.4,
+       20
+      ],
+      "joint": [
+       8.2,
+       10.7,
+       16.9
+      ],
+      "jointWidth": 4.95,
+      "wallPatch": [
+       10,
+       12.4,
+       20
+      ],
+      "boardToNight": 1.033,
+      "jointVsBoard": 1.012
+     }
+    },
+    "parts": {
+     "table": [
+      10.8,
+      11.6,
+      15.9
+     ],
+     "frame": [
+      10,
+      12,
+      20
+     ],
+     "doorWood": [
+      9.4,
+      10,
+      13.9
+     ],
+     "glass": [
+      19,
+      28,
+      49.7
+     ],
+     "wall": [
+      11,
+      13,
+      22
+     ]
+    },
+    "partsToNight": {
+     "table": 1.028,
+     "frame": 1.032,
+     "doorWood": 1.018,
+     "glass": 1.189,
+     "wall": 1.039
+    },
+    "frameVsGlass": 1.152
+   },
+   "idleOverSnuffed": {
+    "200,150": 1.422,
+    "400,150": 1.42,
+    "120,500": 1.297,
+    "480,500": 1.261
+   },
+   "snuffedNotBrighter": {
+    "idle": true,
+    "lit-start": true,
+    "lit-half": true,
+    "last-minute": true,
+    "paused": true,
+    "burned-out": true
+   }
+  },
+  "375x667": {
+   "idle": {
+    "edgeMin": 85.5,
+    "edge": [
+     111.7,
+     100.4,
+     94,
+     94,
+     85.5,
+     93
+    ],
+    "samples": {
+     "200,150": {
+      "block": [
+       136.15843812925732,
+       67.06873768944571
+      ],
+      "board": [
+       38.1,
+       46,
+       61
+      ],
+      "joint": [
+       23.3,
+       26.3,
+       36.3
+      ],
+      "jointWidth": 5.66,
+      "wallPatch": [
+       38.1,
+       46,
+       61
+      ],
+      "boardToNight": 1.478,
+      "jointVsBoard": 1.27
+     },
+     "400,150": {
+      "block": [
+       493.1635247707368,
+       148.6388082317342
+      ],
+      "board": [
+       38,
+       46,
+       61
+      ],
+      "joint": [
+       22.7,
+       25.7,
+       34.9
+      ],
+      "jointWidth": 6.11,
+      "wallPatch": [
+       38,
+       46,
+       61
+      ],
+      "boardToNight": 1.478,
+      "jointVsBoard": 1.279
+     },
+     "120,500": {
+      "block": [
+       83.65173674179232,
+       544.918918554026
+      ],
+      "board": [
+       33,
+       38.7,
+       53
+      ],
+      "joint": [
+       24.4,
+       27.3,
+       36.9
+      ],
+      "jointWidth": 4.77,
+      "wallPatch": [
+       33,
+       38.7,
+       53
+      ],
+      "boardToNight": 1.345,
+      "jointVsBoard": 1.144
+     },
+     "480,500": {
+      "block": [
+       533.9012437412048,
+       541.6356428252325
+      ],
+      "board": [
+       31,
+       36,
+       51
+      ],
+      "joint": [
+       21.4,
+       23.3,
+       31.4
+      ],
+      "jointWidth": 4.95,
+      "wallPatch": [
+       31,
+       36,
+       51
+      ],
+      "boardToNight": 1.303,
+      "jointVsBoard": 1.153
+     }
+    },
+    "parts": {
+     "table": [
+      35.7,
+      30.7,
+      29.4
+     ],
+     "frame": [
+      32,
+      38,
+      53.9
+     ],
+     "doorWood": [
+      27.7,
+      22.3,
+      20
+     ],
+     "glass": [
+      19,
+      28,
+      49.7
+     ],
+     "wall": [
+      38,
+      45,
+      61
+     ]
+    },
+    "partsToNight": {
+     "table": 1.232,
+     "frame": 1.335,
+     "doorWood": 1.128,
+     "glass": 1.189,
+     "wall": 1.463
+    },
+    "frameVsGlass": 1.123
+   },
+   "lit-start": {
+    "edgeMin": 160.6,
+    "edge": [
+     224.8,
+     208.7,
+     211.1,
+     211.1,
+     160.6,
+     171.9
+    ],
+    "samples": {
+     "200,150": {
+      "block": [
+       136.15843812925732,
+       67.06873768944571
+      ],
+      "board": [
+       81.9,
+       80.9,
+       85.2
+      ],
+      "joint": [
+       64,
+       55.8,
+       54
+      ],
+      "jointWidth": 5.66,
+      "wallPatch": [
+       81.9,
+       80.9,
+       85.2
+      ],
+      "boardToNight": 2.555,
+      "jointVsBoard": 1.453
+     },
+     "400,150": {
+      "block": [
+       493.1635247707368,
+       148.6388082317342
+      ],
+      "board": [
+       83,
+       82,
+       86
+      ],
+      "joint": [
+       64,
+       56.8,
+       52.3
+      ],
+      "jointWidth": 6.11,
+      "wallPatch": [
+       83,
+       82,
+       86
+      ],
+      "boardToNight": 2.598,
+      "jointVsBoard": 1.465
+     },
+     "120,500": {
+      "block": [
+       83.65173674179232,
+       544.918918554026
+      ],
+      "board": [
+       82,
+       79.4,
+       83.1
+      ],
+      "joint": [
+       70.9,
+       62.7,
+       59.8
+      ],
+      "jointWidth": 4.77,
+      "wallPatch": [
+       82,
+       79.4,
+       83.1
+      ],
+      "boardToNight": 2.507,
+      "jointVsBoard": 1.284
+     },
+     "480,500": {
+      "block": [
+       533.9012437412048,
+       541.6356428252325
+      ],
+      "board": [
+       79.1,
+       76,
+       79.2
+      ],
+      "joint": [
+       66.4,
+       57,
+       51.1
+      ],
+      "jointWidth": 4.95,
+      "wallPatch": [
+       79.1,
+       76,
+       79.2
+      ],
+      "boardToNight": 2.379,
+      "jointVsBoard": 1.328
+     }
+    },
+    "parts": {
+     "table": [
+      65.4,
+      52.9,
+      42
+     ],
+     "frame": [
+      75,
+      71,
+      74
+     ],
+     "doorWood": [
+      54,
+      40.4,
+      27.4
+     ],
+     "glass": [
+      19,
+      28,
+      49.7
+     ],
+     "wall": [
+      83,
+      80,
+      84.1
+     ]
+    },
+    "partsToNight": {
+     "table": 1.696,
+     "frame": 2.205,
+     "doorWood": 1.421,
+     "glass": 1.189,
+     "wall": 2.535
+    },
+    "frameVsGlass": 1.855,
+    "maxWallLuminance": 0.0953
+   },
+   "lit-half": {
+    "edgeMin": 100.4,
+    "edge": [
+     111.7,
+     100.4,
+     175.9,
+     175.9,
+     122.2,
+     132.6
+    ],
+    "samples": {
+     "200,150": {
+      "block": [
+       136.15843812925732,
+       67.06873768944571
+      ],
+      "board": [
+       38.1,
+       46,
+       61
+      ],
+      "joint": [
+       23.3,
+       26.3,
+       36.3
+      ],
+      "jointWidth": 5.66,
+      "wallPatch": [
+       38.1,
+       46,
+       61
+      ],
+      "boardToNight": 1.478,
+      "jointVsBoard": 1.27
+     },
+     "400,150": {
+      "block": [
+       493.1635247707368,
+       148.6388082317342
+      ],
+      "board": [
+       38,
+       46,
+       61
+      ],
+      "joint": [
+       22.7,
+       25.7,
+       34.9
+      ],
+      "jointWidth": 6.11,
+      "wallPatch": [
+       38,
+       46,
+       61
+      ],
+      "boardToNight": 1.478,
+      "jointVsBoard": 1.279
+     },
+     "120,500": {
+      "block": [
+       83.65173674179232,
+       544.918918554026
+      ],
+      "board": [
+       78.9,
+       76.8,
+       81.3
+      ],
+      "joint": [
+       67.4,
+       61.2,
+       59
+      ],
+      "jointWidth": 4.77,
+      "wallPatch": [
+       78.9,
+       76.8,
+       81.3
+      ],
+      "boardToNight": 2.405,
+      "jointVsBoard": 1.269
+     },
+     "480,500": {
+      "block": [
+       533.9012437412048,
+       541.6356428252325
+      ],
+      "board": [
+       74.2,
+       72,
+       78
+      ],
+      "joint": [
+       62.4,
+       54.1,
+       50.7
+      ],
+      "jointWidth": 4.95,
+      "wallPatch": [
+       74.2,
+       72,
+       78
+      ],
+      "boardToNight": 2.234,
+      "jointVsBoard": 1.306
+     }
+    },
+    "parts": {
+     "table": [
+      57.2,
+      47.6,
+      39.1
+     ],
+     "frame": [
+      32,
+      38,
+      53.9
+     ],
+     "doorWood": [
+      43.1,
+      33,
+      24.9
+     ],
+     "glass": [
+      19,
+      28,
+      49.7
+     ],
+     "wall": [
+      38,
+      45,
+      61
+     ]
+    },
+    "partsToNight": {
+     "table": 1.555,
+     "frame": 1.335,
+     "doorWood": 1.28,
+     "glass": 1.189,
+     "wall": 1.463
+    },
+    "frameVsGlass": 1.123,
+    "maxWallLuminance": 0.0873
+   },
+   "last-minute": {
+    "edgeMin": 85.5,
+    "edge": [
+     111.7,
+     100.4,
+     94,
+     94,
+     85.5,
+     93
+    ],
+    "samples": {
+     "200,150": {
+      "block": [
+       136.15843812925732,
+       67.06873768944571
+      ],
+      "board": [
+       38.1,
+       46,
+       61
+      ],
+      "joint": [
+       23.3,
+       26.3,
+       36.3
+      ],
+      "jointWidth": 5.66,
+      "wallPatch": [
+       38.1,
+       46,
+       61
+      ],
+      "boardToNight": 1.478,
+      "jointVsBoard": 1.27
+     },
+     "400,150": {
+      "block": [
+       493.1635247707368,
+       148.6388082317342
+      ],
+      "board": [
+       38,
+       46,
+       61
+      ],
+      "joint": [
+       22.7,
+       25.7,
+       34.9
+      ],
+      "jointWidth": 6.11,
+      "wallPatch": [
+       38,
+       46,
+       61
+      ],
+      "boardToNight": 1.478,
+      "jointVsBoard": 1.279
+     },
+     "120,500": {
+      "block": [
+       83.65173674179232,
+       544.918918554026
+      ],
+      "board": [
+       33,
+       38.7,
+       53
+      ],
+      "joint": [
+       24.4,
+       27.3,
+       36.9
+      ],
+      "jointWidth": 4.77,
+      "wallPatch": [
+       33,
+       38.7,
+       53
+      ],
+      "boardToNight": 1.345,
+      "jointVsBoard": 1.144
+     },
+     "480,500": {
+      "block": [
+       533.9012437412048,
+       541.6356428252325
+      ],
+      "board": [
+       31,
+       36,
+       51
+      ],
+      "joint": [
+       21.4,
+       23.3,
+       31.4
+      ],
+      "jointWidth": 4.95,
+      "wallPatch": [
+       31,
+       36,
+       51
+      ],
+      "boardToNight": 1.303,
+      "jointVsBoard": 1.153
+     }
+    },
+    "parts": {
+     "table": [
+      35.7,
+      30.7,
+      29.4
+     ],
+     "frame": [
+      32,
+      38,
+      53.9
+     ],
+     "doorWood": [
+      27.7,
+      22.3,
+      20
+     ],
+     "glass": [
+      19,
+      28,
+      49.7
+     ],
+     "wall": [
+      38,
+      45,
+      61
+     ]
+    },
+    "partsToNight": {
+     "table": 1.232,
+     "frame": 1.335,
+     "doorWood": 1.128,
+     "glass": 1.189,
+     "wall": 1.463
+    },
+    "frameVsGlass": 1.123,
+    "maxWallLuminance": 0.0294
+   },
+   "paused": {
+    "edgeMin": 100.4,
+    "edge": [
+     111.7,
+     100.4,
+     175.9,
+     175.9,
+     122.2,
+     132.6
+    ],
+    "samples": {
+     "200,150": {
+      "block": [
+       136.15843812925732,
+       67.06873768944571
+      ],
+      "board": [
+       38.1,
+       46,
+       61
+      ],
+      "joint": [
+       23.3,
+       26.3,
+       36.3
+      ],
+      "jointWidth": 5.66,
+      "wallPatch": [
+       38.1,
+       46,
+       61
+      ],
+      "boardToNight": 1.478,
+      "jointVsBoard": 1.27
+     },
+     "400,150": {
+      "block": [
+       493.1635247707368,
+       148.6388082317342
+      ],
+      "board": [
+       38,
+       46,
+       61
+      ],
+      "joint": [
+       22.7,
+       25.7,
+       34.9
+      ],
+      "jointWidth": 6.11,
+      "wallPatch": [
+       38,
+       46,
+       61
+      ],
+      "boardToNight": 1.478,
+      "jointVsBoard": 1.279
+     },
+     "120,500": {
+      "block": [
+       83.65173674179232,
+       544.918918554026
+      ],
+      "board": [
+       78.9,
+       76.8,
+       81.3
+      ],
+      "joint": [
+       67.4,
+       61.2,
+       59
+      ],
+      "jointWidth": 4.77,
+      "wallPatch": [
+       78.9,
+       76.8,
+       81.3
+      ],
+      "boardToNight": 2.405,
+      "jointVsBoard": 1.269
+     },
+     "480,500": {
+      "block": [
+       533.9012437412048,
+       541.6356428252325
+      ],
+      "board": [
+       74.2,
+       72,
+       78
+      ],
+      "joint": [
+       62.4,
+       54.1,
+       50.7
+      ],
+      "jointWidth": 4.95,
+      "wallPatch": [
+       74.2,
+       72,
+       78
+      ],
+      "boardToNight": 2.234,
+      "jointVsBoard": 1.306
+     }
+    },
+    "parts": {
+     "table": [
+      57.2,
+      47.6,
+      39.1
+     ],
+     "frame": [
+      32,
+      38,
+      53.9
+     ],
+     "doorWood": [
+      43.1,
+      33,
+      24.9
+     ],
+     "glass": [
+      19,
+      28,
+      49.7
+     ],
+     "wall": [
+      38,
+      45,
+      61
+     ]
+    },
+    "partsToNight": {
+     "table": 1.555,
+     "frame": 1.335,
+     "doorWood": 1.28,
+     "glass": 1.189,
+     "wall": 1.463
+    },
+    "frameVsGlass": 1.123
+   },
+   "burned-out": {
+    "edgeMin": 216.8,
+    "edge": [
+     243.4,
+     240.3,
+     227.1,
+     227.4,
+     216.8,
+     219.2
+    ],
+    "samples": {
+     "200,150": {
+      "block": [
+       136.15843812925732,
+       67.06873768944571
+      ],
+      "board": [
+       74.4,
+       88.1,
+       115.9
+      ],
+      "joint": [
+       70.8,
+       81.7,
+       107.2
+      ],
+      "jointWidth": 5.66,
+      "wallPatch": [
+       74.4,
+       88.1,
+       115.9
+      ],
+      "boardToNight": 2.825,
+      "jointVsBoard": 1.1
+     },
+     "400,150": {
+      "block": [
+       493.1635247707368,
+       148.6388082317342
+      ],
+      "board": [
+       75.9,
+       87,
+       113
+      ],
+      "joint": [
+       71.7,
+       80.3,
+       104
+      ],
+      "jointWidth": 6.11,
+      "wallPatch": [
+       75.9,
+       87,
+       113
+      ],
+      "boardToNight": 2.789,
+      "jointVsBoard": 1.106
+     },
+     "120,500": {
+      "block": [
+       83.65173674179232,
+       544.918918554026
+      ],
+      "board": [
+       80.2,
+       78.8,
+       96.3
+      ],
+      "joint": [
+       78.4,
+       74.7,
+       89.9
+      ],
+      "jointWidth": 4.77,
+      "wallPatch": [
+       80.2,
+       78.8,
+       96.3
+      ],
+      "boardToNight": 2.518,
+      "jointVsBoard": 1.062
+     },
+     "480,500": {
+      "block": [
+       533.9012437412048,
+       541.6356428252325
+      ],
+      "board": [
+       79.8,
+       78.2,
+       95.9
+      ],
+      "joint": [
+       77.6,
+       73.6,
+       88.4
+      ],
+      "jointWidth": 4.95,
+      "wallPatch": [
+       79.8,
+       78.2,
+       95.9
+      ],
+      "boardToNight": 2.497,
+      "jointVsBoard": 1.071
+     }
+    },
+    "parts": {
+     "table": [
+      86,
+      70.8,
+      76.7
+     ],
+     "frame": [
+      73.7,
+      84.3,
+      110.6
+     ],
+     "doorWood": [
+      83.6,
+      69.1,
+      75.1
+     ],
+     "glass": [
+      86,
+      102,
+      131
+     ],
+     "wall": [
+      75.6,
+      86.4,
+      112.9
+     ]
+    },
+    "partsToNight": {
+     "table": 2.3,
+     "frame": 2.68,
+     "doorWood": 2.234,
+     "glass": 3.476,
+     "wall": 2.768
+    },
+    "frameVsGlass": 1.297
+   },
+   "snuffed": {
+    "edgeMin": 15.7,
+    "edge": [
+     20,
+     17,
+     17.8,
+     17.8,
+     15.7,
+     17.8
+    ],
+    "samples": {
+     "200,150": {
+      "block": [
+       136.15843812925732,
+       67.06873768944571
+      ],
+      "board": [
+       11,
+       13,
+       22
+      ],
+      "joint": [
+       8,
+       9.7,
+       17
+      ],
+      "jointWidth": 5.66,
+      "wallPatch": [
+       11,
+       13,
+       22
+      ],
+      "boardToNight": 1.039,
+      "jointVsBoard": 1.022
+     },
+     "400,150": {
+      "block": [
+       493.1635247707368,
+       148.6388082317342
+      ],
+      "board": [
+       11,
+       13,
+       22
+      ],
+      "joint": [
+       8,
+       9.3,
+       17
+      ],
+      "jointWidth": 6.11,
+      "wallPatch": [
+       11,
+       13,
+       22
+      ],
+      "boardToNight": 1.039,
+      "jointVsBoard": 1.023
+     },
+     "120,500": {
+      "block": [
+       83.65173674179232,
+       544.918918554026
+      ],
+      "board": [
+       10,
+       12.3,
+       20
+      ],
+      "joint": [
+       8.7,
+       11,
+       17.2
+      ],
+      "jointWidth": 4.77,
+      "wallPatch": [
+       10,
+       12.3,
+       20
+      ],
+      "boardToNight": 1.033,
+      "jointVsBoard": 1.009
+     },
+     "480,500": {
+      "block": [
+       533.9012437412048,
+       541.6356428252325
+      ],
+      "board": [
+       10,
+       12.3,
+       19.9
+      ],
+      "joint": [
+       8,
+       10.1,
+       16.1
+      ],
+      "jointWidth": 4.95,
+      "wallPatch": [
+       10,
+       12.3,
+       19.9
+      ],
+      "boardToNight": 1.033,
+      "jointVsBoard": 1.014
+     }
+    },
+    "parts": {
+     "table": [
+      10.4,
+      11.1,
+      15.1
+     ],
+     "frame": [
+      10,
+      12,
+      20
+     ],
+     "doorWood": [
+      9.3,
+      10,
+      14
+     ],
+     "glass": [
+      19,
+      28,
+      49.7
+     ],
+     "wall": [
+      11,
+      13,
+      22
+     ]
+    },
+    "partsToNight": {
+     "table": 1.025,
+     "frame": 1.032,
+     "doorWood": 1.018,
+     "glass": 1.189,
+     "wall": 1.039
+    },
+    "frameVsGlass": 1.152
+   },
+   "idleOverSnuffed": {
+    "200,150": 1.422,
+    "400,150": 1.422,
+    "120,500": 1.302,
+    "480,500": 1.261
+   },
+   "snuffedNotBrighter": {
+    "idle": true,
+    "lit-start": true,
+    "lit-half": true,
+    "last-minute": true,
+    "paused": true,
+    "burned-out": true
+   }
+  },
+  "768x1024": {
+   "idle": {
+    "edgeMin": 76.1,
+    "edge": [
+     96.3,
+     86.1,
+     84.2,
+     84.1,
+     76.1,
+     84.2
+    ],
+    "samples": {
+     "200,150": {
+      "block": [
+       136.15843812925732,
+       67.06873768944571
+      ],
+      "board": [
+       38,
+       46,
+       61
+      ],
+      "joint": [
+       22,
+       25,
+       34
+      ],
+      "jointWidth": 5.66,
+      "wallPatch": [
+       38,
+       46,
+       61
+      ],
+      "boardToNight": 1.478,
+      "jointVsBoard": 1.288
+     },
+     "400,150": {
+      "block": [
+       493.1635247707368,
+       148.6388082317342
+      ],
+      "board": [
+       38,
+       45.9,
+       60.9
+      ],
+      "joint": [
+       22,
+       25,
+       34
+      ],
+      "jointWidth": 6.11,
+      "wallPatch": [
+       38,
+       45.9,
+       60.9
+      ],
+      "boardToNight": 1.476,
+      "jointVsBoard": 1.286
+     },
+     "120,500": {
+      "block": [
+       83.65173674179232,
+       544.918918554026
+      ],
+      "board": [
+       33,
+       38.8,
+       53.1
+      ],
+      "joint": [
+       21,
+       22.7,
+       30.3
+      ],
+      "jointWidth": 4.77,
+      "wallPatch": [
+       33,
+       38.8,
+       53.1
+      ],
+      "boardToNight": 1.346,
+      "jointVsBoard": 1.199
+     },
+     "480,500": {
+      "block": [
+       533.9012437412048,
+       541.6356428252325
+      ],
+      "board": [
+       31,
+       36,
+       51
+      ],
+      "joint": [
+       21.1,
+       22.6,
+       30.4
+      ],
+      "jointWidth": 4.95,
+      "wallPatch": [
+       31,
+       36,
+       51
+      ],
+      "boardToNight": 1.303,
+      "jointVsBoard": 1.16
+     }
+    },
+    "parts": {
+     "table": [
+      32.7,
+      31.7,
+      36.1
+     ],
+     "frame": [
+      32,
+      38,
+      53.9
+     ],
+     "doorWood": [
+      26.7,
+      21.2,
+      19.4
+     ],
+     "glass": [
+      20,
+      28.7,
+      50
+     ],
+     "wall": [
+      38,
+      45,
+      61
+     ]
+    },
+    "partsToNight": {
+     "table": 1.24,
+     "frame": 1.335,
+     "doorWood": 1.117,
+     "glass": 1.198,
+     "wall": 1.463
+    },
+    "frameVsGlass": 1.115
+   },
+   "lit-start": {
+    "edgeMin": 139.3,
+    "edge": [
+     213.2,
+     199,
+     199.8,
+     199.7,
+     139.3,
+     150.7
+    ],
+    "samples": {
+     "200,150": {
+      "block": [
+       136.15843812925732,
+       67.06873768944571
+      ],
+      "board": [
+       81.8,
+       80.8,
+       85.1
+      ],
+      "joint": [
+       62,
+       53,
+       51
+      ],
+      "jointWidth": 5.66,
+      "wallPatch": [
+       81.8,
+       80.8,
+       85.1
+      ],
+      "boardToNight": 2.551,
+      "jointVsBoard": 1.509
+     },
+     "400,150": {
+      "block": [
+       493.1635247707368,
+       148.6388082317342
+      ],
+      "board": [
+       83.1,
+       82,
+       85.9
+      ],
+      "joint": [
+       63,
+       56,
+       51
+      ],
+      "jointWidth": 6.11,
+      "wallPatch": [
+       83.1,
+       82,
+       85.9
+      ],
+      "boardToNight": 2.599,
+      "jointVsBoard": 1.485
+     },
+     "120,500": {
+      "block": [
+       83.65173674179232,
+       544.918918554026
+      ],
+      "board": [
+       82,
+       79.4,
+       83.1
+      ],
+      "joint": [
+       66,
+       55.7,
+       50.3
+      ],
+      "jointWidth": 4.77,
+      "wallPatch": [
+       82,
+       79.4,
+       83.1
+      ],
+      "boardToNight": 2.507,
+      "jointVsBoard": 1.422
+     },
+     "480,500": {
+      "block": [
+       533.9012437412048,
+       541.6356428252325
+      ],
+      "board": [
+       79.1,
+       76,
+       79.4
+      ],
+      "joint": [
+       66,
+       55.8,
+       49.8
+      ],
+      "jointWidth": 4.95,
+      "wallPatch": [
+       79.1,
+       76,
+       79.4
+      ],
+      "boardToNight": 2.38,
+      "jointVsBoard": 1.349
+     }
+    },
+    "parts": {
+     "table": [
+      60.7,
+      53.7,
+      51.3
+     ],
+     "frame": [
+      75,
+      71,
+      74
+     ],
+     "doorWood": [
+      52.7,
+      39.3,
+      27
+     ],
+     "glass": [
+      20,
+      28.7,
+      50
+     ],
+     "wall": [
+      83,
+      80,
+      84
+     ]
+    },
+    "partsToNight": {
+     "table": 1.695,
+     "frame": 2.205,
+     "doorWood": 1.4,
+     "glass": 1.198,
+     "wall": 2.535
+    },
+    "frameVsGlass": 1.842,
+    "maxWallLuminance": 0.0953
+   },
+   "lit-half": {
+    "edgeMin": 77.4,
+    "edge": [
+     96.3,
+     86.1,
+     118,
+     118.1,
+     77.4,
+     85.1
+    ],
+    "samples": {
+     "200,150": {
+      "block": [
+       136.15843812925732,
+       67.06873768944571
+      ],
+      "board": [
+       38,
+       46,
+       61
+      ],
+      "joint": [
+       22,
+       25,
+       34
+      ],
+      "jointWidth": 5.66,
+      "wallPatch": [
+       38,
+       46,
+       61
+      ],
+      "boardToNight": 1.478,
+      "jointVsBoard": 1.288
+     },
+     "400,150": {
+      "block": [
+       493.1635247707368,
+       148.6388082317342
+      ],
+      "board": [
+       38,
+       45.9,
+       60.9
+      ],
+      "joint": [
+       22,
+       25,
+       34
+      ],
+      "jointWidth": 6.11,
+      "wallPatch": [
+       38,
+       45.9,
+       60.9
+      ],
+      "boardToNight": 1.476,
+      "jointVsBoard": 1.286
+     },
+     "120,500": {
+      "block": [
+       83.65173674179232,
+       544.918918554026
+      ],
+      "board": [
+       78.9,
+       76.7,
+       81.3
+      ],
+      "joint": [
+       62.3,
+       54.4,
+       49.3
+      ],
+      "jointWidth": 4.77,
+      "wallPatch": [
+       78.9,
+       76.7,
+       81.3
+      ],
+      "boardToNight": 2.402,
+      "jointVsBoard": 1.402
+     },
+     "480,500": {
+      "block": [
+       533.9012437412048,
+       541.6356428252325
+      ],
+      "board": [
+       74,
+       72,
+       78
+      ],
+      "joint": [
+       61.9,
+       52.8,
+       49.6
+      ],
+      "jointWidth": 4.95,
+      "wallPatch": [
+       74,
+       72,
+       78
+      ],
+      "boardToNight": 2.233,
+      "jointVsBoard": 1.326
+     }
+    },
+    "parts": {
+     "table": [
+      53.1,
+      48.4,
+      48
+     ],
+     "frame": [
+      32,
+      38,
+      53.9
+     ],
+     "doorWood": [
+      41.9,
+      32,
+      24.3
+     ],
+     "glass": [
+      20,
+      28.7,
+      50
+     ],
+     "wall": [
+      38,
+      45,
+      61
+     ]
+    },
+    "partsToNight": {
+     "table": 1.558,
+     "frame": 1.335,
+     "doorWood": 1.264,
+     "glass": 1.198,
+     "wall": 1.463
+    },
+    "frameVsGlass": 1.115,
+    "maxWallLuminance": 0.0871
+   },
+   "last-minute": {
+    "edgeMin": 76.1,
+    "edge": [
+     96.3,
+     86.1,
+     84.2,
+     84.1,
+     76.1,
+     84.2
+    ],
+    "samples": {
+     "200,150": {
+      "block": [
+       136.15843812925732,
+       67.06873768944571
+      ],
+      "board": [
+       38,
+       46,
+       61
+      ],
+      "joint": [
+       22,
+       25,
+       34
+      ],
+      "jointWidth": 5.66,
+      "wallPatch": [
+       38,
+       46,
+       61
+      ],
+      "boardToNight": 1.478,
+      "jointVsBoard": 1.288
+     },
+     "400,150": {
+      "block": [
+       493.1635247707368,
+       148.6388082317342
+      ],
+      "board": [
+       38,
+       45.9,
+       60.9
+      ],
+      "joint": [
+       22,
+       25,
+       34
+      ],
+      "jointWidth": 6.11,
+      "wallPatch": [
+       38,
+       45.9,
+       60.9
+      ],
+      "boardToNight": 1.476,
+      "jointVsBoard": 1.286
+     },
+     "120,500": {
+      "block": [
+       83.65173674179232,
+       544.918918554026
+      ],
+      "board": [
+       33,
+       38.8,
+       53.1
+      ],
+      "joint": [
+       21,
+       22.7,
+       30.3
+      ],
+      "jointWidth": 4.77,
+      "wallPatch": [
+       33,
+       38.8,
+       53.1
+      ],
+      "boardToNight": 1.346,
+      "jointVsBoard": 1.199
+     },
+     "480,500": {
+      "block": [
+       533.9012437412048,
+       541.6356428252325
+      ],
+      "board": [
+       31,
+       36,
+       51
+      ],
+      "joint": [
+       21.1,
+       22.6,
+       30.4
+      ],
+      "jointWidth": 4.95,
+      "wallPatch": [
+       31,
+       36,
+       51
+      ],
+      "boardToNight": 1.303,
+      "jointVsBoard": 1.16
+     }
+    },
+    "parts": {
+     "table": [
+      32.7,
+      31.7,
+      36.1
+     ],
+     "frame": [
+      32,
+      38,
+      53.9
+     ],
+     "doorWood": [
+      26.8,
+      21.1,
+      19.4
+     ],
+     "glass": [
+      20,
+      28.7,
+      50
+     ],
+     "wall": [
+      38,
+      45,
+      61
+     ]
+    },
+    "partsToNight": {
+     "table": 1.24,
+     "frame": 1.335,
+     "doorWood": 1.116,
+     "glass": 1.198,
+     "wall": 1.463
+    },
+    "frameVsGlass": 1.115,
+    "maxWallLuminance": 0.0294
+   },
+   "paused": {
+    "edgeMin": 77.4,
+    "edge": [
+     96.3,
+     86.1,
+     118,
+     118.1,
+     77.4,
+     85.1
+    ],
+    "samples": {
+     "200,150": {
+      "block": [
+       136.15843812925732,
+       67.06873768944571
+      ],
+      "board": [
+       38,
+       46,
+       61
+      ],
+      "joint": [
+       22,
+       25,
+       34
+      ],
+      "jointWidth": 5.66,
+      "wallPatch": [
+       38,
+       46,
+       61
+      ],
+      "boardToNight": 1.478,
+      "jointVsBoard": 1.288
+     },
+     "400,150": {
+      "block": [
+       493.1635247707368,
+       148.6388082317342
+      ],
+      "board": [
+       38,
+       45.9,
+       60.9
+      ],
+      "joint": [
+       22,
+       25,
+       34
+      ],
+      "jointWidth": 6.11,
+      "wallPatch": [
+       38,
+       45.9,
+       60.9
+      ],
+      "boardToNight": 1.476,
+      "jointVsBoard": 1.286
+     },
+     "120,500": {
+      "block": [
+       83.65173674179232,
+       544.918918554026
+      ],
+      "board": [
+       78.9,
+       76.7,
+       81.3
+      ],
+      "joint": [
+       62.3,
+       54.4,
+       49.3
+      ],
+      "jointWidth": 4.77,
+      "wallPatch": [
+       78.9,
+       76.7,
+       81.3
+      ],
+      "boardToNight": 2.402,
+      "jointVsBoard": 1.402
+     },
+     "480,500": {
+      "block": [
+       533.9012437412048,
+       541.6356428252325
+      ],
+      "board": [
+       74,
+       72,
+       78
+      ],
+      "joint": [
+       61.9,
+       52.8,
+       49.6
+      ],
+      "jointWidth": 4.95,
+      "wallPatch": [
+       74,
+       72,
+       78
+      ],
+      "boardToNight": 2.233,
+      "jointVsBoard": 1.326
+     }
+    },
+    "parts": {
+     "table": [
+      53.1,
+      48.4,
+      48
+     ],
+     "frame": [
+      32,
+      38,
+      53.9
+     ],
+     "doorWood": [
+      41.9,
+      32,
+      24.3
+     ],
+     "glass": [
+      20,
+      28.7,
+      50
+     ],
+     "wall": [
+      38,
+      45,
+      61
+     ]
+    },
+    "partsToNight": {
+     "table": 1.558,
+     "frame": 1.335,
+     "doorWood": 1.264,
+     "glass": 1.198,
+     "wall": 1.463
+    },
+    "frameVsGlass": 1.115
+   },
+   "burned-out": {
+    "edgeMin": 214.4,
+    "edge": [
+     238.7,
+     235.3,
+     224.1,
+     224.2,
+     214.4,
+     216.3
+    ],
+    "samples": {
+     "200,150": {
+      "block": [
+       136.15843812925732,
+       67.06873768944571
+      ],
+      "board": [
+       74.7,
+       88.2,
+       115.9
+      ],
+      "joint": [
+       70.2,
+       81.2,
+       106.6
+      ],
+      "jointWidth": 5.66,
+      "wallPatch": [
+       74.7,
+       88.2,
+       115.9
+      ],
+      "boardToNight": 2.83,
+      "jointVsBoard": 1.111
+     },
+     "400,150": {
+      "block": [
+       493.1635247707368,
+       148.6388082317342
+      ],
+      "board": [
+       75.9,
+       87,
+       113
+      ],
+      "joint": [
+       71.6,
+       80.2,
+       103.6
+      ],
+      "jointWidth": 6.11,
+      "wallPatch": [
+       75.9,
+       87,
+       113
+      ],
+      "boardToNight": 2.789,
+      "jointVsBoard": 1.108
+     },
+     "120,500": {
+      "block": [
+       83.65173674179232,
+       544.918918554026
+      ],
+      "board": [
+       80.2,
+       78.9,
+       96.3
+      ],
+      "joint": [
+       77.4,
+       73.4,
+       88.1
+      ],
+      "jointWidth": 4.77,
+      "wallPatch": [
+       80.2,
+       78.9,
+       96.3
+      ],
+      "boardToNight": 2.521,
+      "jointVsBoard": 1.084
+     },
+     "480,500": {
+      "block": [
+       533.9012437412048,
+       541.6356428252325
+      ],
+      "board": [
+       79.7,
+       78.3,
+       95.8
+      ],
+      "joint": [
+       77.4,
+       73.3,
+       88.1
+      ],
+      "jointWidth": 4.95,
+      "wallPatch": [
+       79.7,
+       78.3,
+       95.8
+      ],
+      "boardToNight": 2.498,
+      "jointVsBoard": 1.076
+     }
+    },
+    "parts": {
+     "table": [
+      85.3,
+      71.6,
+      79
+     ],
+     "frame": [
+      73.9,
+      84.3,
+      110.7
+     ],
+     "doorWood": [
+      83.2,
+      69,
+      75.1
+     ],
+     "glass": [
+      86,
+      102,
+      131
+     ],
+     "wall": [
+      75.8,
+      86.4,
+      113
+     ]
+    },
+    "partsToNight": {
+     "table": 2.32,
+     "frame": 2.682,
+     "doorWood": 2.228,
+     "glass": 3.476,
+     "wall": 2.77
+    },
+    "frameVsGlass": 1.296
+   },
+   "snuffed": {
+    "edgeMin": 14.4,
+    "edge": [
+     18,
+     15.4,
+     15.1,
+     15.1,
+     14.4,
+     15.7
+    ],
+    "samples": {
+     "200,150": {
+      "block": [
+       136.15843812925732,
+       67.06873768944571
+      ],
+      "board": [
+       11,
+       13,
+       22
+      ],
+      "joint": [
+       8,
+       9,
+       17
+      ],
+      "jointWidth": 5.66,
+      "wallPatch": [
+       11,
+       13,
+       22
+      ],
+      "boardToNight": 1.039,
+      "jointVsBoard": 1.024
+     },
+     "400,150": {
+      "block": [
+       493.1635247707368,
+       148.6388082317342
+      ],
+      "board": [
+       11,
+       13,
+       22
+      ],
+      "joint": [
+       8,
+       9,
+       17
+      ],
+      "jointWidth": 6.11,
+      "wallPatch": [
+       11,
+       13,
+       22
+      ],
+      "boardToNight": 1.039,
+      "jointVsBoard": 1.024
+     },
+     "120,500": {
+      "block": [
+       83.65173674179232,
+       544.918918554026
+      ],
+      "board": [
+       10,
+       12.3,
+       20
+      ],
+      "joint": [
+       8,
+       10,
+       16
+      ],
+      "jointWidth": 4.77,
+      "wallPatch": [
+       10,
+       12.3,
+       20
+      ],
+      "boardToNight": 1.033,
+      "jointVsBoard": 1.015
+     },
+     "480,500": {
+      "block": [
+       533.9012437412048,
+       541.6356428252325
+      ],
+      "board": [
+       10,
+       12.6,
+       19.9
+      ],
+      "joint": [
+       8,
+       10,
+       16
+      ],
+      "jointWidth": 4.95,
+      "wallPatch": [
+       10,
+       12.6,
+       19.9
+      ],
+      "boardToNight": 1.034,
+      "jointVsBoard": 1.016
+     }
+    },
+    "parts": {
+     "table": [
+      10.2,
+      11.9,
+      16.8
+     ],
+     "frame": [
+      10,
+      12,
+      20
+     ],
+     "doorWood": [
+      9.1,
+      9.8,
+      13.8
+     ],
+     "glass": [
+      20,
+      28.7,
+      50
+     ],
+     "wall": [
+      11,
+      13,
+      22
+     ]
+    },
+    "partsToNight": {
+     "table": 1.029,
+     "frame": 1.032,
+     "doorWood": 1.017,
+     "glass": 1.198,
+     "wall": 1.039
+    },
+    "frameVsGlass": 1.161
+   },
+   "idleOverSnuffed": {
+    "200,150": 1.422,
+    "400,150": 1.42,
+    "120,500": 1.303,
+    "480,500": 1.26
+   },
+   "snuffedNotBrighter": {
+    "idle": true,
+    "lit-start": true,
+    "lit-half": true,
+    "last-minute": true,
+    "paused": true,
+    "burned-out": true
+   }
+  },
+  "1280x800": {
+   "idle": {
+    "edgeMin": 13.8,
+    "edge": [
+     15,
+     15,
+     14.3,
+     14,
+     13.9,
+     13.8
+    ],
+    "samples": {
+     "200,150": {
+      "block": [
+       136.15843812925732,
+       67.06873768944571
+      ],
+      "board": [
+       38,
+       46,
+       61
+      ],
+      "joint": [
+       22,
+       25,
+       34
+      ],
+      "jointWidth": 5.66,
+      "wallPatch": [
+       38,
+       46,
+       61
+      ],
+      "boardToNight": 1.478,
+      "jointVsBoard": 1.288
+     },
+     "400,150": {
+      "block": [
+       493.1635247707368,
+       148.6388082317342
+      ],
+      "board": [
+       38,
+       46,
+       61
+      ],
+      "joint": [
+       22,
+       24.9,
+       34
+      ],
+      "jointWidth": 6.11,
+      "wallPatch": [
+       38,
+       46,
+       61
+      ],
+      "boardToNight": 1.478,
+      "jointVsBoard": 1.289
+     },
+     "120,500": {
+      "block": [
+       83.65173674179232,
+       544.918918554026
+      ],
+      "board": [
+       33,
+       38.8,
+       53.1
+      ],
+      "joint": [
+       21.3,
+       23,
+       31
+      ],
+      "jointWidth": 4.77,
+      "wallPatch": [
+       33,
+       38.8,
+       53.1
+      ],
+      "boardToNight": 1.346,
+      "jointVsBoard": 1.195
+     },
+     "480,500": {
+      "block": [
+       533.9012437412048,
+       541.6356428252325
+      ],
+      "board": [
+       31,
+       36,
+       51
+      ],
+      "joint": [
+       21.2,
+       22.9,
+       30.8
+      ],
+      "jointWidth": 4.95,
+      "wallPatch": [
+       31,
+       36,
+       51
+      ],
+      "boardToNight": 1.303,
+      "jointVsBoard": 1.157
+     }
+    },
+    "parts": {
+     "table": [
+      33.8,
+      31.4,
+      33.6
+     ],
+     "frame": [
+      32,
+      38,
+      53.8
+     ],
+     "doorWood": [
+      27.2,
+      21.9,
+      19.7
+     ],
+     "glass": [
+      19,
+      28,
+      50
+     ],
+     "wall": [
+      38,
+      45,
+      61
+     ]
+    },
+    "partsToNight": {
+     "table": 1.237,
+     "frame": 1.335,
+     "doorWood": 1.123,
+     "glass": 1.189,
+     "wall": 1.463
+    },
+    "frameVsGlass": 1.122
+   },
+   "lit-start": {
+    "edgeMin": 13.8,
+    "edge": [
+     15,
+     15,
+     14.3,
+     14,
+     13.9,
+     13.8
+    ],
+    "samples": {
+     "200,150": {
+      "block": [
+       136.15843812925732,
+       67.06873768944571
+      ],
+      "board": [
+       81.8,
+       80.8,
+       85.2
+      ],
+      "joint": [
+       62,
+       53.1,
+       51
+      ],
+      "jointWidth": 5.66,
+      "wallPatch": [
+       81.8,
+       80.8,
+       85.2
+      ],
+      "boardToNight": 2.551,
+      "jointVsBoard": 1.508
+     },
+     "400,150": {
+      "block": [
+       493.1635247707368,
+       148.6388082317342
+      ],
+      "board": [
+       83.2,
+       82,
+       86
+      ],
+      "joint": [
+       63,
+       55.9,
+       51
+      ],
+      "jointWidth": 6.11,
+      "wallPatch": [
+       83.2,
+       82,
+       86
+      ],
+      "boardToNight": 2.6,
+      "jointVsBoard": 1.487
+     },
+     "120,500": {
+      "block": [
+       83.65173674179232,
+       544.918918554026
+      ],
+      "board": [
+       82,
+       79.8,
+       83
+      ],
+      "joint": [
+       66.3,
+       56.3,
+       51
+      ],
+      "jointWidth": 4.77,
+      "wallPatch": [
+       82,
+       79.8,
+       83
+      ],
+      "boardToNight": 2.518,
+      "jointVsBoard": 1.417
+     },
+     "480,500": {
+      "block": [
+       533.9012437412048,
+       541.6356428252325
+      ],
+      "board": [
+       79.2,
+       76,
+       79.2
+      ],
+      "joint": [
+       66.2,
+       56.1,
+       50.2
+      ],
+      "jointWidth": 4.95,
+      "wallPatch": [
+       79.2,
+       76,
+       79.2
+      ],
+      "boardToNight": 2.38,
+      "jointVsBoard": 1.343
+     }
+    },
+    "parts": {
+     "table": [
+      62.7,
+      53.7,
+      47.9
+     ],
+     "frame": [
+      75,
+      71,
+      74
+     ],
+     "doorWood": [
+      53.6,
+      40,
+      27.3
+     ],
+     "glass": [
+      19,
+      28,
+      50
+     ],
+     "wall": [
+      83,
+      80,
+      84
+     ]
+    },
+    "partsToNight": {
+     "table": 1.701,
+     "frame": 2.205,
+     "doorWood": 1.414,
+     "glass": 1.189,
+     "wall": 2.535
+    },
+    "frameVsGlass": 1.855,
+    "maxWallLuminance": 0.0953
+   },
+   "lit-half": {
+    "edgeMin": 13.8,
+    "edge": [
+     15,
+     15,
+     14.3,
+     14,
+     13.9,
+     13.8
+    ],
+    "samples": {
+     "200,150": {
+      "block": [
+       136.15843812925732,
+       67.06873768944571
+      ],
+      "board": [
+       38,
+       46,
+       61
+      ],
+      "joint": [
+       22,
+       25,
+       34
+      ],
+      "jointWidth": 5.66,
+      "wallPatch": [
+       38,
+       46,
+       61
+      ],
+      "boardToNight": 1.478,
+      "jointVsBoard": 1.288
+     },
+     "400,150": {
+      "block": [
+       493.1635247707368,
+       148.6388082317342
+      ],
+      "board": [
+       38,
+       46,
+       61
+      ],
+      "joint": [
+       22,
+       24.9,
+       34
+      ],
+      "jointWidth": 6.11,
+      "wallPatch": [
+       38,
+       46,
+       61
+      ],
+      "boardToNight": 1.478,
+      "jointVsBoard": 1.289
+     },
+     "120,500": {
+      "block": [
+       83.65173674179232,
+       544.918918554026
+      ],
+      "board": [
+       79,
+       76.9,
+       81.2
+      ],
+      "joint": [
+       62.7,
+       55,
+       50.3
+      ],
+      "jointWidth": 4.77,
+      "wallPatch": [
+       79,
+       76.9,
+       81.2
+      ],
+      "boardToNight": 2.408,
+      "jointVsBoard": 1.393
+     },
+     "480,500": {
+      "block": [
+       533.9012437412048,
+       541.6356428252325
+      ],
+      "board": [
+       74.1,
+       72,
+       78
+      ],
+      "joint": [
+       62.2,
+       53.1,
+       49.8
+      ],
+      "jointWidth": 4.95,
+      "wallPatch": [
+       74.1,
+       72,
+       78
+      ],
+      "boardToNight": 2.234,
+      "jointVsBoard": 1.321
+     }
+    },
+    "parts": {
+     "table": [
+      54.9,
+      48.4,
+      44.9
+     ],
+     "frame": [
+      32,
+      38,
+      53.8
+     ],
+     "doorWood": [
+      42.6,
+      32.4,
+      24.9
+     ],
+     "glass": [
+      19,
+      28,
+      50
+     ],
+     "wall": [
+      38,
+      45,
+      61
+     ]
+    },
+    "partsToNight": {
+     "table": 1.562,
+     "frame": 1.335,
+     "doorWood": 1.272,
+     "glass": 1.189,
+     "wall": 1.463
+    },
+    "frameVsGlass": 1.122,
+    "maxWallLuminance": 0.0873
+   },
+   "last-minute": {
+    "edgeMin": 13.8,
+    "edge": [
+     15,
+     15,
+     14.3,
+     14,
+     13.9,
+     13.8
+    ],
+    "samples": {
+     "200,150": {
+      "block": [
+       136.15843812925732,
+       67.06873768944571
+      ],
+      "board": [
+       38,
+       46,
+       61
+      ],
+      "joint": [
+       22,
+       25,
+       34
+      ],
+      "jointWidth": 5.66,
+      "wallPatch": [
+       38,
+       46,
+       61
+      ],
+      "boardToNight": 1.478,
+      "jointVsBoard": 1.288
+     },
+     "400,150": {
+      "block": [
+       493.1635247707368,
+       148.6388082317342
+      ],
+      "board": [
+       38,
+       46,
+       61
+      ],
+      "joint": [
+       22,
+       24.9,
+       34
+      ],
+      "jointWidth": 6.11,
+      "wallPatch": [
+       38,
+       46,
+       61
+      ],
+      "boardToNight": 1.478,
+      "jointVsBoard": 1.289
+     },
+     "120,500": {
+      "block": [
+       83.65173674179232,
+       544.918918554026
+      ],
+      "board": [
+       33,
+       38.8,
+       53.1
+      ],
+      "joint": [
+       21.3,
+       23,
+       31
+      ],
+      "jointWidth": 4.77,
+      "wallPatch": [
+       33,
+       38.8,
+       53.1
+      ],
+      "boardToNight": 1.346,
+      "jointVsBoard": 1.195
+     },
+     "480,500": {
+      "block": [
+       533.9012437412048,
+       541.6356428252325
+      ],
+      "board": [
+       31,
+       36,
+       51
+      ],
+      "joint": [
+       21.2,
+       22.9,
+       30.8
+      ],
+      "jointWidth": 4.95,
+      "wallPatch": [
+       31,
+       36,
+       51
+      ],
+      "boardToNight": 1.303,
+      "jointVsBoard": 1.157
+     }
+    },
+    "parts": {
+     "table": [
+      33.8,
+      31.4,
+      33.6
+     ],
+     "frame": [
+      32,
+      38,
+      53.8
+     ],
+     "doorWood": [
+      27.2,
+      21.9,
+      19.6
+     ],
+     "glass": [
+      19,
+      28,
+      50
+     ],
+     "wall": [
+      38,
+      45,
+      61
+     ]
+    },
+    "partsToNight": {
+     "table": 1.237,
+     "frame": 1.335,
+     "doorWood": 1.123,
+     "glass": 1.189,
+     "wall": 1.463
+    },
+    "frameVsGlass": 1.122,
+    "maxWallLuminance": 0.0294
+   },
+   "paused": {
+    "edgeMin": 13.8,
+    "edge": [
+     15,
+     15,
+     14.3,
+     14,
+     13.9,
+     13.8
+    ],
+    "samples": {
+     "200,150": {
+      "block": [
+       136.15843812925732,
+       67.06873768944571
+      ],
+      "board": [
+       38,
+       46,
+       61
+      ],
+      "joint": [
+       22,
+       25,
+       34
+      ],
+      "jointWidth": 5.66,
+      "wallPatch": [
+       38,
+       46,
+       61
+      ],
+      "boardToNight": 1.478,
+      "jointVsBoard": 1.288
+     },
+     "400,150": {
+      "block": [
+       493.1635247707368,
+       148.6388082317342
+      ],
+      "board": [
+       38,
+       46,
+       61
+      ],
+      "joint": [
+       22,
+       24.9,
+       34
+      ],
+      "jointWidth": 6.11,
+      "wallPatch": [
+       38,
+       46,
+       61
+      ],
+      "boardToNight": 1.478,
+      "jointVsBoard": 1.289
+     },
+     "120,500": {
+      "block": [
+       83.65173674179232,
+       544.918918554026
+      ],
+      "board": [
+       79,
+       76.9,
+       81.2
+      ],
+      "joint": [
+       62.7,
+       55,
+       50.3
+      ],
+      "jointWidth": 4.77,
+      "wallPatch": [
+       79,
+       76.9,
+       81.2
+      ],
+      "boardToNight": 2.408,
+      "jointVsBoard": 1.393
+     },
+     "480,500": {
+      "block": [
+       533.9012437412048,
+       541.6356428252325
+      ],
+      "board": [
+       74.1,
+       72,
+       78
+      ],
+      "joint": [
+       62.2,
+       53.1,
+       49.8
+      ],
+      "jointWidth": 4.95,
+      "wallPatch": [
+       74.1,
+       72,
+       78
+      ],
+      "boardToNight": 2.234,
+      "jointVsBoard": 1.321
+     }
+    },
+    "parts": {
+     "table": [
+      54.9,
+      48.4,
+      44.9
+     ],
+     "frame": [
+      32,
+      38,
+      53.8
+     ],
+     "doorWood": [
+      42.6,
+      32.4,
+      24.9
+     ],
+     "glass": [
+      19,
+      28,
+      50
+     ],
+     "wall": [
+      38,
+      45,
+      61
+     ]
+    },
+    "partsToNight": {
+     "table": 1.562,
+     "frame": 1.335,
+     "doorWood": 1.272,
+     "glass": 1.189,
+     "wall": 1.463
+    },
+    "frameVsGlass": 1.122
+   },
+   "burned-out": {
+    "edgeMin": 195.7,
+    "edge": [
+     213.5,
+     213.4,
+     202.7,
+     202.6,
+     195.8,
+     195.7
+    ],
+    "samples": {
+     "200,150": {
+      "block": [
+       136.15843812925732,
+       67.06873768944571
+      ],
+      "board": [
+       74.7,
+       88.1,
+       115.9
+      ],
+      "joint": [
+       70.1,
+       81.1,
+       106.6
+      ],
+      "jointWidth": 5.66,
+      "wallPatch": [
+       74.7,
+       88.1,
+       115.9
+      ],
+      "boardToNight": 2.827,
+      "jointVsBoard": 1.112
+     },
+     "400,150": {
+      "block": [
+       493.1635247707368,
+       148.6388082317342
+      ],
+      "board": [
+       75.7,
+       86.9,
+       112.9
+      ],
+      "joint": [
+       71.3,
+       80.1,
+       103.4
+      ],
+      "jointWidth": 6.11,
+      "wallPatch": [
+       75.7,
+       86.9,
+       112.9
+      ],
+      "boardToNight": 2.784,
+      "jointVsBoard": 1.109
+     },
+     "120,500": {
+      "block": [
+       83.65173674179232,
+       544.918918554026
+      ],
+      "board": [
+       80.1,
+       78.8,
+       96.2
+      ],
+      "joint": [
+       77.7,
+       73.6,
+       88
+      ],
+      "jointWidth": 4.77,
+      "wallPatch": [
+       80.1,
+       78.8,
+       96.2
+      ],
+      "boardToNight": 2.517,
+      "jointVsBoard": 1.079
+     },
+     "480,500": {
+      "block": [
+       533.9012437412048,
+       541.6356428252325
+      ],
+      "board": [
+       79.6,
+       78.1,
+       95.6
+      ],
+      "joint": [
+       77.3,
+       73.7,
+       88.1
+      ],
+      "jointWidth": 4.95,
+      "wallPatch": [
+       79.6,
+       78.1,
+       95.6
+      ],
+      "boardToNight": 2.491,
+      "jointVsBoard": 1.069
+     }
+    },
+    "parts": {
+     "table": [
+      85.8,
+      71.7,
+      78.6
+     ],
+     "frame": [
+      73.9,
+      84.4,
+      110.8
+     ],
+     "doorWood": [
+      83.3,
+      69.2,
+      75.3
+     ],
+     "glass": [
+      86,
+      102,
+      131
+     ],
+     "wall": [
+      75.8,
+      86.4,
+      112.9
+     ]
+    },
+    "partsToNight": {
+     "table": 2.326,
+     "frame": 2.685,
+     "doorWood": 2.234,
+     "glass": 3.476,
+     "wall": 2.769
+    },
+    "frameVsGlass": 1.294
+   },
+   "snuffed": {
+    "edgeMin": 3,
+    "edge": [
+     3,
+     3,
+     3,
+     3,
+     3,
+     3
+    ],
+    "samples": {
+     "200,150": {
+      "block": [
+       136.15843812925732,
+       67.06873768944571
+      ],
+      "board": [
+       11,
+       13,
+       22
+      ],
+      "joint": [
+       8,
+       9,
+       17
+      ],
+      "jointWidth": 5.66,
+      "wallPatch": [
+       11,
+       13,
+       22
+      ],
+      "boardToNight": 1.039,
+      "jointVsBoard": 1.024
+     },
+     "400,150": {
+      "block": [
+       493.1635247707368,
+       148.6388082317342
+      ],
+      "board": [
+       11,
+       13,
+       22
+      ],
+      "joint": [
+       8,
+       9,
+       17
+      ],
+      "jointWidth": 6.11,
+      "wallPatch": [
+       11,
+       13,
+       22
+      ],
+      "boardToNight": 1.039,
+      "jointVsBoard": 1.024
+     },
+     "120,500": {
+      "block": [
+       83.65173674179232,
+       544.918918554026
+      ],
+      "board": [
+       10,
+       12.3,
+       20
+      ],
+      "joint": [
+       8,
+       10,
+       16
+      ],
+      "jointWidth": 4.77,
+      "wallPatch": [
+       10,
+       12.3,
+       20
+      ],
+      "boardToNight": 1.033,
+      "jointVsBoard": 1.015
+     },
+     "480,500": {
+      "block": [
+       533.9012437412048,
+       541.6356428252325
+      ],
+      "board": [
+       10,
+       12.3,
+       19.9
+      ],
+      "joint": [
+       8,
+       10,
+       16
+      ],
+      "jointWidth": 4.95,
+      "wallPatch": [
+       10,
+       12.3,
+       19.9
+      ],
+      "boardToNight": 1.033,
+      "jointVsBoard": 1.015
+     }
+    },
+    "parts": {
+     "table": [
+      10.3,
+      11.9,
+      16.4
+     ],
+     "frame": [
+      10,
+      12,
+      20
+     ],
+     "doorWood": [
+      9.2,
+      9.9,
+      13.9
+     ],
+     "glass": [
+      19,
+      28,
+      50
+     ],
+     "wall": [
+      11,
+      13,
+      22
+     ]
+    },
+    "partsToNight": {
+     "table": 1.029,
+     "frame": 1.032,
+     "doorWood": 1.018,
+     "glass": 1.189,
+     "wall": 1.039
+    },
+    "frameVsGlass": 1.153
+   },
+   "idleOverSnuffed": {
+    "200,150": 1.422,
+    "400,150": 1.422,
+    "120,500": 1.303,
+    "480,500": 1.261
+   },
+   "snuffedNotBrighter": {
+    "idle": true,
+    "lit-start": true,
+    "lit-half": true,
+    "last-minute": true,
+    "paused": true,
+    "burned-out": true
+   }
+  },
+  "1920x1080": {
+   "idle": {
+    "edgeMin": 11,
+    "edge": [
+     13.9,
+     14,
+     13.6,
+     13.2,
+     11,
+     13
+    ],
+    "samples": {
+     "200,150": {
+      "block": [
+       136.15843812925732,
+       67.06873768944571
+      ],
+      "board": [
+       38,
+       46,
+       61
+      ],
+      "joint": [
+       22,
+       25,
+       34
+      ],
+      "jointWidth": 5.66,
+      "wallPatch": [
+       38,
+       46,
+       61
+      ],
+      "boardToNight": 1.478,
+      "jointVsBoard": 1.288
+     },
+     "400,150": {
+      "block": [
+       493.1635247707368,
+       148.6388082317342
+      ],
+      "board": [
+       38,
+       46,
+       61
+      ],
+      "joint": [
+       22,
+       24.8,
+       34
+      ],
+      "jointWidth": 6.11,
+      "wallPatch": [
+       38,
+       46,
+       61
+      ],
+      "boardToNight": 1.478,
+      "jointVsBoard": 1.29
+     },
+     "120,500": {
+      "block": [
+       83.65173674179232,
+       544.918918554026
+      ],
+      "board": [
+       33,
+       38.4,
+       53
+      ],
+      "joint": [
+       21,
+       22.6,
+       30
+      ],
+      "jointWidth": 4.77,
+      "wallPatch": [
+       33,
+       38.4,
+       53
+      ],
+      "boardToNight": 1.341,
+      "jointVsBoard": 1.195
+     },
+     "480,500": {
+      "block": [
+       533.9012437412048,
+       541.6356428252325
+      ],
+      "board": [
+       31,
+       36,
+       51
+      ],
+      "joint": [
+       21.2,
+       22.8,
+       30.7
+      ],
+      "jointWidth": 4.95,
+      "wallPatch": [
+       31,
+       36,
+       51
+      ],
+      "boardToNight": 1.303,
+      "jointVsBoard": 1.158
+     }
+    },
+    "parts": {
+     "table": [
+      34.4,
+      32,
+      34.1
+     ],
+     "frame": [
+      32,
+      38,
+      53.9
+     ],
+     "doorWood": [
+      26.8,
+      21.6,
+      19.3
+     ],
+     "glass": [
+      20,
+      29,
+      50
+     ],
+     "wall": [
+      38,
+      45,
+      61
+     ]
+    },
+    "partsToNight": {
+     "table": 1.246,
+     "frame": 1.335,
+     "doorWood": 1.12,
+     "glass": 1.2,
+     "wall": 1.463
+    },
+    "frameVsGlass": 1.112
+   },
+   "lit-start": {
+    "edgeMin": 11,
+    "edge": [
+     13.9,
+     14,
+     13.6,
+     13.2,
+     11,
+     13
+    ],
+    "samples": {
+     "200,150": {
+      "block": [
+       136.15843812925732,
+       67.06873768944571
+      ],
+      "board": [
+       81.9,
+       80.9,
+       85.2
+      ],
+      "joint": [
+       62,
+       53,
+       51
+      ],
+      "jointWidth": 5.66,
+      "wallPatch": [
+       81.9,
+       80.9,
+       85.2
+      ],
+      "boardToNight": 2.555,
+      "jointVsBoard": 1.512
+     },
+     "400,150": {
+      "block": [
+       493.1635247707368,
+       148.6388082317342
+      ],
+      "board": [
+       83.2,
+       82,
+       86
+      ],
+      "joint": [
+       63,
+       55.8,
+       51
+      ],
+      "jointWidth": 6.11,
+      "wallPatch": [
+       83.2,
+       82,
+       86
+      ],
+      "boardToNight": 2.6,
+      "jointVsBoard": 1.489
+     },
+     "120,500": {
+      "block": [
+       83.65173674179232,
+       544.918918554026
+      ],
+      "board": [
+       82,
+       79.3,
+       83.4
+      ],
+      "joint": [
+       66,
+       55.6,
+       50
+      ],
+      "jointWidth": 4.77,
+      "wallPatch": [
+       82,
+       79.3,
+       83.4
+      ],
+      "boardToNight": 2.505,
+      "jointVsBoard": 1.423
+     },
+     "480,500": {
+      "block": [
+       533.9012437412048,
+       541.6356428252325
+      ],
+      "board": [
+       79,
+       76,
+       79.3
+      ],
+      "joint": [
+       66.2,
+       56,
+       50
+      ],
+      "jointWidth": 4.95,
+      "wallPatch": [
+       79,
+       76,
+       79.3
+      ],
+      "boardToNight": 2.379,
+      "jointVsBoard": 1.344
+     }
+    },
+    "parts": {
+     "table": [
+      63.9,
+      54,
+      48.3
+     ],
+     "frame": [
+      75,
+      71,
+      74
+     ],
+     "doorWood": [
+      52.4,
+      39.1,
+      26.8
+     ],
+     "glass": [
+      20,
+      29,
+      50
+     ],
+     "wall": [
+      83,
+      80,
+      84
+     ]
+    },
+    "partsToNight": {
+     "table": 1.715,
+     "frame": 2.205,
+     "doorWood": 1.396,
+     "glass": 1.2,
+     "wall": 2.535
+    },
+    "frameVsGlass": 1.837,
+    "maxWallLuminance": 0.0953
+   },
+   "lit-half": {
+    "edgeMin": 11,
+    "edge": [
+     13.9,
+     14,
+     13.6,
+     13.2,
+     11,
+     13
+    ],
+    "samples": {
+     "200,150": {
+      "block": [
+       136.15843812925732,
+       67.06873768944571
+      ],
+      "board": [
+       38,
+       46,
+       61
+      ],
+      "joint": [
+       22,
+       25,
+       34
+      ],
+      "jointWidth": 5.66,
+      "wallPatch": [
+       38,
+       46,
+       61
+      ],
+      "boardToNight": 1.478,
+      "jointVsBoard": 1.288
+     },
+     "400,150": {
+      "block": [
+       493.1635247707368,
+       148.6388082317342
+      ],
+      "board": [
+       38,
+       46,
+       61
+      ],
+      "joint": [
+       22,
+       24.8,
+       34
+      ],
+      "jointWidth": 6.11,
+      "wallPatch": [
+       38,
+       46,
+       61
+      ],
+      "boardToNight": 1.478,
+      "jointVsBoard": 1.29
+     },
+     "120,500": {
+      "block": [
+       83.65173674179232,
+       544.918918554026
+      ],
+      "board": [
+       79,
+       76.9,
+       81.6
+      ],
+      "joint": [
+       62,
+       54.4,
+       49
+      ],
+      "jointWidth": 4.77,
+      "wallPatch": [
+       79,
+       76.9,
+       81.6
+      ],
+      "boardToNight": 2.409,
+      "jointVsBoard": 1.408
+     },
+     "480,500": {
+      "block": [
+       533.9012437412048,
+       541.6356428252325
+      ],
+      "board": [
+       74,
+       72,
+       78
+      ],
+      "joint": [
+       62.2,
+       53.1,
+       49.7
+      ],
+      "jointWidth": 4.95,
+      "wallPatch": [
+       74,
+       72,
+       78
+      ],
+      "boardToNight": 2.233,
+      "jointVsBoard": 1.321
+     }
+    },
+    "parts": {
+     "table": [
+      55.8,
+      49,
+      45.2
+     ],
+     "frame": [
+      32,
+      38,
+      53.9
+     ],
+     "doorWood": [
+      41.4,
+      31.9,
+      24.3
+     ],
+     "glass": [
+      20,
+      29,
+      50
+     ],
+     "wall": [
+      38,
+      45,
+      61
+     ]
+    },
+    "partsToNight": {
+     "table": 1.577,
+     "frame": 1.335,
+     "doorWood": 1.261,
+     "glass": 1.2,
+     "wall": 1.463
+    },
+    "frameVsGlass": 1.112,
+    "maxWallLuminance": 0.0879
+   },
+   "last-minute": {
+    "edgeMin": 11,
+    "edge": [
+     13.9,
+     14,
+     13.6,
+     13.2,
+     11,
+     13
+    ],
+    "samples": {
+     "200,150": {
+      "block": [
+       136.15843812925732,
+       67.06873768944571
+      ],
+      "board": [
+       38,
+       46,
+       61
+      ],
+      "joint": [
+       22,
+       25,
+       34
+      ],
+      "jointWidth": 5.66,
+      "wallPatch": [
+       38,
+       46,
+       61
+      ],
+      "boardToNight": 1.478,
+      "jointVsBoard": 1.288
+     },
+     "400,150": {
+      "block": [
+       493.1635247707368,
+       148.6388082317342
+      ],
+      "board": [
+       38,
+       46,
+       61
+      ],
+      "joint": [
+       22,
+       24.8,
+       34
+      ],
+      "jointWidth": 6.11,
+      "wallPatch": [
+       38,
+       46,
+       61
+      ],
+      "boardToNight": 1.478,
+      "jointVsBoard": 1.29
+     },
+     "120,500": {
+      "block": [
+       83.65173674179232,
+       544.918918554026
+      ],
+      "board": [
+       33,
+       38.4,
+       53
+      ],
+      "joint": [
+       21,
+       22.6,
+       30
+      ],
+      "jointWidth": 4.77,
+      "wallPatch": [
+       33,
+       38.4,
+       53
+      ],
+      "boardToNight": 1.341,
+      "jointVsBoard": 1.195
+     },
+     "480,500": {
+      "block": [
+       533.9012437412048,
+       541.6356428252325
+      ],
+      "board": [
+       31,
+       36,
+       51
+      ],
+      "joint": [
+       21.2,
+       22.8,
+       30.7
+      ],
+      "jointWidth": 4.95,
+      "wallPatch": [
+       31,
+       36,
+       51
+      ],
+      "boardToNight": 1.303,
+      "jointVsBoard": 1.158
+     }
+    },
+    "parts": {
+     "table": [
+      34.4,
+      32,
+      34.1
+     ],
+     "frame": [
+      32,
+      38,
+      53.9
+     ],
+     "doorWood": [
+      26.6,
+      21.2,
+      19.3
+     ],
+     "glass": [
+      20,
+      29,
+      50
+     ],
+     "wall": [
+      38,
+      45,
+      61
+     ]
+    },
+    "partsToNight": {
+     "table": 1.246,
+     "frame": 1.335,
+     "doorWood": 1.116,
+     "glass": 1.2,
+     "wall": 1.463
+    },
+    "frameVsGlass": 1.112,
+    "maxWallLuminance": 0.0294
+   },
+   "paused": {
+    "edgeMin": 11,
+    "edge": [
+     13.9,
+     14,
+     13.6,
+     13.2,
+     11,
+     13
+    ],
+    "samples": {
+     "200,150": {
+      "block": [
+       136.15843812925732,
+       67.06873768944571
+      ],
+      "board": [
+       38,
+       46,
+       61
+      ],
+      "joint": [
+       22,
+       25,
+       34
+      ],
+      "jointWidth": 5.66,
+      "wallPatch": [
+       38,
+       46,
+       61
+      ],
+      "boardToNight": 1.478,
+      "jointVsBoard": 1.288
+     },
+     "400,150": {
+      "block": [
+       493.1635247707368,
+       148.6388082317342
+      ],
+      "board": [
+       38,
+       46,
+       61
+      ],
+      "joint": [
+       22,
+       24.8,
+       34
+      ],
+      "jointWidth": 6.11,
+      "wallPatch": [
+       38,
+       46,
+       61
+      ],
+      "boardToNight": 1.478,
+      "jointVsBoard": 1.29
+     },
+     "120,500": {
+      "block": [
+       83.65173674179232,
+       544.918918554026
+      ],
+      "board": [
+       79,
+       76.9,
+       81.6
+      ],
+      "joint": [
+       62,
+       54.4,
+       49
+      ],
+      "jointWidth": 4.77,
+      "wallPatch": [
+       79,
+       76.9,
+       81.6
+      ],
+      "boardToNight": 2.409,
+      "jointVsBoard": 1.408
+     },
+     "480,500": {
+      "block": [
+       533.9012437412048,
+       541.6356428252325
+      ],
+      "board": [
+       74,
+       72,
+       78
+      ],
+      "joint": [
+       62.2,
+       53.1,
+       49.7
+      ],
+      "jointWidth": 4.95,
+      "wallPatch": [
+       74,
+       72,
+       78
+      ],
+      "boardToNight": 2.233,
+      "jointVsBoard": 1.321
+     }
+    },
+    "parts": {
+     "table": [
+      55.8,
+      49,
+      45.2
+     ],
+     "frame": [
+      32,
+      38,
+      53.9
+     ],
+     "doorWood": [
+      41.4,
+      31.9,
+      24.3
+     ],
+     "glass": [
+      20,
+      29,
+      50
+     ],
+     "wall": [
+      38,
+      45,
+      61
+     ]
+    },
+    "partsToNight": {
+     "table": 1.577,
+     "frame": 1.335,
+     "doorWood": 1.261,
+     "glass": 1.2,
+     "wall": 1.463
+    },
+    "frameVsGlass": 1.112
+   },
+   "burned-out": {
+    "edgeMin": 194.5,
+    "edge": [
+     213.1,
+     213,
+     202.8,
+     202.6,
+     194.5,
+     195.3
+    ],
+    "samples": {
+     "200,150": {
+      "block": [
+       136.15843812925732,
+       67.06873768944571
+      ],
+      "board": [
+       74.6,
+       88.1,
+       115.9
+      ],
+      "joint": [
+       70.1,
+       81,
+       106.6
+      ],
+      "jointWidth": 5.66,
+      "wallPatch": [
+       74.6,
+       88.1,
+       115.9
+      ],
+      "boardToNight": 2.826,
+      "jointVsBoard": 1.113
+     },
+     "400,150": {
+      "block": [
+       493.1635247707368,
+       148.6388082317342
+      ],
+      "board": [
+       75.6,
+       87,
+       113
+      ],
+      "joint": [
+       71.3,
+       80,
+       103.4
+      ],
+      "jointWidth": 6.11,
+      "wallPatch": [
+       75.6,
+       87,
+       113
+      ],
+      "boardToNight": 2.787,
+      "jointVsBoard": 1.111
+     },
+     "120,500": {
+      "block": [
+       83.65173674179232,
+       544.918918554026
+      ],
+      "board": [
+       80.4,
+       78.8,
+       96.6
+      ],
+      "joint": [
+       77.3,
+       73.3,
+       88
+      ],
+      "jointWidth": 4.77,
+      "wallPatch": [
+       80.4,
+       78.8,
+       96.6
+      ],
+      "boardToNight": 2.521,
+      "jointVsBoard": 1.086
+     },
+     "480,500": {
+      "block": [
+       533.9012437412048,
+       541.6356428252325
+      ],
+      "board": [
+       79.4,
+       78.1,
+       95.6
+      ],
+      "joint": [
+       77.2,
+       73.4,
+       88.2
+      ],
+      "jointWidth": 4.95,
+      "wallPatch": [
+       79.4,
+       78.1,
+       95.6
+      ],
+      "boardToNight": 2.49,
+      "jointVsBoard": 1.072
+     }
+    },
+    "parts": {
+     "table": [
+      86,
+      71.9,
+      78.4
+     ],
+     "frame": [
+      73.9,
+      84.3,
+      110.6
+     ],
+     "doorWood": [
+      83.2,
+      69.1,
+      75.3
+     ],
+     "glass": [
+      86,
+      102,
+      131
+     ],
+     "wall": [
+      75.8,
+      86.4,
+      113
+     ]
+    },
+    "partsToNight": {
+     "table": 2.332,
+     "frame": 2.681,
+     "doorWood": 2.231,
+     "glass": 3.476,
+     "wall": 2.77
+    },
+    "frameVsGlass": 1.296
+   },
+   "snuffed": {
+    "edgeMin": 2,
+    "edge": [
+     3,
+     3,
+     3,
+     3,
+     2,
+     3
+    ],
+    "samples": {
+     "200,150": {
+      "block": [
+       136.15843812925732,
+       67.06873768944571
+      ],
+      "board": [
+       11,
+       13,
+       22
+      ],
+      "joint": [
+       8,
+       9,
+       17
+      ],
+      "jointWidth": 5.66,
+      "wallPatch": [
+       11,
+       13,
+       22
+      ],
+      "boardToNight": 1.039,
+      "jointVsBoard": 1.024
+     },
+     "400,150": {
+      "block": [
+       493.1635247707368,
+       148.6388082317342
+      ],
+      "board": [
+       11,
+       13,
+       22
+      ],
+      "joint": [
+       8,
+       9,
+       17
+      ],
+      "jointWidth": 6.11,
+      "wallPatch": [
+       11,
+       13,
+       22
+      ],
+      "boardToNight": 1.039,
+      "jointVsBoard": 1.024
+     },
+     "120,500": {
+      "block": [
+       83.65173674179232,
+       544.918918554026
+      ],
+      "board": [
+       10,
+       12.6,
+       20
+      ],
+      "joint": [
+       8,
+       10,
+       16
+      ],
+      "jointWidth": 4.77,
+      "wallPatch": [
+       10,
+       12.6,
+       20
+      ],
+      "boardToNight": 1.034,
+      "jointVsBoard": 1.016
+     },
+     "480,500": {
+      "block": [
+       533.9012437412048,
+       541.6356428252325
+      ],
+      "board": [
+       10,
+       12.3,
+       20
+      ],
+      "joint": [
+       8,
+       10,
+       16
+      ],
+      "jointWidth": 4.95,
+      "wallPatch": [
+       10,
+       12.3,
+       20
+      ],
+      "boardToNight": 1.033,
+      "jointVsBoard": 1.015
+     }
+    },
+    "parts": {
+     "table": [
+      10.6,
+      11.9,
+      16.3
+     ],
+     "frame": [
+      10,
+      12,
+      20
+     ],
+     "doorWood": [
+      8.9,
+      9.8,
+      13.8
+     ],
+     "glass": [
+      20,
+      29,
+      50
+     ],
+     "wall": [
+      11,
+      13,
+      22
+     ]
+    },
+    "partsToNight": {
+     "table": 1.03,
+     "frame": 1.032,
+     "doorWood": 1.017,
+     "glass": 1.2,
+     "wall": 1.039
+    },
+    "frameVsGlass": 1.164
+   },
+   "idleOverSnuffed": {
+    "200,150": 1.422,
+    "400,150": 1.422,
+    "120,500": 1.297,
+    "480,500": 1.261
+   },
+   "snuffedNotBrighter": {
+    "idle": true,
+    "lit-start": true,
+    "lit-half": true,
+    "last-minute": true,
+    "paused": true,
+    "burned-out": true
+   }
+  },
+  "2560x1440": {
+   "idle": {
+    "edgeMin": 11,
+    "edge": [
+     13.9,
+     14,
+     13.6,
+     13.2,
+     11,
+     13
+    ],
+    "samples": {
+     "200,150": {
+      "block": [
+       136.15843812925732,
+       67.06873768944571
+      ],
+      "board": [
+       38,
+       46,
+       61
+      ],
+      "joint": [
+       22,
+       25,
+       34
+      ],
+      "jointWidth": 5.66,
+      "wallPatch": [
+       38,
+       46,
+       61
+      ],
+      "boardToNight": 1.478,
+      "jointVsBoard": 1.288
+     },
+     "400,150": {
+      "block": [
+       493.1635247707368,
+       148.6388082317342
+      ],
+      "board": [
+       38,
+       46,
+       61
+      ],
+      "joint": [
+       22,
+       25,
+       34
+      ],
+      "jointWidth": 6.11,
+      "wallPatch": [
+       38,
+       46,
+       61
+      ],
+      "boardToNight": 1.478,
+      "jointVsBoard": 1.288
+     },
+     "120,500": {
+      "block": [
+       83.65173674179232,
+       544.918918554026
+      ],
+      "board": [
+       33,
+       38.6,
+       53
+      ],
+      "joint": [
+       21,
+       22.4,
+       30
+      ],
+      "jointWidth": 4.77,
+      "wallPatch": [
+       33,
+       38.6,
+       53
+      ],
+      "boardToNight": 1.344,
+      "jointVsBoard": 1.199
+     },
+     "480,500": {
+      "block": [
+       533.9012437412048,
+       541.6356428252325
+      ],
+      "board": [
+       31,
+       36,
+       51
+      ],
+      "joint": [
+       21,
+       22.4,
+       30
+      ],
+      "jointWidth": 4.95,
+      "wallPatch": [
+       31,
+       36,
+       51
+      ],
+      "boardToNight": 1.303,
+      "jointVsBoard": 1.163
+     }
+    },
+    "parts": {
+     "table": [
+      34.4,
+      31.8,
+      34.1
+     ],
+     "frame": [
+      32,
+      38,
+      53.8
+     ],
+     "doorWood": [
+      26.1,
+      20.8,
+      19
+     ],
+     "glass": [
+      19,
+      28,
+      50
+     ],
+     "wall": [
+      38,
+      45,
+      61
+     ]
+    },
+    "partsToNight": {
+     "table": 1.244,
+     "frame": 1.335,
+     "doorWood": 1.112,
+     "glass": 1.189,
+     "wall": 1.463
+    },
+    "frameVsGlass": 1.122
+   },
+   "lit-start": {
+    "edgeMin": 11,
+    "edge": [
+     13.9,
+     14,
+     13.6,
+     13.2,
+     11,
+     13
+    ],
+    "samples": {
+     "200,150": {
+      "block": [
+       136.15843812925732,
+       67.06873768944571
+      ],
+      "board": [
+       81.7,
+       80.7,
+       85.1
+      ],
+      "joint": [
+       62,
+       53.1,
+       51
+      ],
+      "jointWidth": 5.66,
+      "wallPatch": [
+       81.7,
+       80.7,
+       85.1
+      ],
+      "boardToNight": 2.547,
+      "jointVsBoard": 1.506
+     },
+     "400,150": {
+      "block": [
+       493.1635247707368,
+       148.6388082317342
+      ],
+      "board": [
+       83,
+       82,
+       86
+      ],
+      "joint": [
+       63,
+       56,
+       51
+      ],
+      "jointWidth": 6.11,
+      "wallPatch": [
+       83,
+       82,
+       86
+      ],
+      "boardToNight": 2.598,
+      "jointVsBoard": 1.485
+     },
+     "120,500": {
+      "block": [
+       83.65173674179232,
+       544.918918554026
+      ],
+      "board": [
+       82,
+       79.4,
+       83.3
+      ],
+      "joint": [
+       66,
+       55.4,
+       50
+      ],
+      "jointWidth": 4.77,
+      "wallPatch": [
+       82,
+       79.4,
+       83.3
+      ],
+      "boardToNight": 2.508,
+      "jointVsBoard": 1.427
+     },
+     "480,500": {
+      "block": [
+       533.9012437412048,
+       541.6356428252325
+      ],
+      "board": [
+       79.1,
+       76,
+       79.3
+      ],
+      "joint": [
+       66,
+       55.4,
+       49.2
+      ],
+      "jointWidth": 4.95,
+      "wallPatch": [
+       79.1,
+       76,
+       79.3
+      ],
+      "boardToNight": 2.379,
+      "jointVsBoard": 1.355
+     }
+    },
+    "parts": {
+     "table": [
+      63.8,
+      54.1,
+      48.1
+     ],
+     "frame": [
+      75,
+      71,
+      74
+     ],
+     "doorWood": [
+      52.3,
+      39.2,
+      26.7
+     ],
+     "glass": [
+      19,
+      28,
+      50
+     ],
+     "wall": [
+      83,
+      80,
+      84
+     ]
+    },
+    "partsToNight": {
+     "table": 1.716,
+     "frame": 2.205,
+     "doorWood": 1.396,
+     "glass": 1.189,
+     "wall": 2.535
+    },
+    "frameVsGlass": 1.855,
+    "maxWallLuminance": 0.0953
+   },
+   "lit-half": {
+    "edgeMin": 11,
+    "edge": [
+     13.9,
+     14,
+     13.6,
+     13.2,
+     11,
+     13
+    ],
+    "samples": {
+     "200,150": {
+      "block": [
+       136.15843812925732,
+       67.06873768944571
+      ],
+      "board": [
+       38,
+       46,
+       61
+      ],
+      "joint": [
+       22,
+       25,
+       34
+      ],
+      "jointWidth": 5.66,
+      "wallPatch": [
+       38,
+       46,
+       61
+      ],
+      "boardToNight": 1.478,
+      "jointVsBoard": 1.288
+     },
+     "400,150": {
+      "block": [
+       493.1635247707368,
+       148.6388082317342
+      ],
+      "board": [
+       38,
+       46,
+       61
+      ],
+      "joint": [
+       22,
+       25,
+       34
+      ],
+      "jointWidth": 6.11,
+      "wallPatch": [
+       38,
+       46,
+       61
+      ],
+      "boardToNight": 1.478,
+      "jointVsBoard": 1.288
+     },
+     "120,500": {
+      "block": [
+       83.65173674179232,
+       544.918918554026
+      ],
+      "board": [
+       78.9,
+       76.8,
+       81.4
+      ],
+      "joint": [
+       62,
+       54.2,
+       49
+      ],
+      "jointWidth": 4.77,
+      "wallPatch": [
+       78.9,
+       76.8,
+       81.4
+      ],
+      "boardToNight": 2.405,
+      "jointVsBoard": 1.408
+     },
+     "480,500": {
+      "block": [
+       533.9012437412048,
+       541.6356428252325
+      ],
+      "board": [
+       74,
+       72,
+       78
+      ],
+      "joint": [
+       62,
+       52.4,
+       49
+      ],
+      "jointWidth": 4.95,
+      "wallPatch": [
+       74,
+       72,
+       78
+      ],
+      "boardToNight": 2.233,
+      "jointVsBoard": 1.332
+     }
+    },
+    "parts": {
+     "table": [
+      55.8,
+      49.1,
+      45.3
+     ],
+     "frame": [
+      32,
+      38,
+      53.8
+     ],
+     "doorWood": [
+      41.2,
+      31.7,
+      24.2
+     ],
+     "glass": [
+      19,
+      28,
+      50
+     ],
+     "wall": [
+      38,
+      45,
+      61
+     ]
+    },
+    "partsToNight": {
+     "table": 1.579,
+     "frame": 1.335,
+     "doorWood": 1.258,
+     "glass": 1.189,
+     "wall": 1.463
+    },
+    "frameVsGlass": 1.122,
+    "maxWallLuminance": 0.0873
+   },
+   "last-minute": {
+    "edgeMin": 11,
+    "edge": [
+     13.9,
+     14,
+     13.6,
+     13.2,
+     11,
+     13
+    ],
+    "samples": {
+     "200,150": {
+      "block": [
+       136.15843812925732,
+       67.06873768944571
+      ],
+      "board": [
+       38,
+       46,
+       61
+      ],
+      "joint": [
+       22,
+       25,
+       34
+      ],
+      "jointWidth": 5.66,
+      "wallPatch": [
+       38,
+       46,
+       61
+      ],
+      "boardToNight": 1.478,
+      "jointVsBoard": 1.288
+     },
+     "400,150": {
+      "block": [
+       493.1635247707368,
+       148.6388082317342
+      ],
+      "board": [
+       38,
+       46,
+       61
+      ],
+      "joint": [
+       22,
+       25,
+       34
+      ],
+      "jointWidth": 6.11,
+      "wallPatch": [
+       38,
+       46,
+       61
+      ],
+      "boardToNight": 1.478,
+      "jointVsBoard": 1.288
+     },
+     "120,500": {
+      "block": [
+       83.65173674179232,
+       544.918918554026
+      ],
+      "board": [
+       33,
+       38.6,
+       53
+      ],
+      "joint": [
+       21,
+       22.4,
+       30
+      ],
+      "jointWidth": 4.77,
+      "wallPatch": [
+       33,
+       38.6,
+       53
+      ],
+      "boardToNight": 1.344,
+      "jointVsBoard": 1.199
+     },
+     "480,500": {
+      "block": [
+       533.9012437412048,
+       541.6356428252325
+      ],
+      "board": [
+       31,
+       36,
+       51
+      ],
+      "joint": [
+       21,
+       22.4,
+       30
+      ],
+      "jointWidth": 4.95,
+      "wallPatch": [
+       31,
+       36,
+       51
+      ],
+      "boardToNight": 1.303,
+      "jointVsBoard": 1.163
+     }
+    },
+    "parts": {
+     "table": [
+      34.4,
+      31.8,
+      34.1
+     ],
+     "frame": [
+      32,
+      38,
+      53.8
+     ],
+     "doorWood": [
+      26.2,
+      20.9,
+      19
+     ],
+     "glass": [
+      19,
+      28,
+      50
+     ],
+     "wall": [
+      38,
+      45,
+      61
+     ]
+    },
+    "partsToNight": {
+     "table": 1.244,
+     "frame": 1.335,
+     "doorWood": 1.113,
+     "glass": 1.189,
+     "wall": 1.463
+    },
+    "frameVsGlass": 1.122,
+    "maxWallLuminance": 0.0294
+   },
+   "paused": {
+    "edgeMin": 11,
+    "edge": [
+     13.9,
+     14,
+     13.6,
+     13.2,
+     11,
+     13
+    ],
+    "samples": {
+     "200,150": {
+      "block": [
+       136.15843812925732,
+       67.06873768944571
+      ],
+      "board": [
+       38,
+       46,
+       61
+      ],
+      "joint": [
+       22,
+       25,
+       34
+      ],
+      "jointWidth": 5.66,
+      "wallPatch": [
+       38,
+       46,
+       61
+      ],
+      "boardToNight": 1.478,
+      "jointVsBoard": 1.288
+     },
+     "400,150": {
+      "block": [
+       493.1635247707368,
+       148.6388082317342
+      ],
+      "board": [
+       38,
+       46,
+       61
+      ],
+      "joint": [
+       22,
+       25,
+       34
+      ],
+      "jointWidth": 6.11,
+      "wallPatch": [
+       38,
+       46,
+       61
+      ],
+      "boardToNight": 1.478,
+      "jointVsBoard": 1.288
+     },
+     "120,500": {
+      "block": [
+       83.65173674179232,
+       544.918918554026
+      ],
+      "board": [
+       78.9,
+       76.8,
+       81.4
+      ],
+      "joint": [
+       62,
+       54.2,
+       49
+      ],
+      "jointWidth": 4.77,
+      "wallPatch": [
+       78.9,
+       76.8,
+       81.4
+      ],
+      "boardToNight": 2.405,
+      "jointVsBoard": 1.408
+     },
+     "480,500": {
+      "block": [
+       533.9012437412048,
+       541.6356428252325
+      ],
+      "board": [
+       74,
+       72,
+       78
+      ],
+      "joint": [
+       62,
+       52.4,
+       49
+      ],
+      "jointWidth": 4.95,
+      "wallPatch": [
+       74,
+       72,
+       78
+      ],
+      "boardToNight": 2.233,
+      "jointVsBoard": 1.332
+     }
+    },
+    "parts": {
+     "table": [
+      55.8,
+      49.1,
+      45.3
+     ],
+     "frame": [
+      32,
+      38,
+      53.8
+     ],
+     "doorWood": [
+      41.2,
+      31.7,
+      24.2
+     ],
+     "glass": [
+      19,
+      28,
+      50
+     ],
+     "wall": [
+      38,
+      45,
+      61
+     ]
+    },
+    "partsToNight": {
+     "table": 1.579,
+     "frame": 1.335,
+     "doorWood": 1.258,
+     "glass": 1.189,
+     "wall": 1.463
+    },
+    "frameVsGlass": 1.122
+   },
+   "burned-out": {
+    "edgeMin": 194.5,
+    "edge": [
+     213.1,
+     213,
+     202.7,
+     202.5,
+     194.5,
+     195.1
+    ],
+    "samples": {
+     "200,150": {
+      "block": [
+       136.15843812925732,
+       67.06873768944571
+      ],
+      "board": [
+       74.7,
+       88.3,
+       115.9
+      ],
+      "joint": [
+       70.4,
+       81.2,
+       106.6
+      ],
+      "jointWidth": 5.66,
+      "wallPatch": [
+       74.7,
+       88.3,
+       115.9
+      ],
+      "boardToNight": 2.833,
+      "jointVsBoard": 1.112
+     },
+     "400,150": {
+      "block": [
+       493.1635247707368,
+       148.6388082317342
+      ],
+      "board": [
+       75.9,
+       87,
+       113
+      ],
+      "joint": [
+       71.4,
+       80.1,
+       103.6
+      ],
+      "jointWidth": 6.11,
+      "wallPatch": [
+       75.9,
+       87,
+       113
+      ],
+      "boardToNight": 2.789,
+      "jointVsBoard": 1.11
+     },
+     "120,500": {
+      "block": [
+       83.65173674179232,
+       544.918918554026
+      ],
+      "board": [
+       80.4,
+       78.8,
+       96.4
+      ],
+      "joint": [
+       77.4,
+       73.4,
+       88
+      ],
+      "jointWidth": 4.77,
+      "wallPatch": [
+       80.4,
+       78.8,
+       96.4
+      ],
+      "boardToNight": 2.52,
+      "jointVsBoard": 1.084
+     },
+     "480,500": {
+      "block": [
+       533.9012437412048,
+       541.6356428252325
+      ],
+      "board": [
+       79.7,
+       78.1,
+       95.8
+      ],
+      "joint": [
+       77.3,
+       73.4,
+       88
+      ],
+      "jointWidth": 4.95,
+      "wallPatch": [
+       79.7,
+       78.1,
+       95.8
+      ],
+      "boardToNight": 2.493,
+      "jointVsBoard": 1.073
+     }
+    },
+    "parts": {
+     "table": [
+      86.2,
+      71.8,
+      78.7
+     ],
+     "frame": [
+      73.9,
+      84.4,
+      110.7
+     ],
+     "doorWood": [
+      83,
+      69,
+      75.1
+     ],
+     "glass": [
+      86,
+      102,
+      131
+     ],
+     "wall": [
+      75.7,
+      86.6,
+      112.9
+     ]
+    },
+    "partsToNight": {
+     "table": 2.332,
+     "frame": 2.685,
+     "doorWood": 2.226,
+     "glass": 3.476,
+     "wall": 2.775
+    },
+    "frameVsGlass": 1.295
+   },
+   "snuffed": {
+    "edgeMin": 2,
+    "edge": [
+     3,
+     3,
+     3,
+     3,
+     2,
+     3
+    ],
+    "samples": {
+     "200,150": {
+      "block": [
+       136.15843812925732,
+       67.06873768944571
+      ],
+      "board": [
+       11,
+       13,
+       22
+      ],
+      "joint": [
+       8,
+       9,
+       17
+      ],
+      "jointWidth": 5.66,
+      "wallPatch": [
+       11,
+       13,
+       22
+      ],
+      "boardToNight": 1.039,
+      "jointVsBoard": 1.024
+     },
+     "400,150": {
+      "block": [
+       493.1635247707368,
+       148.6388082317342
+      ],
+      "board": [
+       11,
+       13,
+       22
+      ],
+      "joint": [
+       8,
+       9,
+       17
+      ],
+      "jointWidth": 6.11,
+      "wallPatch": [
+       11,
+       13,
+       22
+      ],
+      "boardToNight": 1.039,
+      "jointVsBoard": 1.024
+     },
+     "120,500": {
+      "block": [
+       83.65173674179232,
+       544.918918554026
+      ],
+      "board": [
+       10,
+       12.4,
+       20
+      ],
+      "joint": [
+       8,
+       10,
+       16
+      ],
+      "jointWidth": 4.77,
+      "wallPatch": [
+       10,
+       12.4,
+       20
+      ],
+      "boardToNight": 1.033,
+      "jointVsBoard": 1.015
+     },
+     "480,500": {
+      "block": [
+       533.9012437412048,
+       541.6356428252325
+      ],
+      "board": [
+       10,
+       12.4,
+       19.9
+      ],
+      "joint": [
+       8,
+       10,
+       16
+      ],
+      "jointWidth": 4.95,
+      "wallPatch": [
+       10,
+       12.4,
+       19.9
+      ],
+      "boardToNight": 1.033,
+      "jointVsBoard": 1.015
+     }
+    },
+    "parts": {
+     "table": [
+      10.6,
+      11.9,
+      16.4
+     ],
+     "frame": [
+      10,
+      12,
+      20
+     ],
+     "doorWood": [
+      8.9,
+      9.7,
+      13.7
+     ],
+     "glass": [
+      19,
+      28,
+      50
+     ],
+     "wall": [
+      11,
+      13,
+      22
+     ]
+    },
+    "partsToNight": {
+     "table": 1.03,
+     "frame": 1.032,
+     "doorWood": 1.016,
+     "glass": 1.189,
+     "wall": 1.039
+    },
+    "frameVsGlass": 1.153
+   },
+   "idleOverSnuffed": {
+    "200,150": 1.422,
+    "400,150": 1.422,
+    "120,500": 1.3,
+    "480,500": 1.261
+   },
+   "snuffedNotBrighter": {
+    "idle": true,
+    "lit-start": true,
+    "lit-half": true,
+    "last-minute": true,
+    "paused": true,
+    "burned-out": true
+   }
+  },
+  "3840x2160": {
+   "idle": {
+    "edgeMin": 11,
+    "edge": [
+     13.9,
+     14,
+     13.6,
+     13.2,
+     11,
+     13
+    ],
+    "samples": {
+     "200,150": {
+      "block": [
+       136.15843812925732,
+       67.06873768944571
+      ],
+      "board": [
+       38,
+       46,
+       61
+      ],
+      "joint": [
+       22,
+       25,
+       34
+      ],
+      "jointWidth": 5.66,
+      "wallPatch": [
+       38,
+       46,
+       61
+      ],
+      "boardToNight": 1.478,
+      "jointVsBoard": 1.288
+     },
+     "400,150": {
+      "block": [
+       493.1635247707368,
+       148.6388082317342
+      ],
+      "board": [
+       38,
+       46,
+       61
+      ],
+      "joint": [
+       22,
+       24.9,
+       34
+      ],
+      "jointWidth": 6.11,
+      "wallPatch": [
+       38,
+       46,
+       61
+      ],
+      "boardToNight": 1.478,
+      "jointVsBoard": 1.289
+     },
+     "120,500": {
+      "block": [
+       83.65173674179232,
+       544.918918554026
+      ],
+      "board": [
+       33,
+       38.7,
+       53
+      ],
+      "joint": [
+       21,
+       22.4,
+       30
+      ],
+      "jointWidth": 4.77,
+      "wallPatch": [
+       33,
+       38.7,
+       53
+      ],
+      "boardToNight": 1.345,
+      "jointVsBoard": 1.2
+     },
+     "480,500": {
+      "block": [
+       533.9012437412048,
+       541.6356428252325
+      ],
+      "board": [
+       31,
+       36,
+       51
+      ],
+      "joint": [
+       21,
+       22.3,
+       30
+      ],
+      "jointWidth": 4.95,
+      "wallPatch": [
+       31,
+       36,
+       51
+      ],
+      "boardToNight": 1.303,
+      "jointVsBoard": 1.163
+     }
+    },
+    "parts": {
+     "table": [
+      31.8,
+      29.8,
+      32.7
+     ],
+     "frame": [
+      32,
+      38,
+      53.9
+     ],
+     "doorWood": [
+      27.2,
+      21.9,
+      19.7
+     ],
+     "glass": [
+      20,
+      29,
+      50
+     ],
+     "wall": [
+      38,
+      45,
+      61
+     ]
+    },
+    "partsToNight": {
+     "table": 1.214,
+     "frame": 1.335,
+     "doorWood": 1.123,
+     "glass": 1.2,
+     "wall": 1.463
+    },
+    "frameVsGlass": 1.112
+   },
+   "lit-start": {
+    "edgeMin": 11,
+    "edge": [
+     13.9,
+     14,
+     13.6,
+     13.2,
+     11,
+     13
+    ],
+    "samples": {
+     "200,150": {
+      "block": [
+       136.15843812925732,
+       67.06873768944571
+      ],
+      "board": [
+       81.6,
+       80.6,
+       85.3
+      ],
+      "joint": [
+       62,
+       53,
+       51
+      ],
+      "jointWidth": 5.66,
+      "wallPatch": [
+       81.6,
+       80.6,
+       85.3
+      ],
+      "boardToNight": 2.544,
+      "jointVsBoard": 1.505
+     },
+     "400,150": {
+      "block": [
+       493.1635247707368,
+       148.6388082317342
+      ],
+      "board": [
+       83.3,
+       82,
+       86
+      ],
+      "joint": [
+       63,
+       55.9,
+       51
+      ],
+      "jointWidth": 6.11,
+      "wallPatch": [
+       83.3,
+       82,
+       86
+      ],
+      "boardToNight": 2.601,
+      "jointVsBoard": 1.488
+     },
+     "120,500": {
+      "block": [
+       83.65173674179232,
+       544.918918554026
+      ],
+      "board": [
+       82,
+       79.7,
+       83.2
+      ],
+      "joint": [
+       66,
+       55.4,
+       50
+      ],
+      "jointWidth": 4.77,
+      "wallPatch": [
+       82,
+       79.7,
+       83.2
+      ],
+      "boardToNight": 2.516,
+      "jointVsBoard": 1.432
+     },
+     "480,500": {
+      "block": [
+       533.9012437412048,
+       541.6356428252325
+      ],
+      "board": [
+       79.1,
+       76,
+       79.3
+      ],
+      "joint": [
+       66,
+       55.3,
+       49.2
+      ],
+      "jointWidth": 4.95,
+      "wallPatch": [
+       79.1,
+       76,
+       79.3
+      ],
+      "boardToNight": 2.379,
+      "jointVsBoard": 1.357
+     }
+    },
+    "parts": {
+     "table": [
+      59.6,
+      51.2,
+      46.1
+     ],
+     "frame": [
+      75,
+      71,
+      74
+     ],
+     "doorWood": [
+      53.7,
+      40.3,
+      27.3
+     ],
+     "glass": [
+      20,
+      29,
+      50
+     ],
+     "wall": [
+      83,
+      80,
+      84
+     ]
+    },
+    "partsToNight": {
+     "table": 1.636,
+     "frame": 2.205,
+     "doorWood": 1.418,
+     "glass": 1.2,
+     "wall": 2.535
+    },
+    "frameVsGlass": 1.837,
+    "maxWallLuminance": 0.0953
+   },
+   "lit-half": {
+    "edgeMin": 11,
+    "edge": [
+     13.9,
+     14,
+     13.6,
+     13.2,
+     11,
+     13
+    ],
+    "samples": {
+     "200,150": {
+      "block": [
+       136.15843812925732,
+       67.06873768944571
+      ],
+      "board": [
+       38,
+       46,
+       61
+      ],
+      "joint": [
+       22,
+       25,
+       34
+      ],
+      "jointWidth": 5.66,
+      "wallPatch": [
+       38,
+       46,
+       61
+      ],
+      "boardToNight": 1.478,
+      "jointVsBoard": 1.288
+     },
+     "400,150": {
+      "block": [
+       493.1635247707368,
+       148.6388082317342
+      ],
+      "board": [
+       38,
+       46,
+       61
+      ],
+      "joint": [
+       22,
+       24.9,
+       34
+      ],
+      "jointWidth": 6.11,
+      "wallPatch": [
+       38,
+       46,
+       61
+      ],
+      "boardToNight": 1.478,
+      "jointVsBoard": 1.289
+     },
+     "120,500": {
+      "block": [
+       83.65173674179232,
+       544.918918554026
+      ],
+      "board": [
+       78.9,
+       76.8,
+       81.3
+      ],
+      "joint": [
+       62,
+       54.3,
+       49
+      ],
+      "jointWidth": 4.77,
+      "wallPatch": [
+       78.9,
+       76.8,
+       81.3
+      ],
+      "boardToNight": 2.405,
+      "jointVsBoard": 1.407
+     },
+     "480,500": {
+      "block": [
+       533.9012437412048,
+       541.6356428252325
+      ],
+      "board": [
+       74,
+       72,
+       78
+      ],
+      "joint": [
+       62,
+       52.3,
+       49
+      ],
+      "jointWidth": 4.95,
+      "wallPatch": [
+       74,
+       72,
+       78
+      ],
+      "boardToNight": 2.233,
+      "jointVsBoard": 1.334
+     }
+    },
+    "parts": {
+     "table": [
+      52.2,
+      46,
+      43.4
+     ],
+     "frame": [
+      32,
+      38,
+      53.9
+     ],
+     "doorWood": [
+      42.6,
+      32.7,
+      24.8
+     ],
+     "glass": [
+      20,
+      29,
+      50
+     ],
+     "wall": [
+      38,
+      45,
+      61
+     ]
+    },
+    "partsToNight": {
+     "table": 1.509,
+     "frame": 1.335,
+     "doorWood": 1.275,
+     "glass": 1.2,
+     "wall": 1.463
+    },
+    "frameVsGlass": 1.112,
+    "maxWallLuminance": 0.0879
+   },
+   "last-minute": {
+    "edgeMin": 11,
+    "edge": [
+     13.9,
+     14,
+     13.6,
+     13.2,
+     11,
+     13
+    ],
+    "samples": {
+     "200,150": {
+      "block": [
+       136.15843812925732,
+       67.06873768944571
+      ],
+      "board": [
+       38,
+       46,
+       61
+      ],
+      "joint": [
+       22,
+       25,
+       34
+      ],
+      "jointWidth": 5.66,
+      "wallPatch": [
+       38,
+       46,
+       61
+      ],
+      "boardToNight": 1.478,
+      "jointVsBoard": 1.288
+     },
+     "400,150": {
+      "block": [
+       493.1635247707368,
+       148.6388082317342
+      ],
+      "board": [
+       38,
+       46,
+       61
+      ],
+      "joint": [
+       22,
+       24.9,
+       34
+      ],
+      "jointWidth": 6.11,
+      "wallPatch": [
+       38,
+       46,
+       61
+      ],
+      "boardToNight": 1.478,
+      "jointVsBoard": 1.289
+     },
+     "120,500": {
+      "block": [
+       83.65173674179232,
+       544.918918554026
+      ],
+      "board": [
+       33,
+       38.7,
+       53
+      ],
+      "joint": [
+       21,
+       22.4,
+       30
+      ],
+      "jointWidth": 4.77,
+      "wallPatch": [
+       33,
+       38.7,
+       53
+      ],
+      "boardToNight": 1.345,
+      "jointVsBoard": 1.2
+     },
+     "480,500": {
+      "block": [
+       533.9012437412048,
+       541.6356428252325
+      ],
+      "board": [
+       31,
+       36,
+       51
+      ],
+      "joint": [
+       21,
+       22.3,
+       30
+      ],
+      "jointWidth": 4.95,
+      "wallPatch": [
+       31,
+       36,
+       51
+      ],
+      "boardToNight": 1.303,
+      "jointVsBoard": 1.163
+     }
+    },
+    "parts": {
+     "table": [
+      31.8,
+      29.8,
+      32.7
+     ],
+     "frame": [
+      32,
+      38,
+      53.9
+     ],
+     "doorWood": [
+      27.1,
+      21.8,
+      19.7
+     ],
+     "glass": [
+      20,
+      29,
+      50
+     ],
+     "wall": [
+      38,
+      45,
+      61
+     ]
+    },
+    "partsToNight": {
+     "table": 1.214,
+     "frame": 1.335,
+     "doorWood": 1.122,
+     "glass": 1.2,
+     "wall": 1.463
+    },
+    "frameVsGlass": 1.112,
+    "maxWallLuminance": 0.0294
+   },
+   "paused": {
+    "edgeMin": 11,
+    "edge": [
+     13.9,
+     14,
+     13.6,
+     13.2,
+     11,
+     13
+    ],
+    "samples": {
+     "200,150": {
+      "block": [
+       136.15843812925732,
+       67.06873768944571
+      ],
+      "board": [
+       38,
+       46,
+       61
+      ],
+      "joint": [
+       22,
+       25,
+       34
+      ],
+      "jointWidth": 5.66,
+      "wallPatch": [
+       38,
+       46,
+       61
+      ],
+      "boardToNight": 1.478,
+      "jointVsBoard": 1.288
+     },
+     "400,150": {
+      "block": [
+       493.1635247707368,
+       148.6388082317342
+      ],
+      "board": [
+       38,
+       46,
+       61
+      ],
+      "joint": [
+       22,
+       24.9,
+       34
+      ],
+      "jointWidth": 6.11,
+      "wallPatch": [
+       38,
+       46,
+       61
+      ],
+      "boardToNight": 1.478,
+      "jointVsBoard": 1.289
+     },
+     "120,500": {
+      "block": [
+       83.65173674179232,
+       544.918918554026
+      ],
+      "board": [
+       78.9,
+       76.8,
+       81.3
+      ],
+      "joint": [
+       62,
+       54.3,
+       49
+      ],
+      "jointWidth": 4.77,
+      "wallPatch": [
+       78.9,
+       76.8,
+       81.3
+      ],
+      "boardToNight": 2.405,
+      "jointVsBoard": 1.407
+     },
+     "480,500": {
+      "block": [
+       533.9012437412048,
+       541.6356428252325
+      ],
+      "board": [
+       74,
+       72,
+       78
+      ],
+      "joint": [
+       62,
+       52.3,
+       49
+      ],
+      "jointWidth": 4.95,
+      "wallPatch": [
+       74,
+       72,
+       78
+      ],
+      "boardToNight": 2.233,
+      "jointVsBoard": 1.334
+     }
+    },
+    "parts": {
+     "table": [
+      52.2,
+      46,
+      43.4
+     ],
+     "frame": [
+      32,
+      38,
+      53.9
+     ],
+     "doorWood": [
+      42.6,
+      32.7,
+      24.8
+     ],
+     "glass": [
+      20,
+      29,
+      50
+     ],
+     "wall": [
+      38,
+      45,
+      61
+     ]
+    },
+    "partsToNight": {
+     "table": 1.509,
+     "frame": 1.335,
+     "doorWood": 1.275,
+     "glass": 1.2,
+     "wall": 1.463
+    },
+    "frameVsGlass": 1.112
+   },
+   "burned-out": {
+    "edgeMin": 194.5,
+    "edge": [
+     213.2,
+     213.1,
+     202.5,
+     202.4,
+     194.5,
+     195.2
+    ],
+    "samples": {
+     "200,150": {
+      "block": [
+       136.15843812925732,
+       67.06873768944571
+      ],
+      "board": [
+       74.7,
+       88.2,
+       115.9
+      ],
+      "joint": [
+       70.3,
+       81.2,
+       106.6
+      ],
+      "jointWidth": 5.66,
+      "wallPatch": [
+       74.7,
+       88.2,
+       115.9
+      ],
+      "boardToNight": 2.83,
+      "jointVsBoard": 1.111
+     },
+     "400,150": {
+      "block": [
+       493.1635247707368,
+       148.6388082317342
+      ],
+      "board": [
+       75.7,
+       87,
+       113
+      ],
+      "joint": [
+       71.3,
+       80.1,
+       103.6
+      ],
+      "jointWidth": 6.11,
+      "wallPatch": [
+       75.7,
+       87,
+       113
+      ],
+      "boardToNight": 2.788,
+      "jointVsBoard": 1.11
+     },
+     "120,500": {
+      "block": [
+       83.65173674179232,
+       544.918918554026
+      ],
+      "board": [
+       80.3,
+       78.7,
+       96.3
+      ],
+      "joint": [
+       77.4,
+       73.4,
+       87.9
+      ],
+      "jointWidth": 4.77,
+      "wallPatch": [
+       80.3,
+       78.7,
+       96.3
+      ],
+      "boardToNight": 2.516,
+      "jointVsBoard": 1.083
+     },
+     "480,500": {
+      "block": [
+       533.9012437412048,
+       541.6356428252325
+      ],
+      "board": [
+       79.7,
+       78.1,
+       95.8
+      ],
+      "joint": [
+       77.3,
+       73.3,
+       88.1
+      ],
+      "jointWidth": 4.95,
+      "wallPatch": [
+       79.7,
+       78.1,
+       95.8
+      ],
+      "boardToNight": 2.493,
+      "jointVsBoard": 1.074
+     }
+    },
+    "parts": {
+     "table": [
+      85.2,
+      71.3,
+      78.2
+     ],
+     "frame": [
+      73.9,
+      84.4,
+      110.7
+     ],
+     "doorWood": [
+      83.3,
+      69.2,
+      75.3
+     ],
+     "glass": [
+      86,
+      102,
+      131
+     ],
+     "wall": [
+      75.8,
+      86.6,
+      113
+     ]
+    },
+    "partsToNight": {
+     "table": 2.309,
+     "frame": 2.685,
+     "doorWood": 2.234,
+     "glass": 3.476,
+     "wall": 2.776
+    },
+    "frameVsGlass": 1.295
+   },
+   "snuffed": {
+    "edgeMin": 2,
+    "edge": [
+     3,
+     3,
+     3,
+     3,
+     2,
+     3
+    ],
+    "samples": {
+     "200,150": {
+      "block": [
+       136.15843812925732,
+       67.06873768944571
+      ],
+      "board": [
+       11,
+       13,
+       22
+      ],
+      "joint": [
+       8,
+       9,
+       17
+      ],
+      "jointWidth": 5.66,
+      "wallPatch": [
+       11,
+       13,
+       22
+      ],
+      "boardToNight": 1.039,
+      "jointVsBoard": 1.024
+     },
+     "400,150": {
+      "block": [
+       493.1635247707368,
+       148.6388082317342
+      ],
+      "board": [
+       11,
+       13,
+       22
+      ],
+      "joint": [
+       8,
+       9,
+       17
+      ],
+      "jointWidth": 6.11,
+      "wallPatch": [
+       11,
+       13,
+       22
+      ],
+      "boardToNight": 1.039,
+      "jointVsBoard": 1.024
+     },
+     "120,500": {
+      "block": [
+       83.65173674179232,
+       544.918918554026
+      ],
+      "board": [
+       10,
+       12.3,
+       20
+      ],
+      "joint": [
+       8,
+       10,
+       16
+      ],
+      "jointWidth": 4.77,
+      "wallPatch": [
+       10,
+       12.3,
+       20
+      ],
+      "boardToNight": 1.033,
+      "jointVsBoard": 1.015
+     },
+     "480,500": {
+      "block": [
+       533.9012437412048,
+       541.6356428252325
+      ],
+      "board": [
+       10,
+       12.3,
+       20
+      ],
+      "joint": [
+       8,
+       10,
+       16
+      ],
+      "jointWidth": 4.95,
+      "wallPatch": [
+       10,
+       12.3,
+       20
+      ],
+      "boardToNight": 1.033,
+      "jointVsBoard": 1.015
+     }
+    },
+    "parts": {
+     "table": [
+      10,
+      11.7,
+      16.1
+     ],
+     "frame": [
+      10,
+      12,
+      20
+     ],
+     "doorWood": [
+      9.1,
+      9.7,
+      13.7
+     ],
+     "glass": [
+      20,
+      29,
+      50
+     ],
+     "wall": [
+      11,
+      13,
+      22
+     ]
+    },
+    "partsToNight": {
+     "table": 1.028,
+     "frame": 1.032,
+     "doorWood": 1.017,
+     "glass": 1.2,
+     "wall": 1.039
+    },
+    "frameVsGlass": 1.164
+   },
+   "idleOverSnuffed": {
+    "200,150": 1.422,
+    "400,150": 1.422,
+    "120,500": 1.302,
+    "480,500": 1.261
+   },
+   "snuffedNotBrighter": {
+    "idle": true,
+    "lit-start": true,
+    "lit-half": true,
+    "last-minute": true,
+    "paused": true,
+    "burned-out": true
+   }
+  }
+ },
+ "pool": {
+  "360x640": {
+   "lit-half": {
+    "withHalo": {
+     "toneClass": 0,
+     "earlier": {
+      "inside": [
+       71,
+       570
+      ],
+      "outside": [
+       23,
+       30
+      ],
+      "dIn": 234,
+      "dOut": 652
+     },
+     "inside": {
+      "at": [
+       69.2,
+       658.6
+      ],
+      "distFromFlame": 234,
+      "edgeMargin": 4.8,
+      "rgb": [
+       80,
+       77.2,
+       83
+      ]
+     },
+     "outside": {
+      "at": [
+       28.7,
+       38.2
+      ],
+      "distFromFlame": 642,
+      "edgeMargin": 5.4,
+      "rgb": [
+       36,
+       44,
+       58
+      ]
+     },
+     "poolRatioWcag": 1.693,
+     "poolRatioLum": 3.09
+    },
+    "haloHidden": {
+     "toneClass": 0,
+     "earlier": {
+      "inside": [
+       71,
+       570
+      ],
+      "outside": [
+       23,
+       30
+      ],
+      "dIn": 234,
+      "dOut": 652
+     },
+     "inside": {
+      "at": [
+       69.2,
+       658.6
+      ],
+      "distFromFlame": 234,
+      "edgeMargin": 4.8,
+      "rgb": [
+       80,
+       77.2,
+       83
+      ]
+     },
+     "outside": {
+      "at": [
+       28.7,
+       38.2
+      ],
+      "distFromFlame": 642,
+      "edgeMargin": 5.4,
+      "rgb": [
+       36,
+       44,
+       58
+      ]
+     },
+     "poolRatioWcag": 1.693,
+     "poolRatioLum": 3.09
+    }
+   },
+   "last-minute": {
+    "withHalo": {
+     "toneClass": 1,
+     "earlier": {
+      "inside": [
+       323,
+       750
+      ],
+      "outside": [
+       397,
+       510
+      ],
+      "dIn": 67,
+      "dOut": 318
+     },
+     "inside": {
+      "at": [
+       322.9,
+       750.2
+      ],
+      "distFromFlame": 67,
+      "edgeMargin": 17.8,
+      "rgb": [
+       98.1,
+       88.8,
+       82
+      ]
+     },
+     "outside": {
+      "at": [
+       347,
+       498.7
+      ],
+      "distFromFlame": 318,
+      "edgeMargin": 5.5,
+      "rgb": [
+       34,
+       40,
+       55
+      ]
+     },
+     "poolRatioWcag": 2.148,
+     "poolRatioLum": 4.84
+    },
+    "haloHidden": {
+     "toneClass": 1,
+     "earlier": {
+      "inside": [
+       323,
+       750
+      ],
+      "outside": [
+       397,
+       510
+      ],
+      "dIn": 67,
+      "dOut": 318
+     },
+     "inside": {
+      "at": [
+       322.9,
+       750.2
+      ],
+      "distFromFlame": 67,
+      "edgeMargin": 17.8,
+      "rgb": [
+       82.1,
+       79.6,
+       83.1
+      ]
+     },
+     "outside": {
+      "at": [
+       347,
+       498.7
+      ],
+      "distFromFlame": 318,
+      "edgeMargin": 5.5,
+      "rgb": [
+       34,
+       40,
+       55
+      ]
+     },
+     "poolRatioWcag": 1.837,
+     "poolRatioLum": 3.8
+    }
+   }
+  },
+  "1280x800": {
+   "lit-half": {
+    "withHalo": {
+     "toneClass": 0,
+     "earlier": {
+      "inside": [
+       71,
+       570
+      ],
+      "outside": [
+       23,
+       30
+      ],
+      "dIn": 234,
+      "dOut": 652
+     },
+     "inside": {
+      "at": [
+       69.2,
+       658.6
+      ],
+      "distFromFlame": 234,
+      "edgeMargin": 4.8,
+      "rgb": [
+       80,
+       77.1,
+       83.1
+      ]
+     },
+     "outside": {
+      "at": [
+       28.7,
+       38.2
+      ],
+      "distFromFlame": 642,
+      "edgeMargin": 5.4,
+      "rgb": [
+       36,
+       44,
+       58
+      ]
+     },
+     "poolRatioWcag": 1.691,
+     "poolRatioLum": 3.08
+    },
+    "haloHidden": {
+     "toneClass": 0,
+     "earlier": {
+      "inside": [
+       71,
+       570
+      ],
+      "outside": [
+       23,
+       30
+      ],
+      "dIn": 234,
+      "dOut": 652
+     },
+     "inside": {
+      "at": [
+       69.2,
+       658.6
+      ],
+      "distFromFlame": 234,
+      "edgeMargin": 4.8,
+      "rgb": [
+       80,
+       77.1,
+       83.1
+      ]
+     },
+     "outside": {
+      "at": [
+       28.7,
+       38.2
+      ],
+      "distFromFlame": 642,
+      "edgeMargin": 5.4,
+      "rgb": [
+       36,
+       44,
+       58
+      ]
+     },
+     "poolRatioWcag": 1.691,
+     "poolRatioLum": 3.08
+    }
+   },
+   "last-minute": {
+    "withHalo": {
+     "toneClass": 1,
+     "earlier": {
+      "inside": [
+       323,
+       750
+      ],
+      "outside": [
+       397,
+       510
+      ],
+      "dIn": 67,
+      "dOut": 318
+     },
+     "inside": {
+      "at": [
+       322.9,
+       750.2
+      ],
+      "distFromFlame": 67,
+      "edgeMargin": 17.8,
+      "rgb": [
+       98.1,
+       89,
+       82
+      ]
+     },
+     "outside": {
+      "at": [
+       347,
+       498.7
+      ],
+      "distFromFlame": 318,
+      "edgeMargin": 5.5,
+      "rgb": [
+       34,
+       40,
+       55
+      ]
+     },
+     "poolRatioWcag": 2.153,
+     "poolRatioLum": 4.85
+    },
+    "haloHidden": {
+     "toneClass": 1,
+     "earlier": {
+      "inside": [
+       323,
+       750
+      ],
+      "outside": [
+       397,
+       510
+      ],
+      "dIn": 67,
+      "dOut": 318
+     },
+     "inside": {
+      "at": [
+       322.9,
+       750.2
+      ],
+      "distFromFlame": 67,
+      "edgeMargin": 17.8,
+      "rgb": [
+       82,
+       79.6,
+       83
+      ]
+     },
+     "outside": {
+      "at": [
+       347,
+       498.7
+      ],
+      "distFromFlame": 318,
+      "edgeMargin": 5.5,
+      "rgb": [
+       34,
+       40,
+       55
+      ]
+     },
+     "poolRatioWcag": 1.836,
+     "poolRatioLum": 3.8
+    }
+   }
+  },
+  "1920x1080": {
+   "lit-half": {
+    "withHalo": {
+     "toneClass": 0,
+     "earlier": {
+      "inside": [
+       71,
+       570
+      ],
+      "outside": [
+       23,
+       30
+      ],
+      "dIn": 234,
+      "dOut": 652
+     },
+     "inside": {
+      "at": [
+       69.2,
+       658.6
+      ],
+      "distFromFlame": 234,
+      "edgeMargin": 4.8,
+      "rgb": [
+       80,
+       77.1,
+       83
+      ]
+     },
+     "outside": {
+      "at": [
+       28.7,
+       38.2
+      ],
+      "distFromFlame": 642,
+      "edgeMargin": 5.4,
+      "rgb": [
+       36,
+       44,
+       58
+      ]
+     },
+     "poolRatioWcag": 1.691,
+     "poolRatioLum": 3.08
+    },
+    "haloHidden": {
+     "toneClass": 0,
+     "earlier": {
+      "inside": [
+       71,
+       570
+      ],
+      "outside": [
+       23,
+       30
+      ],
+      "dIn": 234,
+      "dOut": 652
+     },
+     "inside": {
+      "at": [
+       69.2,
+       658.6
+      ],
+      "distFromFlame": 234,
+      "edgeMargin": 4.8,
+      "rgb": [
+       80,
+       77.1,
+       83
+      ]
+     },
+     "outside": {
+      "at": [
+       28.7,
+       38.2
+      ],
+      "distFromFlame": 642,
+      "edgeMargin": 5.4,
+      "rgb": [
+       36,
+       44,
+       58
+      ]
+     },
+     "poolRatioWcag": 1.691,
+     "poolRatioLum": 3.08
+    }
+   },
+   "last-minute": {
+    "withHalo": {
+     "toneClass": 1,
+     "earlier": {
+      "inside": [
+       323,
+       750
+      ],
+      "outside": [
+       397,
+       510
+      ],
+      "dIn": 67,
+      "dOut": 318
+     },
+     "inside": {
+      "at": [
+       322.9,
+       750.2
+      ],
+      "distFromFlame": 67,
+      "edgeMargin": 17.8,
+      "rgb": [
+       97.8,
+       88.7,
+       81.9
+      ]
+     },
+     "outside": {
+      "at": [
+       347,
+       498.7
+      ],
+      "distFromFlame": 318,
+      "edgeMargin": 5.5,
+      "rgb": [
+       34,
+       40,
+       55
+      ]
+     },
+     "poolRatioWcag": 2.143,
+     "poolRatioLum": 4.82
+    },
+    "haloHidden": {
+     "toneClass": 1,
+     "earlier": {
+      "inside": [
+       323,
+       750
+      ],
+      "outside": [
+       397,
+       510
+      ],
+      "dIn": 67,
+      "dOut": 318
+     },
+     "inside": {
+      "at": [
+       322.9,
+       750.2
+      ],
+      "distFromFlame": 67,
+      "edgeMargin": 17.8,
+      "rgb": [
+       82,
+       79.4,
+       83
+      ]
+     },
+     "outside": {
+      "at": [
+       347,
+       498.7
+      ],
+      "distFromFlame": 318,
+      "edgeMargin": 5.5,
+      "rgb": [
+       34,
+       40,
+       55
+      ]
+     },
+     "poolRatioWcag": 1.832,
+     "poolRatioLum": 3.78
+    }
+   }
+  }
+ },
+ "zone": {
+  "1280x800/lit-start": {
+   "pause": {
+    "x": 374,
+    "w": 98,
+    "h": 44,
+    "iconEdge": 16.61,
+    "labelEdge": 16.63,
+    "labelW": 36.77
+   },
+   "snuff": {
+    "x": 808,
+    "w": 140,
+    "h": 44,
+    "iconEdge": 16.27,
+    "labelEdge": 16.27,
+    "labelW": 79.47
+   },
+   "settings-button": {
+    "x": 956,
+    "w": 111,
+    "h": 44,
+    "iconEdge": 16.17,
+    "labelEdge": 16.17,
+    "labelW": 50.66
+   },
+   "timeBox": {
+    "x": 572,
+    "right": 708
+   }
+  },
+  "1280x800/paused": {
+   "pause": {
+    "x": 362,
+    "w": 110,
+    "h": 44,
+    "iconEdge": 16.11,
+    "labelEdge": 16.11,
+    "labelW": 49.78
+   },
+   "snuff": {
+    "x": 808,
+    "w": 140,
+    "h": 44,
+    "iconEdge": 16.27,
+    "labelEdge": 16.27,
+    "labelW": 79.47
+   },
+   "settings-button": {
+    "x": 956,
+    "w": 111,
+    "h": 44,
+    "iconEdge": 16.17,
+    "labelEdge": 16.17,
+    "labelW": 50.66
+   },
+   "timeBox": {
+    "x": 572,
+    "right": 708
+   }
+  },
+  "1920x1080/lit-start": {
+   "pause": {
+    "x": 640.796875,
+    "w": 98,
+    "h": 44,
+    "iconEdge": 16.61,
+    "labelEdge": 16.63,
+    "labelW": 36.77
+   },
+   "snuff": {
+    "x": 1181.1875,
+    "w": 140,
+    "h": 44,
+    "iconEdge": 16.27,
+    "labelEdge": 16.27,
+    "labelW": 79.47
+   },
+   "settings-button": {
+    "x": 1329.1875,
+    "w": 111,
+    "h": 44,
+    "iconEdge": 16.17,
+    "labelEdge": 16.17,
+    "labelW": 50.66
+   },
+   "timeBox": {
+    "x": 892,
+    "right": 1028
+   }
+  },
+  "1920x1080/paused": {
+   "pause": {
+    "x": 628.796875,
+    "w": 110,
+    "h": 44,
+    "iconEdge": 16.11,
+    "labelEdge": 16.11,
+    "labelW": 49.78
+   },
+   "snuff": {
+    "x": 1181.1875,
+    "w": 140,
+    "h": 44,
+    "iconEdge": 16.27,
+    "labelEdge": 16.27,
+    "labelW": 79.47
+   },
+   "settings-button": {
+    "x": 1329.1875,
+    "w": 111,
+    "h": 44,
+    "iconEdge": 16.17,
+    "labelEdge": 16.17,
+    "labelW": 50.66
+   },
+   "timeBox": {
+    "x": 892,
+    "right": 1028
+   }
+  }
+ },
+ "columns": {
+  "tile": {
+   "width": 960,
+   "height": 628,
+   "courses": 8,
+   "blocks": 42,
+   "toneCounts": [
+    12,
+    11,
+    11,
+    6,
+    2
+   ],
+   "accentShare": 0.19,
+   "stackedAccentColumns": 0,
+   "longestVerticalRunOfOneTone": 3
+  }
+ },
+ "cards": {},
+ "ultrawide": {
+  "idle": {
+   "edgeMin": 11
+  },
+  "lit-start": {
+   "edgeMin": 11
+  },
+  "lit-half": {
+   "edgeMin": 11
+  },
+  "last-minute": {
+   "edgeMin": 11
+  },
+  "paused": {
+   "edgeMin": 11
+  },
+  "burned-out": {
+   "edgeMin": 195.1
+  }
+ },
+ "sharpness": {
+  "1280x800": {
+   "idle": {
+    "nearStep": 0.00055,
+    "edgeStep": 0.00007,
+    "stepRatioEdgeOverNear": 0.129,
+    "nearNormalised": 0.0281,
+    "edgeNormalised": 0.0139,
+    "normalisedRatioEdgeOverNear": 0.495
+   },
+   "lit-half": {
+    "nearStep": 0.00191,
+    "edgeStep": 0.00007,
+    "stepRatioEdgeOverNear": 0.037,
+    "nearNormalised": 0.0308,
+    "edgeNormalised": 0.0139,
+    "normalisedRatioEdgeOverNear": 0.453
+   }
+  },
+  "1920x1080": {
+   "idle": {
+    "nearStep": 0.00041,
+    "edgeStep": 0.00004,
+    "stepRatioEdgeOverNear": 0.09,
+    "nearNormalised": 0.0209,
+    "edgeNormalised": 0.0091,
+    "normalisedRatioEdgeOverNear": 0.436
+   },
+   "lit-half": {
+    "nearStep": 0.00145,
+    "edgeStep": 0.00004,
+    "stepRatioEdgeOverNear": 0.026,
+    "nearNormalised": 0.0234,
+    "edgeNormalised": 0.0091,
+    "normalisedRatioEdgeOverNear": 0.39
+   }
+  },
+  "2560x1440": {
+   "idle": {
+    "nearStep": 0.00032,
+    "edgeStep": 0.00003,
+    "stepRatioEdgeOverNear": 0.081,
+    "nearNormalised": 0.0166,
+    "edgeNormalised": 0.0065,
+    "normalisedRatioEdgeOverNear": 0.391
+   },
+   "lit-half": {
+    "nearStep": 0.00111,
+    "edgeStep": 0.00003,
+    "stepRatioEdgeOverNear": 0.024,
+    "nearNormalised": 0.018,
+    "edgeNormalised": 0.0065,
+    "normalisedRatioEdgeOverNear": 0.36
+   }
+  },
+  "3840x2160": {
+   "idle": {
+    "nearStep": 0.00023,
+    "edgeStep": 0.00002,
+    "stepRatioEdgeOverNear": 0.094,
+    "nearNormalised": 0.0117,
+    "edgeNormalised": 0.0053,
+    "normalisedRatioEdgeOverNear": 0.456
+   },
+   "lit-half": {
+    "nearStep": 0.00078,
+    "edgeStep": 0.00002,
+    "stepRatioEdgeOverNear": 0.028,
+    "nearNormalised": 0.0126,
+    "edgeNormalised": 0.0053,
+    "normalisedRatioEdgeOverNear": 0.423
+   }
+  }
+ },
+ "ceiling": {
+  "luminance": 0.1312,
+  "floor": 0.00213
+ },
+ "stripes": {
+  "1280x800": {
+   "fadeRemoved": {
+    "columns": 1236,
+    "meanLuminance": 0.0173,
+    "residualStdOverMean": 0.03,
+    "residualPeakToPeakOverMean": 0.116
+   },
+   "within320": {
+    "columns": 469,
+    "meanLuminance": 0.019,
+    "residualStdOverMean": 0.098,
+    "residualPeakToPeakOverMean": 0.175
+   },
+   "withFade": {
+    "columns": 1236,
+    "meanLuminance": 0.0126,
+    "residualStdOverMean": 0.151,
+    "residualPeakToPeakOverMean": 0.471
+   },
+   "limit": 0.06,
+   "method": "idle wall rows 330..860 units, column means, 130-unit average minus 600-unit average; fadeRemoved: veil and edge shade switched off; within320: |x - 300| <= 320 units; the smoothing windows read the whole page and the figure keeps only the stated columns"
+  },
+  "1920x1080": {
+   "fadeRemoved": {
+    "columns": 1860,
+    "meanLuminance": 0.0171,
+    "residualStdOverMean": 0.03,
+    "residualPeakToPeakOverMean": 0.128
+   },
+   "within320": {
+    "columns": 631,
+    "meanLuminance": 0.019,
+    "residualStdOverMean": 0.098,
+    "residualPeakToPeakOverMean": 0.176
+   },
+   "withFade": {
+    "columns": 1860,
+    "meanLuminance": 0.0117,
+    "residualStdOverMean": 0.139,
+    "residualPeakToPeakOverMean": 0.455
+   },
+   "limit": 0.06,
+   "method": "idle wall rows 330..860 units, column means, 130-unit average minus 600-unit average; fadeRemoved: veil and edge shade switched off; within320: |x - 300| <= 320 units; the smoothing windows read the whole page and the figure keeps only the stated columns"
+  },
+  "2560x1440": {
+   "fadeRemoved": {
+    "columns": 2479,
+    "meanLuminance": 0.0171,
+    "residualStdOverMean": 0.03,
+    "residualPeakToPeakOverMean": 0.126
+   },
+   "within320": {
+    "columns": 840,
+    "meanLuminance": 0.019,
+    "residualStdOverMean": 0.098,
+    "residualPeakToPeakOverMean": 0.174
+   },
+   "withFade": {
+    "columns": 2479,
+    "meanLuminance": 0.0117,
+    "residualStdOverMean": 0.14,
+    "residualPeakToPeakOverMean": 0.456
+   },
+   "limit": 0.06,
+   "method": "idle wall rows 330..860 units, column means, 130-unit average minus 600-unit average; fadeRemoved: veil and edge shade switched off; within320: |x - 300| <= 320 units; the smoothing windows read the whole page and the figure keeps only the stated columns"
+  }
+ }
+}
