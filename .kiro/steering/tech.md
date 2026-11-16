@@ -4,6 +4,7 @@
 
 - TypeScript (strict), Vite, no UI framework.
 - Vitest for unit tests, fast-check for property-based tests, Playwright for end-to-end tests with a faked clock.
+Vitest runs on half the logical processors (maxWorkers 50%), because the property suites time out when every processor runs a worker (room-art Q51).
 - ESLint for linting.
 - Node 22+.
 - Static site, no backend, no API keys, no AI calls at run time. Free hosting, always on until Jan 29, 2027: a Render static site defined by `render.yaml`, at https://candlewatch.onrender.com.

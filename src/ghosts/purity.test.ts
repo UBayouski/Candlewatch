@@ -9,7 +9,7 @@ import { describe, expect, it } from "vitest";
 const GHOSTS_DIR = dirname(fileURLToPath(import.meta.url));
 
 /** The pure modules of src/ghosts (design 2.1). A task adds its file here when it creates it; the test fails if a listed file is missing. */
-const PURE_GHOST_FILES: readonly string[] = ["slots.ts", "visible.ts", "label.ts", "silhouette.ts"];
+const PURE_GHOST_FILES: readonly string[] = ["slots.ts", "visible.ts", "label.ts", "silhouette.ts", "place.ts"];
 
 /**
  * The DOM layer of src/ghosts: exempt from the identifier scan and the import allow-list, but still subject to the folder-wide
@@ -223,4 +223,12 @@ describe("the whole folder keeps its layers apart (R1.1, R1.3, R1.7, R1.8)", () 
   it("no file, comments included, contains the trademark word", () => {
     expect(sources.filter((s) => TRADEMARK_PATTERN.test(s.raw)).map((s) => s.name)).toEqual([]);
   });
+});
+
+// Q47: silhouette.ts and place.ts are both in the pure-module list.
+it("no shipped ghost source imports the scene or mentions the reference directory",()=>{
+ for(const source of folderSources()){
+  expect(importsOf(source.code).filter(spec=>/^(?:\.\.\/)+scene(?:\/|$)/.test(spec))).toEqual([]);
+  expect(source.raw).not.toMatch(/prototype[\\/]/);
+ }
 });

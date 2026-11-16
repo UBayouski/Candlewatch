@@ -8,9 +8,10 @@ import { describe, expect, it } from "vitest";
 const SCENE_DIR = dirname(fileURLToPath(import.meta.url));
 
 /** The model files: strictly pure (design 12.2). */
-const MODEL_FILES = ["types.ts", "constants.ts", "flicker.ts", "model.ts"] as const;
+const MODEL_FILES = ["types.ts", "constants.ts", "flicker.ts", "model.ts", "setting.ts", "light.ts", "backdrop.ts"] as const;
 
 const FORBIDDEN_IN_MODEL: readonly { name: string; pattern: RegExp }[] = [
+  { name: "Date", pattern: /\bDate\b/ },
   { name: "window", pattern: /\bwindow\b/ },
   { name: "document", pattern: /\bdocument\b/ },
   { name: "localStorage", pattern: /\blocalStorage\b/ },
@@ -43,7 +44,7 @@ const FORBIDDEN_STATE_FIELDS: readonly { name: string; pattern: RegExp }[] = [
 ];
 
 const TEST_ONLY_IMPORT = /\b(?:from|import)\s*\(?\s*["'][^"']*\/(?:test-kit|scene-kit|fake-document)(?:\.[a-z]+)?["']/;
-const FORBIDDEN_LAYER_IMPORT = /\b(?:from|import)\s*\(?\s*["'][^"']*\/(?:storage|ui|audio|distraction)(?:\/[^"']*)?["']/;
+const FORBIDDEN_LAYER_IMPORT = /\b(?:from|import)\s*\(?\s*["'][^"']*\/(?:storage|ui|audio|distraction|ghosts|graveyard)(?:\/[^"']*)?["']/;
 const ENGINE_IMPORT = /\bimport\b[^;]*?\bfrom\s*["']((?:\.\.\/)+engine(?:\/[^"']*)?)["']/g;
 
 /** Removes // and block comments, leaving string contents alone. */
@@ -194,4 +195,15 @@ describe("the renderer does not touch the engine (design 1.2)", () => {
     if (!readdirSync(SCENE_DIR).includes("render.ts")) return;
     expect(engineImports(read("render.ts"))).toEqual([]);
   });
+});
+
+// room-art task 8.1: check the pure sibling allow-list and all non-test source paths.
+it("new setting/light modules import only pure scene siblings",()=>{
+ for(const name of ["setting.ts","light.ts","backdrop.ts"]){
+  const refs=[...read(name).matchAll(/\b(?:from|import)\s*["']([^"']+)["']/g)].map(m=>m[1]);
+  for(const ref of refs)expect(["../engine","../strings","./constants","./setting","./light","./types","./flicker","./model","./backdrop"]).toContain(ref);
+ }
+});
+it("no shipped scene source mentions the reference directory",()=>{
+ for(const source of sceneSources())expect(source.code).not.toMatch(/prototype[\\/]/);
 });

@@ -25,6 +25,7 @@ const PURE_GRAVEYARD_FILES: readonly string[] = [
   "day-key.ts",
   "plan.ts",
   "tap-guard.ts",
+  "place.ts",
 ];
 
 /**
@@ -334,4 +335,8 @@ describe("the one reader of local time", () => {
     expect(IMPORTABLE_SIBLINGS).not.toContain("day-key.ts");
     expect(IMPORTABLE_SIBLINGS).toContain("days.ts");
   });
+});
+
+it("no shipped graveyard source mentions the reference directory",()=>{
+ for(const source of folderSources())expect(source.raw).not.toMatch(/prototype[\\/]/);
 });

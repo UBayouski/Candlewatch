@@ -705,3 +705,69 @@ Surface: Kiro CLI. The review of the finished scene ran with the costume-reviewe
 - **Checks run:** Local scope, exact-source/test guards, reviewer JSON checks and sound-and-title tick/number/Result preservation checks passed.
 - **Deferred as planned:** CR13 source in 12.1; future-file notes removed in 29.2. No owner decision remains for batch 1. No task 3, commit, push or deploy.
 - **Boundary:** Batch 1 ends here.
+
+## 2026-11-15 - room-art batch 2 completed checkpoint (tasks 3 to 10)
+
+- **Surface:** Kiro CLI.
+- **What was asked:** finish tasks 3 to 10 after the owner resolved the art-contract stops, reduce P11/P14 test overhead, then apply Q51 to limit CPU oversubscription; run three consecutive unit suites and one-command verification. Stop at the batch 2 boundary.
+- **Owner decisions:** Q44 to Q51 are recorded and applied, resolving all art-contract stops. The approved wall is unchanged. Q49 allows adjacent accents but retains above/below overlap checks; Q50 makes the build mound 12 deep, leaving 2 units before the unchanged count line, with the 11-entry fixed regression retained. D9 records the known 17-deep Prototype versus 12-deep build difference. No Prototype edit or visual re-read.
+- **Timeout history and cause:** old P11 took 5.1..5.3 s and old P14 4.0..4.3 s in full suites versus about 2.1/1.4 s alone. The first fix removed repeated matchers/scattering and redundant shipped-joint checks; isolated times became 94/464 ms. Three full unit runs passed, but verification then timed out in the older scene P6 at 5171 ms and P14 at 5741 ms. The owner measured the remaining CPU oversubscription: default 31 workers on 32 logical processors gave suites of 11.1..14.4 s with one P14 timeout; 16 workers gave 10.0..11.7 s and eight gave 14.1..15.4 s, all green. Q51 therefore limits workers to half. Earlier speculation and the unresolved-cause wording are superseded by this owner decision.
+- **Performance fix:** only src/graveyard/place.prop.test.ts and src/scene/setting.prop.test.ts changed in implementation. Each generated run now collects complete, short indexed violation strings and asserts the array is empty once. All checks and bounds remain. P14 still calls the generator twice and compares deeply inside each run; the shipped-seed non-null joint floor is a separate once-only it(). P11 memoises groundMarks(7741,texts) by the serialized text rectangles; fixed histories and PROP_PARAMS are unchanged. No source, generator, timeout, run count or dependency change. Hash comparisons confirm all other source/configuration/Prototype bytes are unchanged in this follow-up.
+- **Isolated timings:** P14 464 ms; P11 94 ms, both below the 1000 ms target at 300 runs. P7 passed as well; the one-off shipped-joint test adds one test, taking the suite to 1549.
+- **Three sequential full unit runs after the first fix (historical):** each npm test run passed 117 files / 1549 tests. JSON reporting supplied the durations; no execution setting was changed. Durations rounded to milliseconds:
+
+| Run | P11 | P14 | P15 | scene P6 |
+|---|---:|---:|---:|---:|
+| 1 | 1753 | 4108 | 3782 | 3672 |
+| 2 | 1055 | 3916 | 3429 | 4458 |
+| 3 | 1264 | 3901 | 3937 | 4462 |
+
+- **Eight mutations rerun after the fix:** P14 stagger gap 10, width 250, offset difference 1, dropped above/below accent courses, random jitter and reduced joint inset; P11 board widened 130 beyond the more rectangle and a mark ignoring avoidance on the Graveyard label ? each caught and reverted. Every failure still names the violating block/prop/mark and values; source restoration passed both git diff and exact SHA-256 comparisons. Mutation seeds/counterexamples and sample diagnostic strings are recorded in task Results. No mutation survived this follow-up.
+- **All batch mutation/fault coverage:** all 41 currently named distinct checks have been caught and reverted across the batch. Earlier idle-tint and Backdrop-bound survivors were strengthened only in tests and reapplied. This follow-up specifically reran the eight P14/P11 checks; all other check evidence remains in task Results.
+- **Property results:** all required room-art P1/P2/P3/P4/P5/P6 (pure half in light.prop.test.ts)/P7/P11/P13/P14 passed at 300 runs through unchanged PROP_PARAMS, including final verification. No property skip/only/todo or lowered run count. Earlier assertion counterexamples are preserved in task Results and resolved by the recorded owner decisions; no property assertion failure occurred in the Q51 runs.
+- **Previous checkpoint (resolved by Q51):** verification had passed type-check/lint but failed two timeouts: older scene P6 5171 ms and P14 5741 ms, with 115 unit files passed / 2 failed and 1547 tests passed / 2 failed. P11/P15 passed; no seed/counterexample was printed. Build/e2e were not reached, and task 10 stayed unticked at that point. The 117 workers spawned in the summary counted isolated file workers cumulatively, not concurrent workers.
+- **Q51 second fix (owner, 2026-11-15):** vitest.config.ts adds only maxWorkers: "50%". Installed Vitest 5.1.0 accepts percentage strings and resolves half of availableParallelism(), rounded and clamped; this environment reports 32, giving 16 concurrent workers. No fallback to numeric 16 was needed. tech.md records the owner-approved reason. No test, timeout, run count, PROP_PARAMS, generator or shipped source changed in this follow-up.
+- **Three sequential Q51 unit runs:** each passed 117 files / 1549 tests, with no timeout. P6 below is room-art's pure light property in light.prop.test.ts. Durations in milliseconds; suite seconds are elapsed JSON startTime to last file endTime.
+
+| Run | P14 | P11 | P15 | room-art P6 | Suite seconds |
+|---|---:|---:|---:|---:|---:|
+| 1 | 2427 | 195 | 2008 | 127 | 20.72 |
+| 2 | 1449 | 708 | 1269 | 506 | 23.52 |
+| 3 | 1135 | 435 | 812 | 288 | 10.25 |
+
+- **Final Q51 checkpoint:** npm run verify ran as one command and exited 0: type-check/lint, 117 unit files / 1549 tests, production build, and 350 e2e passed / 7 skipped. The verification unit stage took 11.29 s. All checkpoint points passed: required properties at 300 runs, no suppressed properties, all 41 earlier named mutations/faults caught and reverted, and no new module wired into shipped code. Tasks 3.2, 3, 7.2, 7 and 10 are ticked; task 11 is untouched. Baseline was 106 unit files / 1502 tests and 350 e2e passed / 7 skipped. The first faster-property fix and the Q51 worker fix together complete the checkpoint.
+- **Baseline history:** clean tree at 6da6289 (room-art batch 1), tasks 1 and 2 ticked. First baseline P15 timeout 5427 ms; five isolated reruns 332/294/344/342/303 ms passed; baseline verification rerun passed 106 files / 1502 tests and 350 e2e passed / 7 skipped. Earlier partial checkpoints and property counterexamples remain recorded in task Results; Q49/Q50 resolved those art assertions.
+- **Created during batch 2, one line each:**
+  - `src/scene/setting.ts`: constants and seeded wall geometry/sampler.
+  - `src/scene/setting.test.ts`: shipped tile, 42 blocks, 40 reads and exact null identities.
+  - `src/scene/setting.prop.test.ts`: P7/P14 with complete violation lists and the one-off shipped-joint floor check; Q49 applied.
+  - `src/scene/light.ts`: pure mask union and resolved colour model.
+  - `src/scene/light.test.ts`: examples, invalid inputs and the window reach boundary.
+  - `src/scene/light.prop.test.ts`: P6 pure half and P13.
+  - `src/scene/backdrop.ts`: copied meet rule and approved drawn extent.
+  - `src/scene/backdrop.test.ts`: all art sizes and Q46 aspect bounds.
+  - `src/scene/backdrop.prop.test.ts`: P4/P5.
+  - `src/ghosts/place.ts`: deterministic reference look, placement and spare room.
+  - `src/ghosts/place.test.ts`: copies, spare figures and identity table.
+  - `src/ghosts/place.prop.test.ts`: P1/P2/P3.
+  - `src/graveyard/place.ts`: pure Place geometry, text exclusions and seeded marks.
+  - `src/graveyard/place.test.ts`: D9 constants, Item rectangles and mark counts/gaps.
+  - `src/graveyard/place.prop.test.ts`: P11 with fixed real-limit examples, violation lists and scattering memoised by text layout; Q48/Q50 applied.
+  - `src/hosting/prototype.test.ts`: recorded source geometry, exact joint/tone tile and runtime isolation.
+- **Changed during batch 2, one line each:**
+  - `src/ghosts/silhouette.ts`: added bodies/eyes; legacy function unchanged.
+  - `src/ghosts/silhouette.test.ts`: three-shape checks with the approved asymmetric-bound reason.
+  - `src/scene/purity.test.ts`: all three new scene modules and stronger guards.
+  - `src/ghosts/purity.test.ts`: ghost place and silhouette coverage/isolation.
+  - `src/graveyard/purity.test.ts`: Place coverage/isolation.
+  - `src/strings.test.ts`: fixed key-path inventory; no visible string added.
+  - `.kiro/specs/room-art/requirements.md`: Q44 to Q51 and corrected contracts.
+  - `.kiro/specs/room-art/design.md`: nullable sampler, ranges, extents, spare figures and P11 correction.
+  - `.kiro/specs/room-art/tasks.md`: corrected instructions, task 19 helper note, Results and justified completion ticks.
+  - `vitest.config.ts`: maxWorkers 50% by Q51, with no other config change.
+  - `.kiro/steering/tech.md`: the Q51 worker-limit sentence.
+  - `KIRO_USAGE.md`: this completed checkpoint.
+- **Changed in the first performance follow-up:** the two property-test files above, tasks.md Results and this entry. Q51 then changed vitest.config.ts, tech.md, requirements.md, tasks.md and this entry; source/tests/e2e/Prototype bytes stayed unchanged. No owner hand edits reported.
+- **Screenshots and costume review:** none yet; no visual read or retake. The previous idle joint ratio 1.127 is a reference figure only.
+- **Remaining:** none in batch 2. No runtime wiring, visual re-read, task 11, main/room/CSS/e2e/geometry/Prototype/dependency/visible-string change in this follow-up; no commit, push or deploy.
+- **Boundary:** Batch 2 ends here.
