@@ -56,6 +56,7 @@ Conventions for every task:
     - Mutation check (P2): swap the `strike` and `chime` results of rules 3 and 4; confirm P2 and the 25-pair unit test fail; revert. Then return `breath` for `paused` to `burned-out`; confirm P2 fails; revert.
     - Files: `src/audio/cue.prop.test.ts`.
     - **Validates: Requirements 2.1, 2.2, 2.3, 2.4, 2.5, 2.8, 2.9**
+    - Result (room-art Q75, 2026-11-16): coverage made deterministic by room-art Q75; three explicit examples for each cue-producing pair, with the random 300 runs and coverage floor retained.
 
   - [x] 1.4 Required: P4, the Late_Cue_Limit decides end Cues and never strikes
     - **Property 4: The Late_Cue_Limit decides end Cues and never strikes**

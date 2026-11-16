@@ -3,10 +3,26 @@ import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { isBreak } from "../engine";
 import { arbScript, arbT0, runScript } from "../engine/test-kit";
+import type { ScriptStep } from "../engine/test-kit";
 import { LATE_CUE_LIMIT_MS, cueFor } from "./cue";
 import { EVENT_TYPES, LIVE_EVENT_TYPES, PROP_PARAMS, TRANSITION_KINDS, arbCueScript, transition, arbCueContext, arbOffset, arbPhasePair, endOf, referenceCue, stateOf } from "./test-kit";
 
 const CUES = new Set(["strike", "chime", "breath"]);
+
+const cueStep = (kind: ScriptStep["kind"], gap: number): ScriptStep =>
+  ({ kind, gap, length: 25, intent: undefined, junk: undefined });
+type CueExample = [ScriptStep[], number, number, number, "light" | "tick" | "snuff", number, boolean];
+const cueExamples: CueExample[] = [
+  [[cueStep("light", 0)], 1_500_000_000_000, 0, 0, "light", 0, true],
+  [[cueStep("light", 1000)], 1_500_000_000_001, 0, 0, "light", 1, true],
+  [[cueStep("light", 2000)], 1_500_000_000_002, 0, 0, "light", -1, true],
+  [[cueStep("light", 0), cueStep("tick", 25 * 60_000)], 1_500_000_000_003, 1, 0, "tick", 0, true],
+  [[cueStep("light", 1000), cueStep("tick", 25 * 60_000)], 1_500_000_000_004, 1, 0, "tick", 1, true],
+  [[cueStep("light", 2000), cueStep("tick", 25 * 60_000)], 1_500_000_000_005, 1, 0, "tick", -1, true],
+  [[cueStep("light", 0), cueStep("snuff", 60_000)], 1_500_000_000_006, 1, 0, "snuff", 0, true],
+  [[cueStep("light", 1000), cueStep("snuff", 60_000)], 1_500_000_000_007, 1, 0, "snuff", 1, true],
+  [[cueStep("light", 2000), cueStep("snuff", 60_000)], 1_500_000_000_008, 1, 0, "snuff", -1, true],
+];
 
 describe("Feature: sound-and-title, Property 1: No Cue when sound is off or on reload", () => {
   it("gives null for sound off, and null for a reload, for any two states, event and now", () => {
@@ -72,12 +88,25 @@ describe("Feature: sound-and-title, Property 2: cueFor agrees with the reference
           seen.set(`${prev.phase}>${next.phase}`, (seen.get(`${prev.phase}>${next.phase}`) ?? 0) + 1);
         },
       ),
-      PROP_PARAMS,
+      { ...PROP_PARAMS, examples: cueExamples },
     );
     // The pairs that give a Cue are met, so the property is not passing on nulls alone (the next test meets every kind).
     for (const pair of ["idle>lit", "lit>burned-out", "lit>snuffed"]) {
       expect(seen.get(pair) ?? 0, pair).toBeGreaterThanOrEqual(3);
     }
+    const exampleSeen = new Map<string, number>();
+    for (const [script, t0, i, , , , consecutive] of cueExamples) {
+      const trace = runScript(script, t0);
+      const changes = trace.filter((e) => e.before.phase !== e.after.phase);
+      const pool = changes.length > 0 ? changes : trace;
+      const entry = pool[i % Math.max(1, pool.length)];
+      const prev = consecutive && entry !== undefined ? entry.before : stateOf("idle", t0);
+      const next = consecutive && entry !== undefined ? entry.after : stateOf("idle", t0);
+      const pair = `${prev.phase}>${next.phase}`;
+      exampleSeen.set(pair, (exampleSeen.get(pair) ?? 0) + 1);
+    }
+    const exampleCounts = ["idle>lit", "lit>burned-out", "lit>snuffed"].map((pair) => [pair, exampleSeen.get(pair) ?? 0] as const);
+    expect(Math.min(...exampleCounts.map(([, count]) => count)), `examples alone: ${JSON.stringify(exampleCounts)}`).toBeGreaterThanOrEqual(3);
   });
 
   it("equals the reference on every kind of Transition the engine makes, built with step, with now within the limit", () => {

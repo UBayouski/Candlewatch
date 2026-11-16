@@ -466,4 +466,4 @@
 .b-top { fill: var(--set-board-top); } .b-front { fill: var(--set-board-front); } .b-grain { stroke: var(--set-board-grain); stroke-width: 1; fill: none; } .b-iron { fill: var(--set-iron); }
 .p-night { fill: var(--room-night, #05070d); }
 
-@media (forced-colors: active) { #ui .graveyard .place { display: none; } }
+@media (forced-colors: active) { #ui .graveyard svg.place { display: none; } }
