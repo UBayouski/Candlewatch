@@ -336,84 +336,158 @@ Conventions for every task:
 
 > **Batch 3 ends here.** Stop this CLI session. Start batch 4 with task 19.
 
-- [ ] 19. Browser test helpers
-  - [ ] 19.1 `e2e/sound-fixtures.ts`
+- [x] 19. Browser test helpers
+  - [x] 19.1 `e2e/sound-fixtures.ts`
     - Build on `e2e/controls-fixtures.ts` (`openApp`, `settle`, `jump`, `press`, `timeText`, `statusText`, `liveTexts`, `storedState`, `phaseOf`, `clockNow`) and `FIXTURES` and `T0` of `e2e/scene-fixtures.ts`. Export `FAKE_AUDIO_SCRIPT` (a string for `initScripts`: replaces `window.AudioContext` with a class that starts `suspended`, flips to `running` in a microtask after `resume()`, and appends `{ kind, at: Date.now(), ... }` entries to `window.__audioLog` for `construct`, `resume`, `osc`, `noise`, `filter` and `stop`), `FAKE_AUDIO_THROWS` (a constructor that throws), `cuesPlayed(log)` (identifies a Cue by its signature using the numbers of `CUE_SPECS`: a bandpass noise voice from 4000 Hz is `strike`, a 660 Hz sine is `chime`, a lowpass noise voice from 2400 Hz is `breath`), `constructions(log)`, `resumes(log)`, and `setHidden(page, hidden)` (sets `visibilityState`, dispatches `visibilitychange`, and holds `requestAnimationFrame` callbacks in `window.__heldFrames` installed after load, restoring and replaying them on show; see design 8.5 and D32). Headless Chromium never hides a page by itself; build on the shape of `setVisibility` in `e2e/graveyard-fixtures.ts` (corrected, design D34). `openApp` now starts the clock paused at the load instant (`pauseAt(now - 5000)`, then the page, then `runFor(5040)`); keep that order and install the frame stub after load. `window.__audioLog` and `window.__heldFrames` are globals of the tests' own scripts; the app never reads them.
     - Add a one-test smoke in `e2e/sound.spec.ts` that opens a page with the fake audio and sees `constructions(log)` equal 0, to prove the helpers.
     - Files: `e2e/sound-fixtures.ts`, `e2e/sound.spec.ts`.
     - _Requirements: R9.3, R9.5_
+    - Result: Added the test-only suspended AudioContext, throwing constructor, cue signature reader, log counters and held-frame visibility helper. The smoke test saw zero constructions before a gesture; focused `sound.spec.ts` passed 13 tests. No mutation is named for this sub-task.
 
-- [ ] 20. E1, E1b, E2, E3, E4, E8: the cues
-  - [ ] 20.1 E1, E1b and E2 in `e2e/sound.spec.ts`
+- [x] 20. E1, E1b, E2, E3, E4, E8: the cues
+  - [x] 20.1 E1, E1b and E2 in `e2e/sound.spec.ts`
     - **E1**: with `FAKE_AUDIO_SCRIPT`, a fresh page and a page with a stored `lit` session construct no context after load, after `settle` and after several frames and a pointer move; the first Enter on a fresh page gives one construction, one `resume` and `cuesPlayed` equal to `["strike"]`.
     - **E1b**: a fresh page, nothing touched, then Enter while Light has focus: one construction, one `resume`, one `strike`, and the `resume` entry comes before the first voice entry in the log (the capture-phase listener unlocked before the controls lit the candle).
     - **E2**: a whole session by keyboard with the clock moved by `page.clock.runFor`: Enter (one `strike`), Space and Space (no new Cue), run to the end (one `chime`); a second session: Enter, Escape, confirm (one `breath`); a third: Enter, Space, run past ten minutes (one `breath` from the pause limit). Counts are exact.
     - Files: `e2e/sound.spec.ts`.
     - _Requirements: R2.2 to R2.4, R4.1 to R4.3, R4.14, R4.16, R9.3, R9.4_
+    - Result: E1 checked fresh and stored-lit pages before gesture; E1b checked the first focused Enter, one construction/resume/strike and log order; E2 checked exact strike/chime/breath counts for burn-out, confirmation and pause limit. The focused file passed 13 tests. No mutation is named for this sub-task.
 
-  - [ ] 20.2 E3, E4 and E8 in `e2e/sound.spec.ts`
+  - [x] 20.2 E3, E4 and E8 in `e2e/sound.spec.ts`
     - **E3**: with the stored setting sound off, a whole session constructs nothing and plays nothing; turning sound on mid-session with the real switch constructs one context and plays nothing until the next Transition (the burn-out then plays the `chime`); turning it off fades within 50 ms (`stop` entries appear) and sends no engine event (the stored session is byte-equal before and after).
     - **E4**: a stored session that burned out while the page was closed plays no Cue at load and none at the first gesture; a stored `lit` session that burns out after load but before any gesture (found by `runFor`) plays no Cue; then a gesture and a new Light plays the `strike`.
     - **E8**: the same keyboard session with `reducedMotion` true and false: the lists from `cuesPlayed` and the logged node types are equal.
     - Files: `e2e/sound.spec.ts`.
     - _Requirements: R2.6, R2.10, R2.14, R4.5 to R4.8, R7.4, R7.7, R9.4_
+    - Result: E3 checked sound-off silence, enabling mid-session without an immediate cue, burn-out chime, fade stop and unchanged session bytes; E4 checked both reload and pre-gesture burn-out silence; E8 checked the same cue/node signatures with and without reduced motion. The focused file passed 13 tests; the longest single case was 14.0 s. The settings test needed a 48 ms settle after opening its panel; no shipped code or existing test changed. No mutation is named for this sub-task.
 
-- [ ] 21. E5 and E6: hidden tabs
-  - [ ] 21.1 Write E5 and E6 in `e2e/hidden-tab.spec.ts`
+- [x] 21. E5 and E6: hidden tabs
+  - [x] 21.1 Write E5 and E6 in `e2e/hidden-tab.spec.ts`
     - **E5**: a stored `lit` session with 20 seconds left, `setHidden(page, true)`, `settle`; `#time` stays frozen (no frame runs) while `runFor(1000)` five times changes the title each second, equal to `formatTime` of the time left at the sampled clock; at the end the title is `Morning · Candlewatch` and `cuesPlayed` is `["chime"]` at the burn-out instant; on `setHidden(page, false)` and `settle` there is no second `chime`, the stored session counts one distraction per hide, `#time` is right and the live region says the dawn once.
     - **E6**: a stored `paused` session with a few seconds of pause allowance, hidden: `runFor` past the limit gives one `breath` and the title `Dark · Candlewatch`. Late timers, for both end kinds: `fastForward` 90 seconds past the end (lateness under the limit) gives the Cue; 130 seconds past (over the limit) gives no Cue while the title and the stored phase are right.
     - Files: `e2e/hidden-tab.spec.ts`.
     - _Requirements: R5.1 to R5.10, R5.14 to R5.22, R6.13, R9.5_
+    - Result: Six focused tests passed (14.0 s suite): E5 held animation frames while the title advanced once per second and a single chime sounded at burn-out; return counted one hide and no duplicate cue. E6 checked the pause-limit breath and both end kinds at 90 s and 130 s lateness. No mutation is named for this sub-task.
 
-- [ ] 22. E7: the title
-  - [ ] 22.1 Write E7 in `e2e/title.spec.ts`
+- [x] 22. E7: the title
+  - [x] 22.1 Write E7 in `e2e/title.spec.ts`
     - A session by keyboard with a distinctive typed intent. At sampled clock points (every 5 seconds of a short session, at each phase change, and the last second) read the title and `#time` in one `page.evaluate`; the title matches the forms of R6 with the time equal to `#time`, and never contains the intent. In a context with JavaScript disabled the page title is `Candlewatch` (R6.16). The idle title is `Candlewatch` and the paused title does not change while the pause lasts.
     - Files: `e2e/title.spec.ts`.
     - _Requirements: R6.1 to R6.5, R6.7 to R6.9, R6.12, R6.14, R6.16, R7.9_
+    - Result: Two focused tests passed (14.4 s suite): a five-minute keyboard session was sampled every five seconds and at pause/resume and burn-out, comparing title and visible timer in one page evaluation and excluding the distinctive intent; JavaScript-disabled index.html kept `Candlewatch`.
 
-- [ ] 23. E10: the real build under the Blueprint's headers
-  - [ ] 23.1 Write E10 in `e2e/sound-headers.spec.ts`
+- [x] 23. E10: the real build under the Blueprint's headers
+  - [x] 23.1 Write E10 in `e2e/sound-headers.spec.ts`
     - Serve the real build with the Blueprint's headers the way `e2e/headers-local.spec.ts` does (`readBlueprint`, `headersFor` in a `page.route("**/*")` handler; a local copy of that shape, or extract it into `e2e/headers-fixtures.ts`), install the fake audio script, record `securitypolicyviolation` events, `console`, `pageerror` and `requestfailed`. A whole short session plays a `strike` and a `chime`; the violations list is empty, no console error names the policy, no `pageerror`, no `requestfailed`, every request is same-origin and none has resource type `media`. Add a negative control with `script-src 'none'` showing the test can fail.
     - Files: `e2e/sound-headers.spec.ts`, optionally `e2e/headers-fixtures.ts`.
     - _Requirements: R1.9, R9.6_
+    - Result: The focused two-test file passed (12.6 s suite): a five-minute session under `headersFor(readBlueprint())` played strike and chime with zero violations, console/page errors, failed requests, cross-origin requests or media requests. The `script-src 'none'` negative control recorded a violation and no scene; it was confined to that test's response handler, then reverted by closing the page.
 
-- [ ] 24. E9: the final wording in the graveyard
-  - [ ] 24.1 Write E9 in `e2e/final-wording.spec.ts`. Requires the ghosts-and-graveyard build
-    - If `src/graveyard/` or `e2e/graveyard-fixtures.ts` does not exist, stop and report (see Overview). Use `openGraveyardApp`, `smallHistory` and `largeHistory` (200 sessions over 45 days) from the ghosts fixtures. Check `ariaSnapshot` and text of the graveyard view against the Final Wording: the Carved_Date ("10 Nov", "7 Nov", no zero, no year), the empty-state lines, the count lines (singular for 1, plural for 0 and 2 or more, exact numbers for the 200-session history), the Overflow_Mark and "+n more", the door and return names, the heading, the announcements on open and leave, and the five card lines of a stone and of a stub with and without an intent; an Item's accessible name never contains "Here lies" or "Burned to the end".
+- [x] 24. E9: the final wording in the graveyard
+  - [x] 24.1 Write E9 in `e2e/final-wording.spec.ts`. Requires the ghosts-and-graveyard build
+    - If `src/graveyard/` or `e2e/graveyard-fixtures.ts` does not exist, stop and report (see Overview). Use `openGraveyardApp`, `smallHistory` and `largeHistory` (200 sessions over 45 days) from the ghosts fixtures. Check `ariaSnapshot` and text of the graveyard view against the Final Wording: the Carved_Date ("10 Nov" and "7 Nov" are examples of the format; derive expectations from fixture timestamps in the page time zone, by Q10; no leading zero, no year), the empty-state lines, the count lines (singular for 1, plural for 0 and 2 or more, exact numbers for the 200-session history), the Overflow_Mark and "+n more" from a dense-day history sized from DEFAULT_LIMITS.K (by Q10), the door and return names, the heading, the announcements on open and leave, and the five card lines of a stone and of a stub with and without an intent; an Item's accessible name never contains "Here lies" or "Burned to the end".
     - Files: `e2e/final-wording.spec.ts`.
     - _Requirements: R8.1 to R8.15, R9.3_
+    - Result: Five focused E9 tests passed (15.4 s suite). The empty, small and 200-session fixtures check heading, controls, announcements, all five card lines for Stones and Stubs with and without intent, accessible names, dates and exact plural hidden counts. A local fixture checks singular hidden counts. By Q10, expected Carved_Dates come from each fixture timestamp in the page time zone; a local dense day of `DEFAULT_LIMITS.K + 2` stubs proves the literal single-digit/two-digit format, no leading zero or year, and exactly `+2 more`. No shipped fixture or existing test changed.
 
-- [ ] 25. Screenshots
-  - [ ] 25.1 Final full retake of all 62 screenshots. Requires the ghosts-and-graveyard and room-art builds
+- [x] 25. Screenshots
+  - [x] 25.1 Final full retake of all 62 screenshots. Requires the ghosts-and-graveyard and room-art builds
     - Amended by room-art task 1.5, A26/CR9: after this spec's own work, perform the final full retake of all 62 files in `docs/screenshots/`, as room-art R11.8 requires. Room-art task 28 already retakes and looks at all 62 for its own costume review; this final retake is not limited to files this spec's changes touch. If the finished room-art build or its 62-file list is absent, stop and report. Read `e2e/screenshots.spec.ts`, `e2e/controls-screenshots.spec.ts` and `e2e/screenshot-list.ts`; use `CANDLEWATCH_SHOTS=1` for both screenshot specs, then clear the variable. The list is the existing 59 (21 `candle-*`, 20 `controls-*`, 9 `ghosts-*`, 9 `graveyard-*`) plus `candle-lit-half-wide.png` (1920 by 1080), `candle-lit-half-4k.png` (3840 by 2160) and `graveyard-large-wide.png` (1920 by 1080). Expect the finished room-art setting, warm pool, no idle pool, ghost shapes, wooden Door and Place; use room-unit positions through `stageBox`, the layout and Wall_Samples at block centres, never old fixed wall pixels. Check `git status` and the exact 62 names.
     - Files: `docs/screenshots/*.png` (all 62).
     - _Requirements: R9.7; room-art R11.8, R11.9, R11.14_
+    - Result: Ran both screenshot specs together with `CANDLEWATCH_SHOTS=1` and cleared it in `finally`: 65/65 cases passed in 28.3 s. `docs/screenshots/` contains exactly the 62 names of `screenshot-list.ts`, with no extra PNG. Compared Git blob hashes with room-art batch 5 commit `030ec49`: 55 identical; the seven retaken files with changed bytes are `candle-burned-out-desktop.png`, `candle-burned-out-phone.png`, `candle-snuffed-phone.png`, `controls-invalid-length-dawn-desktop.png`, `controls-settings-off-desktop.png`, `graveyard-card-touch-phone.png`, `graveyard-small-phone.png`. The run changed only those seven files under `docs/screenshots/`; the source and tests already being edited for this batch were unchanged by the retake. The build and copy did not change; differences are pixel timing/antialiasing between takes, not new wording.
 
-  - [ ] 25.2 Look at every one of the 62 retaken images. Requires the ghosts-and-graveyard and room-art builds
+  - [x] 25.2 Look at every one of the 62 retaken images. Requires the ghosts-and-graveyard and room-art builds
     - Amended by room-art task 1.5, A26/CR9: **open every one of the 62 PNGs with the image reader and look at it**. For each, confirm the screen in its name, the finished room-art look against `.kiro/specs/room-art/prototype/proto-*.png`, and the final wording: Carved_Date without a leading zero, empty lines, count lines "out of sight", "+n more", and the five card lines with their kind-specific first line. Check that text is readable, nothing overlaps, cards do not cover their Item, the ghost count and size rules hold and the Overflow_Mark keeps its value. Also check the idle joint ratio at 360 wide (floor 1.10), no vertical banding at 2560 and 3840 wide, and a readable dish rim and table lip at 360 by 640. Fix a wrong picture's cause, retake every affected file and look again; do not edit PNGs. List all 62 retaken file names and the observations in the task result. No screenshot nobody looked at counts.
     - Files: `docs/screenshots/*.png` (all 62; retake affected files again if needed).
     - _Requirements: R9.7; room-art R11.8, R11.9_
+    - Result: Opened and looked at each of the 62 retaken PNGs and all 24 matching Prototype references. The matching art and layout follow the approved Prototype; accepted differences are live strings/history fixtures, 12-deep build mounds against 17 (Q50), and the 360-wide dish at 1x (Q81). The seven changed hashes of 25.1 showed no new copy or layout. Focused E14 and E15 checks passed (11 tests, 20.1 s); E3 wall check passed (13.0 s). Phone idle joint 1.127488 against 1.10; E14 2560/3840 readings matched the Prototype within 0.5 percentage points and the 4K picture showed no vertical banding. At 360x640 the dish ring/inside 1.387, ring/front 1.651, lip/under 1.291 and lip/top 1.089 meet their floors; dish and lit edge are readable in the Prototype's 3x crop and the build's matching base. No overlap or lost Overflow_Mark was seen. Per-picture observations:
+      - candle-burned-out-desktop.png: dawn wash, stub and smoke; wall reaches both edges.
+      - candle-burned-out-desktop-reduced.png: dawn wash, stub and smoke; wall reaches both edges; still reduced-motion state.
+      - candle-burned-out-phone.png: dawn wash, stub and smoke; phone controls fit.
+      - candle-idle-desktop.png: unlit full candle and visible wall; wall reaches both edges.
+      - candle-idle-desktop-reduced.png: unlit full candle and visible wall; wall reaches both edges; still reduced-motion state.
+      - candle-idle-phone.png: unlit full candle and visible wall; phone controls fit.
+      - candle-lit-half-4k.png: half wax, warm pool and shut Door; wall reaches both edges.
+      - candle-lit-half-desktop.png: half wax, warm pool and shut Door; wall reaches both edges.
+      - candle-lit-half-desktop-reduced.png: half wax, warm pool and shut Door; wall reaches both edges; still reduced-motion state.
+      - candle-lit-half-phone.png: half wax, warm pool and shut Door; phone controls fit.
+      - candle-lit-half-wide.png: half wax, warm pool and shut Door; wall reaches both edges.
+      - candle-lit-last-minute-desktop.png: guttering low flame and short pool; wall reaches both edges.
+      - candle-lit-last-minute-desktop-reduced.png: guttering low flame and short pool; wall reaches both edges; still reduced-motion state.
+      - candle-lit-last-minute-phone.png: guttering low flame and short pool; phone controls fit.
+      - candle-lit-start-desktop.png: full wax, flame and broad warm pool; wall reaches both edges.
+      - candle-lit-start-desktop-reduced.png: full wax, flame and broad warm pool; wall reaches both edges; still reduced-motion state.
+      - candle-lit-start-phone.png: full wax, flame and broad warm pool; phone controls fit.
+      - candle-paused-desktop.png: blue flame, held wax and Resume; wall reaches both edges.
+      - candle-paused-desktop-reduced.png: blue flame, held wax and Resume; wall reaches both edges; still reduced-motion state.
+      - candle-paused-phone.png: blue flame, held wax and Resume; phone controls fit.
+      - candle-snuffed-desktop.png: darkest wall, stub and smoke; wall reaches both edges.
+      - candle-snuffed-desktop-reduced.png: darkest wall, stub and smoke; wall reaches both edges; still reduced-motion state.
+      - candle-snuffed-phone.png: darkest wall, stub and smoke; phone controls fit.
+      - controls-focus-light-desktop.png: Light focus ring visible and readable; controls clear of candle.
+      - controls-focus-light-phone.png: Light focus ring visible and readable; controls clear of candle at phone width.
+      - controls-focus-pause-desktop.png: Pause focus ring visible and readable; controls clear of candle.
+      - controls-focus-pause-phone.png: Pause focus ring visible and readable; controls clear of candle at phone width.
+      - controls-idle-returning-desktop.png: returning idle status visible and readable; controls clear of candle.
+      - controls-idle-returning-desktop-reduced.png: returning idle status visible and readable; controls clear of candle.
+      - controls-idle-returning-phone.png: returning idle status visible and readable; controls clear of candle at phone width.
+      - controls-invalid-length-dawn-desktop.png: invalid 4-minute message visible and readable; controls clear of candle.
+      - controls-invalid-length-desktop.png: invalid 4-minute message visible and readable; controls clear of candle.
+      - controls-invalid-length-phone.png: invalid 4-minute message visible and readable; controls clear of candle at phone width.
+      - controls-lit-intent-desktop.png: intent under 12:30 visible and readable; controls clear of candle.
+      - controls-lit-intent-phone.png: intent under 12:30 visible and readable; controls clear of candle at phone width.
+      - controls-settings-desktop.png: Settings panel and switches visible and readable; controls clear of candle.
+      - controls-settings-desktop-reduced.png: Settings panel and switches visible and readable; controls clear of candle.
+      - controls-settings-off-desktop.png: sound and ghosts Off visible and readable; controls clear of candle.
+      - controls-settings-off-phone.png: sound and ghosts Off visible and readable; controls clear of candle at phone width.
+      - controls-settings-phone.png: Settings panel and switches visible and readable; controls clear of candle at phone width.
+      - controls-snuff-dialog-desktop.png: snuff confirmation dialog visible and readable; controls clear of candle.
+      - controls-snuff-dialog-desktop-reduced.png: snuff confirmation dialog visible and readable; controls clear of candle.
+      - controls-snuff-dialog-phone.png: snuff confirmation dialog visible and readable; controls clear of candle at phone width.
+      - ghosts-0-desktop.png: zero ghosts; candle, Door and controls remain legible.
+      - ghosts-0-phone.png: zero ghosts; candle, Door and controls remain legible.
+      - ghosts-1-desktop.png: one ghost; candle, Door and controls remain legible.
+      - ghosts-1-phone.png: one ghost; candle, Door and controls remain legible.
+      - ghosts-g-desktop.png: 12 ghosts across size range; candle, Door and controls remain legible.
+      - ghosts-g-phone.png: 12 ghosts across size range; candle, Door and controls remain legible.
+      - ghosts-g-plus-9-desktop.png: 12 drawn ghosts with +9 overflow; candle, Door and controls remain legible.
+      - ghosts-g-plus-9-desktop-reduced.png: 12 drawn ghosts with +9 overflow; candle, Door and controls remain legible; ghosts still.
+      - ghosts-g-plus-9-phone.png: 12 drawn ghosts with +9 overflow; candle, Door and controls remain legible.
+      - graveyard-card-keyboard-desktop.png: focused stone and five-line Here lies card; sky, ground, return and time are visible; dates have no leading zero.
+      - graveyard-card-keyboard-phone.png: focused stone and five-line Here lies card; sky, ground, return and time are visible; dates have no leading zero.
+      - graveyard-card-touch-desktop.png: focused stub and five-line Burned to the end card; sky, ground, return and time are visible; dates have no leading zero.
+      - graveyard-card-touch-phone.png: focused stub and five-line Burned to the end card; sky, ground, return and time are visible; dates have no leading zero.
+      - graveyard-large-desktop.png: ten stones, 57 older stones and 42 older days; sky, ground, return and time are visible; dates have no leading zero.
+      - graveyard-large-desktop-reduced.png: ten stones, 57 older stones and 42 older days; sky, ground, return and time are visible; dates have no leading zero.
+      - graveyard-large-phone.png: ten stones, 57 older stones and 42 older days; sky, ground, return and time are visible; dates have no leading zero.
+      - graveyard-large-wide.png: ten stones, 57 older stones and 42 older days; sky, ground, return and time are visible; dates have no leading zero; Place spans wide viewport.
+      - graveyard-small-desktop.png: two stones and two shelf days; sky, ground, return and time are visible; dates have no leading zero.
+      - graveyard-small-phone.png: two stones and two shelf days; sky, ground, return and time are visible; dates have no leading zero.
 
-- [ ] 26. Costume review
-  - [ ] 26.1 Run the Costume_Reviewer and record its findings in Decision D9
+- [x] 26. Costume review
+  - [x] 26.1 Run the Costume_Reviewer and record its findings in Decision D9
     - Invoke the `costume-reviewer` agent (in the Kiro CLI: `kiro-cli chat --agent costume-reviewer`, or as a sub-agent where the session offers it) on the finished cues and title, with `design.md` section 5, the final full 62-file screenshots of tasks 25.1 and 25.2 as input. It retains these three sound-specific checks alongside the updated five-rule checklist: each Cue shows one state change (`strike` the wick catching, `chime` the dawn, `breath` the flame going out, R7.6); with reduced motion every state a Cue marks is still shown by a visible or textual change (R7.7, design 5.2); the Time_Text keeps a contrast of at least 4.5:1 against its background (R9.9). **Amended by room-art task 1.5, A26/CR9:** the inputs are the final full 62-file retake and the room-art prototype. Apply the updated read-only agent's five-rule checklist and Lit Setting rule: state on moving/changing elements, light on still settings, no Impostor or ornament, reduced-motion equivalence, all room-art R10.5 contrast pairs, the exact fourth visual-quality rule with three weakest elements, edge-to-edge setting, idle visibility and snuffed distinction. Include the idle joint at 360, no banding at 2560/3840, and the dish/table lip at 360. Sound remains governed by this spec's unchanged cue rules.
     - Record its verdict and every finding in `design.md` Decision **D9** (the row in section 10 now says "recorded by the last task"; replace that text with the findings), each with an outcome of **fixed** or **accepted with a reason** (R9.8). Apply the fixes (and retake and look at any affected screenshot), and run the agent again until it passes. If the agent cannot be run, say so and stop: do not substitute another review and call it this one. Edit `design.md` only in D9 and keep the file valid for `validate_spec_format`.
     - Files: `.kiro/specs/sound-and-title/design.md` (D9 only), and whatever the findings change.
     - _Requirements: R9.8, R9.9_
+    - Result: The real Kiro CLI costume-reviewer first returned CHANGES NEEDED because it read only 6 of 62 final screenshots and no Prototype pictures. Its resumed second pass read all 62 final PNGs and all 24 Prototype references and returned PASS. It checked cue mappings, reduced-motion state signals, title and Time_Text, the five visual rules, the phone idle joint, wide wall, and phone base. Its one concrete fix was R7.6's incomplete transition wording; corrected to match R2.2 to R2.4 and `cue.ts`, with no shipped change. D9 records the accepted 0.19/0.2 peak margin (K4 listening remains), missing tab-strip and 2560 final pictures, approved room-art Stones/Door/base/wall, frozen `--:--` string, and approved idle touch copy. A third Kiro CLI pass read R7.6 and D9 and confirmed PASS. No visual change or screenshot retake followed the review.
 
-- [ ] 27. Wrap-up
-  - [ ] 27.1 Verify and summarise
+- [x] 27. Wrap-up
+  - [x] 27.1 Verify and summarise
     - Run `npm run verify`. Confirm every property test P1 to P15 ran with its full number of runs (all through `PROP_PARAMS`, no literal lower `numRuns`, no skipped, `only` or `todo` tests) and that every mutation of the plan was caught and reverted (`git diff` on the sources shows only intended changes). Report the unit file and test counts and the e2e count against the counts reported at the checkpoints.
     - Confirm the shipped folders hold no sound file, no font, no new dependency (`package.json` and `package-lock.json` unchanged), no `window.__` global in `src/`, and that `src/engine/`, `src/scene/`, `src/storage/`, `src/distraction/`, `render.yaml` and the stored documents are unchanged by this spec (`git diff --stat`).
     - Write the summary: it names all 62 files retaken by task 25.1 after the finished room-art build and this spec's own work, and records that every one was opened and looked at in task 25.2, including all `candle-*`, `controls-*`, `ghosts-*`, `graveyard-*` and the three new wide files. **Amended by room-art task 1.5.** It lists which tasks were skipped because `ghosts-and-graveyard` was not built, if any, and the Risk K1 result for P9. Say that the two steering edits (CR7, CR15) and the final `KIRO_USAGE.md` entry follow in task 27.2, and that the owner should listen to the three Cues once on a laptop and a phone (Risk K4) and try the first Enter on Safari and a mobile browser (Risk K3).
     - Files: none (summary only).
     - _Requirements: all_
+    - Result: One `npm run verify` command passed: 121 unit files / 1,572 tests and 549 e2e passed / 9 skipped, up from the batch 3 checkpoint's 106 / 1,502 and 350 / 7 and this batch's baseline 121 / 1,572 and 521 / 9. P1 to P15 ran at 300 runs through `PROP_PARAMS` with no lower literal, skipped, only or todo property; P9 passed, so Risk K1 did not occur. Every planned mutation was caught and reverted in tasks 1 to 17, with no source diff remaining from this batch. The sound-and-title commit file lists plus working tree contain no changes under `src/engine/`, `src/scene/`, `src/storage/`, `src/distraction/`, `render.yaml`, `package.json` or `package-lock.json`; the filtered sound/font asset command and `window.__` search are empty. No task was skipped for missing ghosts-and-graveyard. Task 25.1 retook all 62 after room-art and this spec's work, and task 25.2 opened and inspected every one. The 62 are: candle-burned-out-desktop.png, candle-burned-out-desktop-reduced.png, candle-burned-out-phone.png, candle-idle-desktop.png, candle-idle-desktop-reduced.png, candle-idle-phone.png, candle-lit-half-4k.png, candle-lit-half-desktop.png, candle-lit-half-desktop-reduced.png, candle-lit-half-phone.png, candle-lit-half-wide.png, candle-lit-last-minute-desktop.png, candle-lit-last-minute-desktop-reduced.png, candle-lit-last-minute-phone.png, candle-lit-start-desktop.png, candle-lit-start-desktop-reduced.png, candle-lit-start-phone.png, candle-paused-desktop.png, candle-paused-desktop-reduced.png, candle-paused-phone.png, candle-snuffed-desktop.png, candle-snuffed-desktop-reduced.png, candle-snuffed-phone.png, controls-focus-light-desktop.png, controls-focus-light-phone.png, controls-focus-pause-desktop.png, controls-focus-pause-phone.png, controls-idle-returning-desktop.png, controls-idle-returning-desktop-reduced.png, controls-idle-returning-phone.png, controls-invalid-length-dawn-desktop.png, controls-invalid-length-desktop.png, controls-invalid-length-phone.png, controls-lit-intent-desktop.png, controls-lit-intent-phone.png, controls-settings-desktop.png, controls-settings-desktop-reduced.png, controls-settings-off-desktop.png, controls-settings-off-phone.png, controls-settings-phone.png, controls-snuff-dialog-desktop.png, controls-snuff-dialog-desktop-reduced.png, controls-snuff-dialog-phone.png, ghosts-0-desktop.png, ghosts-0-phone.png, ghosts-1-desktop.png, ghosts-1-phone.png, ghosts-g-desktop.png, ghosts-g-phone.png, ghosts-g-plus-9-desktop.png, ghosts-g-plus-9-desktop-reduced.png, ghosts-g-plus-9-phone.png, graveyard-card-keyboard-desktop.png, graveyard-card-keyboard-phone.png, graveyard-card-touch-desktop.png, graveyard-card-touch-phone.png, graveyard-large-desktop.png, graveyard-large-desktop-reduced.png, graveyard-large-phone.png, graveyard-large-wide.png, graveyard-small-desktop.png, graveyard-small-phone.png. CR7 and CR15 steering edits and the final KIRO_USAGE entry follow in 27.2. Owner follow-up: listen to strike, chime and breath once on laptop and phone (K4), and try first Enter on Safari and a mobile browser (K3).
 
-  - [ ] 27.2 The steering documents (CR7, CR15) and the final `KIRO_USAGE.md` entry
+  - [x] 27.2 The steering documents (CR7, CR15) and the final `KIRO_USAGE.md` entry
     - Read `.kiro/steering/structure.md` and `.kiro/steering/tech.md` first and change only what rows CR7 and CR15 of design 6.2 name, in the style of each file. `structure.md` (CR7): add `src/audio/` and `src/page/` to the implemented folders in the first paragraph; in the tree replace the `audio/` line with the files of `src/audio/` (types.ts, cue.ts, specs.ts, noise.ts, audio-player.ts as the only AudioContext user, gesture.ts, and the test-only fake-audio-context.ts and test-kit.ts); add `page/` (title.ts, wake.ts, title-adapter.ts as the only writer of document.title, hidden-tick.ts as the only background timer, and the test-only fake-timer.ts and test-kit.ts); add `after-step.ts` next to `main.ts`; add the import rules of CR7 under Boundaries. List the files as they exist on disk (check with a directory listing), not as the design planned them. `tech.md` (CR15): add the one sentence of CR15 under rule 1 of "Non-negotiable rules" and nothing else; rule 6 is unchanged. Do not touch `product.md`, `scene.md` or any other steering file. These are the only steering edits of this spec.
     - Write the final entry in `KIRO_USAGE.md` (R9.10), in the manner of the wrap-up entries of the other specs: the surface; what was built (modules, wiring, change requests applied, final wording); property failures with their seeds, or "none", and the Risk K1 result for P9; the mutation results (each caught and reverted); the screenshot checks (all 62 files retaken by task 25.1 after room-art and this spec's own work, each opened and looked at in task 25.2, all file names listed with observations, one line each; **Amended by room-art task 1.5**); the costume review (the verdict of each pass and each finding with its outcome); the counts (unit files and tests, e2e passed and skipped, against the counts of the batch entries); the two steering edits; and what was not done on purpose. Check first that the entries of the checkpoints of tasks 5, 12 and 18 exist.
     - Files: `.kiro/steering/structure.md`, `.kiro/steering/tech.md`, `KIRO_USAGE.md`.
     - _Requirements: R1.4, R1.5, R5.21, R5.23, R9.10_
+    - Result: After listing the files on disk, CR7 updated structure.md's implemented folders, audio/page file tree, after-step.ts and import boundaries. CR15 added the Hidden_Tick sentence under tech.md rule 1; rule 6 is unchanged. The final KIRO_USAGE.md entry records Kiro CLI, all property and mutation outcomes, the 62 retaken and inspected screenshots one line each, all reviewer passes and findings, baseline/final counts, Q10, scope and owner follow-up. The task 5, 12 and 18 checkpoint entries were confirmed present. No commit, push or deploy.
 
 > **Batch 4 ends here.** The spec is complete when `npm run verify` passes and the costume reviewer's last pass is PASS.
 

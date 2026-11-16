@@ -1085,3 +1085,79 @@ element.
 - **Steering and scope:** structure.md lists the built modules, Prototype, frame script, e2e files and 62 screenshots; tech.md records bytes, elements and GPU frame figures; README lists room-art as built. The committed favicon.svg and three self-hosted UI fonts predate room-art; the owner confirmed the asset check means no new image or font. No new dependency, window.__ global or shipped style attribute was found. Protected engine, storage, distraction, main.ts, render.yaml, scene model and render.ts property table have no diff; package files are unchanged. F18 and approved Wall B remain as drawn. No Prototype, source art or screenshot changed after Q81. No commit, push or deploy.
 - **Next:** The owner should look at the room once on a laptop and a phone. Sound-and-title batch 4 (tasks 19 to 27) runs next after this spec; the two builds never run at the same time.
 - **Boundary:** Batch 5 ends here.
+
+## 2026-11-16 - sound-and-title batch 4 completed checkpoint (tasks 19 to 27)
+
+- **Surface:** Kiro CLI. The costume-reviewer ran in Kiro CLI in the same session; its first pass was incomplete, its second and third passes returned PASS.
+- **What was built:** Batches 1 to 3 built `src/audio/` cue selection, recipes, player and gesture gate; `src/page/` title, wake and Hidden_Tick; `after-step.ts`, main.ts wiring, CR1 to CR6 and CR14 intake amendments, and final strings and graveyard wording. Batch 4 added test-only `e2e/sound-fixtures.ts`, `sound.spec.ts` (E1, E1b, E2, E3, E4, E8), `hidden-tab.spec.ts` (E5, E6), `title.spec.ts` (E7), `sound-headers.spec.ts` (E10), and `final-wording.spec.ts` (E9). Q10 derived Carved_Dates from fixture timestamps in the page time zone and added a dense day sized from DEFAULT_LIMITS.K for exact `+2 more`. E10's script-src none negative control caught a policy violation. No shipped source or existing test changed in batch 4.
+- **Properties and Risk K1:** All P1 to P15 pass at 300 runs via PROP_PARAMS. No property failed against the final code; Risk K1 for P9 did not occur. Earlier batch 1 found and fixed the non-finite lateness unit fault; room-art Q75 made P2's coverage deterministic after a probabilistic `lit>snuffed` guard failure. No threshold or run count was lowered.
+- **Mutation results:** Every mutation was applied, caught by its named focused file and reverted with source restoration checked in the earlier batch Results: P1 sound ignored and reload allowed; P2 strike/chime swapped and breath on paused-to-burned-out; P3 duplicate play; P4 exclusive late bound, strike late limit and absolute lateness; P5 master gain raised and envelope end nonzero; P6 title second offset and appended intent; P7 subsecond title; P8 end cap removed and 1 ms floor removed; P9 hide instead of tick and stale tick; P10 eager context and locked play; P11 leading-zero date; P12 arm-id removed, rearm after stop, swallowed dispatch error and wrong getState fallback; P13 title equality removed; P14 title-before-play and hidden start on show; P15 fade skipped and held request kept after sound-off. The strings checks and ghosts P18 mutations of batch 3 were also caught and reverted. Batch 4 named no source mutation; E10's negative control was confined to its own response handler.
+- **Screenshots:** With CANDLEWATCH_SHOTS=1, both screenshot specs retook all 62 listed files after room-art and this spec's work, then the variable was cleared. The inventory matched e2e/screenshot-list.ts exactly. Task 25.2 opened and looked at every one and all 24 frozen Prototype pictures. Fifty-five PNG hashes equal room-art commit 030ec49. Seven changed only from rendering/fixture timing, with no new visible copy or layout: candle-burned-out-desktop.png, candle-burned-out-phone.png, candle-snuffed-phone.png, controls-invalid-length-dawn-desktop.png, controls-settings-off-desktop.png, graveyard-card-touch-phone.png, graveyard-small-phone.png. Phone idle joint ratio 1.127488 exceeds 1.10; E14 matches the Prototype at 2560/3840 within 0.5 percentage points without visible 4K banding; phone dish ring/inside 1.387, ring/front 1.651, lip/under 1.291 and lip/top 1.089 meet the approved floors. Known Prototype differences remain live text/history fixtures, 12-deep mounds and the Q81 phone dish.
+- **Per-picture observations (all 62 retaken and opened; amended by room-art task 1.5):**
+  - candle-burned-out-desktop.png: dawn wash, stub and smoke; wall reaches both edges.
+  - candle-burned-out-desktop-reduced.png: dawn wash, stub and smoke; wall reaches both edges; still reduced-motion state.
+  - candle-burned-out-phone.png: dawn wash, stub and smoke; phone controls fit.
+  - candle-idle-desktop.png: unlit full candle and visible wall; wall reaches both edges.
+  - candle-idle-desktop-reduced.png: unlit full candle and visible wall; wall reaches both edges; still reduced-motion state.
+  - candle-idle-phone.png: unlit full candle and visible wall; phone controls fit.
+  - candle-lit-half-4k.png: half wax, warm pool and shut Door; wall reaches both edges.
+  - candle-lit-half-desktop.png: half wax, warm pool and shut Door; wall reaches both edges.
+  - candle-lit-half-desktop-reduced.png: half wax, warm pool and shut Door; wall reaches both edges; still reduced-motion state.
+  - candle-lit-half-phone.png: half wax, warm pool and shut Door; phone controls fit.
+  - candle-lit-half-wide.png: half wax, warm pool and shut Door; wall reaches both edges.
+  - candle-lit-last-minute-desktop.png: guttering low flame and short pool; wall reaches both edges.
+  - candle-lit-last-minute-desktop-reduced.png: guttering low flame and short pool; wall reaches both edges; still reduced-motion state.
+  - candle-lit-last-minute-phone.png: guttering low flame and short pool; phone controls fit.
+  - candle-lit-start-desktop.png: full wax, flame and broad warm pool; wall reaches both edges.
+  - candle-lit-start-desktop-reduced.png: full wax, flame and broad warm pool; wall reaches both edges; still reduced-motion state.
+  - candle-lit-start-phone.png: full wax, flame and broad warm pool; phone controls fit.
+  - candle-paused-desktop.png: blue flame, held wax and Resume; wall reaches both edges.
+  - candle-paused-desktop-reduced.png: blue flame, held wax and Resume; wall reaches both edges; still reduced-motion state.
+  - candle-paused-phone.png: blue flame, held wax and Resume; phone controls fit.
+  - candle-snuffed-desktop.png: darkest wall, stub and smoke; wall reaches both edges.
+  - candle-snuffed-desktop-reduced.png: darkest wall, stub and smoke; wall reaches both edges; still reduced-motion state.
+  - candle-snuffed-phone.png: darkest wall, stub and smoke; phone controls fit.
+  - controls-focus-light-desktop.png: Light focus ring visible and readable; controls clear of candle.
+  - controls-focus-light-phone.png: Light focus ring visible and readable; controls clear of candle at phone width.
+  - controls-focus-pause-desktop.png: Pause focus ring visible and readable; controls clear of candle.
+  - controls-focus-pause-phone.png: Pause focus ring visible and readable; controls clear of candle at phone width.
+  - controls-idle-returning-desktop.png: returning idle status visible and readable; controls clear of candle.
+  - controls-idle-returning-desktop-reduced.png: returning idle status visible and readable; controls clear of candle.
+  - controls-idle-returning-phone.png: returning idle status visible and readable; controls clear of candle at phone width.
+  - controls-invalid-length-dawn-desktop.png: invalid 4-minute message visible and readable; controls clear of candle.
+  - controls-invalid-length-desktop.png: invalid 4-minute message visible and readable; controls clear of candle.
+  - controls-invalid-length-phone.png: invalid 4-minute message visible and readable; controls clear of candle at phone width.
+  - controls-lit-intent-desktop.png: intent under 12:30 visible and readable; controls clear of candle.
+  - controls-lit-intent-phone.png: intent under 12:30 visible and readable; controls clear of candle at phone width.
+  - controls-settings-desktop.png: Settings panel and switches visible and readable; controls clear of candle.
+  - controls-settings-desktop-reduced.png: Settings panel and switches visible and readable; controls clear of candle.
+  - controls-settings-off-desktop.png: sound and ghosts Off visible and readable; controls clear of candle.
+  - controls-settings-off-phone.png: sound and ghosts Off visible and readable; controls clear of candle at phone width.
+  - controls-settings-phone.png: Settings panel and switches visible and readable; controls clear of candle at phone width.
+  - controls-snuff-dialog-desktop.png: snuff confirmation dialog visible and readable; controls clear of candle.
+  - controls-snuff-dialog-desktop-reduced.png: snuff confirmation dialog visible and readable; controls clear of candle.
+  - controls-snuff-dialog-phone.png: snuff confirmation dialog visible and readable; controls clear of candle at phone width.
+  - ghosts-0-desktop.png: zero ghosts; candle, Door and controls remain legible.
+  - ghosts-0-phone.png: zero ghosts; candle, Door and controls remain legible.
+  - ghosts-1-desktop.png: one ghost; candle, Door and controls remain legible.
+  - ghosts-1-phone.png: one ghost; candle, Door and controls remain legible.
+  - ghosts-g-desktop.png: 12 ghosts across size range; candle, Door and controls remain legible.
+  - ghosts-g-phone.png: 12 ghosts across size range; candle, Door and controls remain legible.
+  - ghosts-g-plus-9-desktop.png: 12 drawn ghosts with +9 overflow; candle, Door and controls remain legible.
+  - ghosts-g-plus-9-desktop-reduced.png: 12 drawn ghosts with +9 overflow; candle, Door and controls remain legible; ghosts still.
+  - ghosts-g-plus-9-phone.png: 12 drawn ghosts with +9 overflow; candle, Door and controls remain legible.
+  - graveyard-card-keyboard-desktop.png: focused stone and five-line Here lies card; sky, ground, return and time are visible; dates have no leading zero.
+  - graveyard-card-keyboard-phone.png: focused stone and five-line Here lies card; sky, ground, return and time are visible; dates have no leading zero.
+  - graveyard-card-touch-desktop.png: focused stub and five-line Burned to the end card; sky, ground, return and time are visible; dates have no leading zero.
+  - graveyard-card-touch-phone.png: focused stub and five-line Burned to the end card; sky, ground, return and time are visible; dates have no leading zero.
+  - graveyard-large-desktop.png: ten stones, 57 older stones and 42 older days; sky, ground, return and time are visible; dates have no leading zero.
+  - graveyard-large-desktop-reduced.png: ten stones, 57 older stones and 42 older days; sky, ground, return and time are visible; dates have no leading zero.
+  - graveyard-large-phone.png: ten stones, 57 older stones and 42 older days; sky, ground, return and time are visible; dates have no leading zero.
+  - graveyard-large-wide.png: ten stones, 57 older stones and 42 older days; sky, ground, return and time are visible; dates have no leading zero; Place spans wide viewport.
+  - graveyard-small-desktop.png: two stones and two shelf days; sky, ground, return and time are visible; dates have no leading zero.
+  - graveyard-small-phone.png: two stones and two shelf days; sky, ground, return and time are visible; dates have no leading zero.
+- **Costume review:** First pass CHANGES NEEDED because only 6 of 62 final PNGs and no Prototype pictures were opened; its wall/base concerns were accepted as approved room-art, and its peak and touch-copy questions were resolved by R3.7 and controls-and-access. Second pass opened all 62 and 24 Prototype pictures and returned PASS. Its R7.6 transition-list mismatch was fixed in requirements.md; the 0.19 versus 0.2 peak margin is accepted with K4 real-device listening, the missing tab-strip and 2560 final pictures are accepted limits with E7/E14 evidence, the small Door and dark Stones are accepted as approved art, and the unknown-time `--:--` is accepted under R8.12. D9 records every outcome. The third reviewer pass read the R7.6/D9 edits and confirmed PASS. No user-visible change followed the review.
+- **Counts and scope:** Batch 1 ended at 94 unit files / 1,337 tests and 350 e2e passed / 7 skipped; batch 2 ended at 105 / 1,472 and 350 / 7; batch 3 ended at 106 / 1,502 and 350 / 7; batch 4 baseline was 121 / 1,572 and 521 / 9. The final single `npm run verify` passed check, 121 unit files / 1,572 tests, build and 549 e2e passed / 9 skipped in 2.9 minutes of e2e time. The scoped sound-and-title commit files plus this working tree add or change no sound or font asset, package file, protected engine/scene/storage/distraction file or render.yaml; `window.__` search in src/ was empty.
+- **Steering:** CR7 updated structure.md with the actual audio/page folders, after-step.ts and import boundaries. CR15 added the Hidden_Tick rule under tech.md timing rule 1; rule 6 is unchanged.
+- **Not done on purpose:** no new cue or visible sound indicator, no sound file, no new font/dependency, no protected source edit in batch 4, no manual PNG edit, no commit, push or deploy. The owner should listen to the three cues on laptop and phone (K4) and try the first Enter on Safari and a mobile browser (K3).
+- **Boundary:** Batch 4 ends here.

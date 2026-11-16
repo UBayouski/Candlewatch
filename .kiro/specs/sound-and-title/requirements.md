@@ -192,7 +192,7 @@ The requirements fix constraints. The cue recipes (frequencies, envelopes, noise
 3. THE page SHALL use the existing sound switch of the settings panel and SHALL NOT add another control for sound; the count of sound controls in the page SHALL be exactly 1.
 4. THE sound switch SHALL keep its name, state and on and off text from `controls-and-access` R11.2, and WHILE the sound setting is on and the first user gesture has happened, THE sound switch SHALL cause Cues to play; WHILE the sound setting is off, THE sound switch SHALL cause no Cue to play.
 5. THE page SHALL add no volume control and no setting beyond the existing three (sound, ghosts on/off, default length).
-6. THE Cue SHALL map to exactly one state change each: `strike` to the wick catching (`idle` to `lit`), `chime` to the dawn (`lit` to `burned-out`), `breath` to the flame going out (`lit` or `paused` to `snuffed`); the costume table in `product.md` SHALL stay true.
+6. THE Cue SHALL map to exactly one kind of state change each: `strike` to the wick catching (`idle`, `burned-out` or `snuffed` to `lit`), `chime` to the dawn (`lit` or `paused` to `burned-out`), `breath` to the flame going out (`lit` or `paused` to `snuffed`); the costume table in `product.md` SHALL stay true. Corrected after the task 26.1 costume review to agree with R2.2 to R2.4.
 7. WHERE the setting `prefers-reduced-motion: reduce` is on, THE Cues SHALL play with the same triggers, order and sound setting behaviour as when it is off.
 8. THE page SHALL leave the focus position, the Tab order and the key map identical to their state before this requirement, for every state and with the sound setting on and off.
 9. WHILE a session runs, THE Page_Title SHALL give assistive technology the time left through the tab or window name in addition to the Time_Text, and SHALL NOT replace the Time_Text.
@@ -369,6 +369,7 @@ All nine open questions are resolved and folded into the requirements above:
 - Q7 data labels versus flavour: accepted (D12).
 - Q8 "Here lies": first card line only, not the accessible name (R8.13 to R8.15, CR9, D13).
 - Q9 P9 engine risk: recorded as K1.
+- Q10 (owner, 2026-11-16): E9 derives Carved_Date expectations from fixture timestamps in the page time zone; "10 Nov" and "7 Nov" are format examples. A local dense-day fixture supplies more stubs than DEFAULT_LIMITS.K and E9 asserts the exact "+n more" count while retaining the 200-session count checks.
 
 - **Q1. Title forms.** Recommended: `lit` "12:31 · Candlewatch", `paused` "12:31 paused · Candlewatch", `burned-out` "Morning · Candlewatch", `snuffed` "Dark · Candlewatch", `idle` "Candlewatch". The time comes first so a narrow tab still shows it. The end forms carry no time because the Time_Text shows 00:00 and the words say more. Confirm or change.
 - **Q2. Late_Cue_Limit.** Recommended: 120 000 ms (two minutes). It covers a hidden tab that the browser wakes once a minute, and it keeps a laptop that wakes an hour later from chiming for the past. Confirm or choose another value.

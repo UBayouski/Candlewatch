@@ -1,6 +1,6 @@
 # Candlewatch - Structure
 
-The project is scaffolded. `src/engine/`, `src/storage/`, `src/distraction/`, `src/scene/`, `src/ui/`, `src/ghosts/` and `src/graveyard/` are implemented (the `session-engine`, `distraction-tracking`, `candle-scene`, `controls-and-access` and `ghosts-and-graveyard` specs); `src/audio/` is empty (`.gitkeep`) until its spec runs. Vitest and fast-check tests are colocated next to the source as `*.test.ts` and `*.prop.test.ts`; Playwright tests stay in `e2e/`. Root config files: `package.json`, `tsconfig.json`, `vite.config.ts`, `vitest.config.ts`, `playwright.config.ts`, `playwright.live.config.ts` (the smoke test against a deployed site), `render.yaml` (the host's Blueprint), `eslint.config.js` (flat), `index.html`. Playwright runs against `vite preview` on port 4173. TypeScript is pinned to 6.0.x because typescript-eslint does not yet support 7.
+The project is scaffolded. `src/engine/`, `src/storage/`, `src/distraction/`, `src/scene/`, `src/ui/`, `src/ghosts/`, `src/graveyard/`, `src/audio/` and `src/page/` are implemented (the `session-engine`, `distraction-tracking`, `candle-scene`, `controls-and-access`, `ghosts-and-graveyard` and `sound-and-title` specs). Vitest and fast-check tests are colocated next to the source as `*.test.ts` and `*.prop.test.ts`; Playwright tests stay in `e2e/`. Root config files: `package.json`, `tsconfig.json`, `vite.config.ts`, `vitest.config.ts`, `playwright.config.ts`, `playwright.live.config.ts` (the smoke test against a deployed site), `render.yaml` (the host's Blueprint), `eslint.config.js` (flat), `index.html`. Playwright runs against `vite preview` on port 4173. TypeScript is pinned to 6.0.x because typescript-eslint does not yet support 7.
 
 ```
 candlewatch/
@@ -59,11 +59,15 @@ candlewatch/
                        focus), day-key.ts (`localDayKey`, the one reader of `Date` here); place.ts (room-art placement). DOM: view-dom.ts (builds and applies the view,
                        turns events into inputs), graveyard.css (the view, the Door, the card; imported after ui.css). test-kit.ts is
                        test-only; purity.test.ts, contrast.test.ts and ui-only.prop.test.ts guard the folder
-    audio/             Web Audio cues
+    audio/             types.ts, cue.ts, specs.ts, noise.ts, audio-player.ts (the only AudioContext user), gesture.ts;
+                       fake-audio-context.ts and test-kit.ts are test-only; tests are colocated here
+    page/              title.ts, wake.ts, title-adapter.ts (the only document.title writer), hidden-tick.ts (the only
+                       background timer); fake-timer.ts and test-kit.ts are test-only; tests are colocated here
     strings.ts         all flavour text and UI copy in one file
     main.ts            wiring: the one dispatch, the clock, storage, the scene, the ghost layer, the interface and the graveyard
                        (its root sits inside #ui, before the zone, so the Door comes between Light and Settings in the Tab order); the view
                        (room or graveyard) is UI state, never stored
+    after-step.ts      composes the Cue, page title and Hidden_Tick control for dispatch
     wiring.ts          visibility wiring helpers for main.ts (injected document, clock and dispatch)
   e2e/                 Playwright tests: scene.spec.ts (states, reduced motion, viewports, zone, ember, window, halo),
                        screenshots.spec.ts (takes the 21 `candle-*`, 9 `ghosts-*` and 9 `graveyard-*` PNGs in docs/screenshots/),
@@ -95,6 +99,7 @@ candlewatch/
 ## Boundaries
 
 - `src/engine/` imports nothing from the DOM, `scene/`, `ui/`, `audio/`, `storage/` or `distraction/`.
+- `src/audio/` imports only the engine's `index.ts`, `src/strings.ts` and its own files. `src/page/` imports only the engine's `index.ts`, `src/strings.ts`, `src/ui/format.ts` and its own files. `src/engine/` imports nothing from `page/`; `after-step.ts` receives the player, title adapter and Hidden_Tick as arguments.
 - `src/distraction/` and `src/storage/` import from `src/engine/` (its index), never the other way. Test-only helpers (`test-kit.ts`, `fake-document.ts`) are never imported by source files.
 - Only `main.ts` and `ui/` own the clock source and pass `now` into the engine.
 - `src/ui/` imports the engine's `index.ts`, `src/strings.ts` and the `Settings` type from `src/storage/settings.ts`, and its own files; the engine never imports it. `ui/test-kit.ts` is test-only and never imported by source files.

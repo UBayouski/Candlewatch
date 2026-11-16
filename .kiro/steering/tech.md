@@ -15,6 +15,7 @@ Vitest uses a 15,000 ms test timeout because scene model Property 6 can exceed t
 ## Non-negotiable rules
 
 1. **Elapsed time comes from timestamps, never from counting ticks.** Use `Date.now()` values captured at start, pause and resume. A throttled background tab, a sleeping laptop or a slow frame rate must not make the timer drift. Ticks only redraw.
+A hidden tab is kept honest by a plain `setTimeout` chain (the Hidden_Tick) that sends `tick` through `dispatch` at most one second apart and no later than the end; browsers may throttle it to about one wake per minute and the design accepts that, because the time always comes from timestamps. No silent audio keep-alive.
 2. **The session engine is pure and DOM-free:** `(state, event, now) -> state`. It takes `now` as an argument and never reads the clock, `window`, `document` or storage itself. Events: light, pause, resume, snuff, tick, hide, show, reload.
 3. Rendering reads state; it never owns time.
 4. The engine only reaches states in the model: `idle` -> `lit` <-> `paused` -> `burned-out` or `snuffed`. Total paused time over 10 minutes snuffs the session.
