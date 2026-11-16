@@ -1,3 +1,5 @@
+import { stoneRect } from "./geometry";
+import { DOORWAY, HAZE, HORIZON_Y } from "./place";
 // ghosts-and-graveyard R4.14, R9.14 (design L5, L11): the contrast figures are computed from the hex values.
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -175,9 +177,12 @@ describe("the Door's outlines against the room (non-text, 3:1; first costume rev
     expect(contrast(bar(), room)).toBeGreaterThanOrEqual(3);
   });
 
-  it("the barred Door is 3.28 on the brightest background and 11.41 on the darkest", () => {
-    expect(contrast(shut(), ROOM_BRIGHTEST)).toBeCloseTo(3.28, 2);
-    expect(contrast(shut(), ROOM_DARKEST)).toBeCloseTo(11.41, 2);
+  it("the barred Door is 4.66 on the brightest background and 16.20 on the darkest (room-art Q54)", () => {
+    // Q54: ivory outline matches the approved Door; the bar carries the shut state.
+    expect(contrast(shut(), ROOM_BRIGHTEST)).toBeGreaterThanOrEqual(3);
+    expect(contrast(shut(), ROOM_BRIGHTEST)).toBeCloseTo(4.66, 2);
+    expect(contrast(shut(), ROOM_DARKEST)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(shut(), ROOM_DARKEST)).toBeCloseTo(16.20, 2);
   });
 
   it("the usable Door's ivory border is 4.66 and 16.20 on the same backgrounds", () => {
@@ -198,4 +203,46 @@ describe("the Overflow_Mark (L5, R9.14)", () => {
     expect(bright).toBeCloseTo(4.66, 2);
     expect(dark).toBeGreaterThan(bright);
   });
+});
+
+describe("room-art: new Door and Place pairs",()=>{
+ it("pins every copied scene colour in the graveyard sheet (Q52)",()=>{
+  const own=[...graveyardCss.matchAll(/(--(?:set-[\w-]+|window-night|window-moon|window-dawn|dawn-cool|dawn-warm|room-night)):\s*(#[0-9a-fA-F]{6})/g)];
+  for(const m of own){const name=m[1]??"";if(new RegExp(`${name}:`).test(sceneCss))expect(m[2]?.toLowerCase(),name).toBe(token(sceneCss,name));}
+ });
+ it("keeps Door outline, handle and bar at least 3:1 against each plank",()=>{
+  for(const plank of ["--set-plank-a","--set-plank-b"]){
+   for(const graphic of ["--g-text","--g-amber","--g-text-subtle"])expect(contrast(token(graveyardCss,graphic),token(sceneCss,plank)),`${graphic} / ${plank}`).toBeGreaterThanOrEqual(3);
+  }
+ });
+ it("keeps the new text backing at 4.5:1 and Stub wax at 3:1",()=>{
+  for(const text of ["--g-text","--g-text-subtle"])expect(contrast(token(graveyardCss,text),token(graveyardCss,"--set-earth-a"))).toBeGreaterThanOrEqual(4.5);
+  expect(contrast(token(graveyardCss,"--g-wax"),token(graveyardCss,"--set-board-top"))).toBeGreaterThanOrEqual(3);
+ });
+});
+
+/** Q53: exact mask luminance after the fixed black elliptical hole overlays the haze ramp. */
+function placeNightCoverage(x:number,y:number):number {
+ const ramp=Math.max(0,Math.min(1,(y-HORIZON_Y)/HAZE));
+ const d=Math.hypot((x-DOORWAY.cx)/DOORWAY.sx,y-DOORWAY.cy)/DOORWAY.r;
+ const hole=d>=1?0:d<=.6?.95+(.7-.95)*d/.6:.7*(1-d)/.4;
+ return ramp*(1-hole);
+}
+it("room-art Q53: every Stone edge contrasts at least 3:1 with its brightest drawn ground",()=>{
+ // Raw #8a93a6 on earth-a is 2.73; the asserted backing is darkened by the fixed p-night mask, never by dawn.
+ const channels=(hex:string)=>[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16));
+ const earth=channels(token(graveyardCss,"--set-earth-a")),night=channels(token(graveyardCss,"--room-night"));
+ const luminanceRgb=(c:number[])=>c.reduce((s,n,i)=>{const v=n/255;return s+(v<=.04045?v/12.92:((v+.055)/1.055)**2.4)*([.2126,.7152,.0722][i]??0);},0);
+ let brightest={L:-1,x:0,y:0,coverage:0};
+ for(let i=0;i<10;i++){
+  const r=stoneRect(i),points:number[][]=[];
+  for(let x=r.x;x<=r.x+r.w;x++)points.push([x,r.y+r.h]);
+  for(let y=r.y+44;y<=r.y+r.h;y++)points.push([r.x,y],[r.x+r.w,y]);
+  for(let a=0;a<=90;a++){const t=a*Math.PI/180;points.push([r.x+44-44*Math.cos(t),r.y+44-44*Math.sin(t)],[r.x+r.w-44+44*Math.cos(t),r.y+44-44*Math.sin(t)]);}
+  for(let x=r.x+44;x<=r.x+r.w-44;x++)points.push([x,r.y]);
+  for(const [x=0,y=0] of points){const coverage=placeNightCoverage(x,y),c=earth.map((v,i)=>v*(1-coverage)+(night[i]??0)*coverage),L=luminanceRgb(c);if(L>brightest.L)brightest={L,x,y,coverage};}
+ }
+ const ratio=(luminance(token(graveyardCss,"--g-stone-edge"))+.05)/(brightest.L+.05);
+ expect(ratio,JSON.stringify(brightest)).toBeGreaterThanOrEqual(3);
+ expect(ratio).toBeCloseTo(3.74,2);
 });

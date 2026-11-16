@@ -1,3 +1,6 @@
+import { ROOM_SVG } from "./room";
+import { EDGE, WARM_TINT, WINDOW_LIGHT } from "./setting";
+import { BACKDROP } from "./backdrop";
 import * as fc from "fast-check";
 import { expect, it } from "vitest";
 import { PROP_PARAMS } from "../engine/test-kit";
@@ -43,5 +46,29 @@ it("Feature: room-art, Property 13: The Window_Light carries no time left",()=>{
    expect(windowLightAt(300,y,r,d)).toBeCloseTo(windowLight(r,d)*windowProfile(Math.abs(y-155)),12);
    for(const offset of [-1500,-800,800,1500])expect(windowLightAt(300+offset,y,r,d)).toBeCloseTo(.18*windowLight(r,d)*windowProfile(Math.hypot(offset,y-155)),12);
   }
+ }),PROP_PARAMS);
+});
+
+// Stops are read from shipped markup, independently of the scalar model.
+it("Feature: room-art, Property 6: The markup mirrors the light model",()=>{
+ const gradient=(id:string)=>{
+  const inner=ROOM_SVG.match(new RegExp(`<(?:radial|linear)Gradient id="${id}"[^>]*>([\\s\\S]*?)</(?:radial|linear)Gradient>`))?.[1] ?? "";
+  return [...inner.matchAll(/<stop\b[^>]*>/g)].map(m=>Object.fromEntries([...m[0].matchAll(/([\w-]+)="([^"]*)"/g)].map(a=>[a[1],a[2]])));
+ };
+ fc.assert(fc.property(real(0,1),d=>{
+  const errors:string[]=[];
+  for(const id of ["cw-pool-hole","cw-tint-hole"]){
+   const stops=gradient(id);if(stops.length!==3)errors.push(`${id}: ${stops.length} stops`);
+   for(const stop of stops){const o=Number(stop.offset),a=Number(stop["stop-opacity"]);if(Math.abs(a-poolLight(o*700,0,1))>1e-12)errors.push(`${id} at ${o}: ${a}`);}
+  }
+  const win=gradient("cw-win-hole");
+  if(win.length!==WINDOW_LIGHT.profile.length)errors.push(`window profile length ${win.length}`);
+  win.forEach((stop,i)=>{const p=WINDOW_LIGHT.profile[i];if(!p || Number(stop.offset)!==p[0] || Number(stop["data-k"])!==p[1])errors.push(`window stop ${i} ${JSON.stringify(stop)}`);});
+  for(const [id,fn,far] of [["cw-win-edge-grad",edgeShade,EDGE.windowShade],["cw-veil-grad",veilAt,EDGE.veil]] as const){
+   const stops=gradient(id);if(stops.length!==6)errors.push(`${id}: ${stops.length} stops`);
+   for(const stop of stops){const x=BACKDROP.x0+Number(stop.offset)*(BACKDROP.x1-BACKDROP.x0),k=Number(stop["data-k"]);if(Math.abs(fn(x)-far*k)>1e-12)errors.push(`${id} x ${x}, k ${k}, level ${fn(x)}`);}
+  }
+  if(Math.abs(tintAt(300+d*700,600,600,1)-WARM_TINT.alpha*poolLight(d*700,0,1))>1e-12)errors.push(`tint profile ${d}`);
+  expect(errors).toEqual([]);
  }),PROP_PARAMS);
 });

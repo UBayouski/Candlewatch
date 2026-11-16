@@ -557,3 +557,20 @@ test.describe("E11: text and strings", () => {
     }
   });
 });
+
+test("room-art R9: zone names, roles, Tab order and focus ring retain the baseline",async({browser})=>{
+ const app=await openApp(browser,{fixture:FIXTURES.litStart,viewport:desktop});
+ try {
+  const page=app.page;
+  for(const [id,name] of [["pause",STRINGS.pause.pause],["snuff",STRINGS.snuff.open],["settings-button",STRINGS.settings.open]] as const){
+   await expect(page.getByRole("button",{name,exact:true})).toHaveAttribute("id",id);
+  }
+  await page.keyboard.press("Tab");await page.locator("#pause").focus();
+  for(const id of ["pause","snuff","settings-button"]){
+   await expect(page.locator(`#${id}`)).toBeFocused();
+   const ring=await page.locator(`#${id}`).evaluate(el=>{const s=getComputedStyle(el);return {width:s.outlineWidth,offset:s.outlineOffset};});
+   expect(ring).toEqual({width:"3px",offset:"3px"});
+   await page.keyboard.press("Tab");
+  }
+ } finally {await app.close();}
+});

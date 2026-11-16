@@ -1,3 +1,4 @@
+import { STRINGS } from "../src/strings";
 // Helpers for the interface's browser tests (controls-and-access design 13.3).
 // Stored state is built in Node with the engine and the storage key names; the clock is Playwright's `page.clock`; nothing
 // in the shipped code is there for the tests. Time moves only when a test moves it (`settle`, `runFor`, `fastForward`).
@@ -233,7 +234,8 @@ export async function checkLayoutNow(page: Page, vw: number, vh: number): Promis
     "#length-error": p.setup.lengthError ?? p.setup.chooser,
     "#intent-box": p.setup.intent,
     "#light": p.setup.light,
-    "#pause": p.zoneControls.pause,
+    // Q55: one width served both labels before room-art; Resume now has its own rectangle.
+    "#pause": (await page.locator("#pause .label").textContent())?.trim() === STRINGS.pause.resume ? p.zoneControls.resume : p.zoneControls.pause,
     "#snuff": p.zoneControls.snuff,
     "#settings-button": p.zoneControls.settings,
     "#time": p.time,

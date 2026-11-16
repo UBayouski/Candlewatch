@@ -67,3 +67,11 @@ describe("the ghost's outline against the room (non-text, 3:1)", () => {
     expect(contrast(over(STROKE, STROKE_OPACITY, fill), room)).toBeGreaterThanOrEqual(3);
   });
 });
+
+it("room-art: the eyes on the composed body have at least 3:1 contrast",()=>{
+ const bright=ROOM[0]?.[1];if(!bright)throw new Error("missing brightest room");
+ const body=over(FILL,FILL_OPACITY,bright);
+ expect(contrast(hex(value(ghostsCss,"--ghost-eye")),body)).toBeGreaterThanOrEqual(3);
+ // Glow is internal; the outer outline still faces the unchanged room, covered by the pairs above.
+ expect(ghostsCss).toContain(".ghost-layer .inner-glow { fill: url(#cw-ghost-glow); }");
+});

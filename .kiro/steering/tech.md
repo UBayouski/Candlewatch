@@ -5,6 +5,7 @@
 - TypeScript (strict), Vite, no UI framework.
 - Vitest for unit tests, fast-check for property-based tests, Playwright for end-to-end tests with a faked clock.
 Vitest runs on half the logical processors (maxWorkers 50%), because the property suites time out when every processor runs a worker (room-art Q51).
+Vitest uses a 15,000 ms test timeout because scene model Property 6 can exceed the default 5,000 ms under full verification load (room-art Q58).
 - ESLint for linting.
 - Node 22+.
 - Static site, no backend, no API keys, no AI calls at run time. Free hosting, always on until Jan 29, 2027: a Render static site defined by `render.yaml`, at https://candlewatch.onrender.com.
@@ -37,7 +38,7 @@ Inline SVG driven by CSS custom properties. Flame: layered radial gradients with
 - The Content-Security-Policy allows only `'self'` and `'none'`: no inline style or script, no remote font, no network call. Set styles with `style.setProperty`, import fonts so Vite hashes them into `/assets/`, never put them in `public/`.
 - No agent creates or changes a Render resource; the repo owner does, in the dashboard.
 
-- **Performance budget (`room-art`, being built):** JS and CSS in `dist/` total at most 120 000 bytes; at most 300 added elements across the scene SVG, ghost layer and Place; none of `feTurbulence`, `feDisplacementMap`, `feMorphology`, `feConvolveMatrix`, and no CSS filter on a group repainted each frame. A local script outside `npm run verify` measures at least 600 real-clock frames at 1920 by 1080 on the author's machine: median frame interval at most 17.5 ms and 95th percentile at most 25 ms.
+- **Performance budget (`room-art`, being built):** JS and CSS in `dist/` total at most 120 000 bytes (by Q62); at most 300 added elements across the scene SVG, ghost layer and Place; none of `feTurbulence`, `feDisplacementMap`, `feMorphology`, `feConvolveMatrix`, and no CSS filter on a group repainted each frame. A local script outside `npm run verify` measures at least 600 real-clock frames at 1920 by 1080 on the author's machine: median frame interval at most 17.5 ms and 95th percentile at most 25 ms with GPU rasterisation; default software timing is recorded but not judged (by Q62).
 
 ## Property-based tests to keep true
 

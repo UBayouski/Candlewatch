@@ -32,3 +32,17 @@ it("the reference stays outside shipped folders and runtime imports",()=>{
   for(const path of walk(dir).filter(p=>/\.(?:ts|css|js)$/.test(p)&&!/(?:\.test\.ts|test-kit\.ts|scene-kit\.ts)$/.test(p)))expect(readFileSync(path,"utf8"),path).not.toMatch(/prototype[\\/]/);
  }
 });
+
+it("room-art: both sheets hold the same 44 distinct setting tokens as the reference (Q52)",()=>{
+ const parse=(s:string)=>[...s.matchAll(/(--set-[\w-]+):\s*(#[0-9a-fA-F]{6})\b/g)].map(m=>[m[1]??"",m[2]?.toLowerCase()??""] as const);
+ const referenceTokens=new Map(parse(readFileSync(join(reference,"art.mjs"),"utf8")));
+ const actual=new Map<string,string>();
+ for(const path of ["scene/scene.css","graveyard/graveyard.css"]){
+  for(const [name,value] of parse(readFileSync(join(root,"src",path),"utf8"))){
+   if(actual.has(name))expect(actual.get(name),`conflicting copy ${name} in ${path}`).toBe(value);
+   actual.set(name,value);
+  }
+ }
+ expect(referenceTokens.size).toBe(44);expect(actual.size).toBe(44);
+ expect(Object.fromEntries(actual)).toEqual(Object.fromEntries(referenceTokens));
+});

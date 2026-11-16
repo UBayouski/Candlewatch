@@ -151,6 +151,7 @@ function onOff(checked: boolean): string {
 /** What to show for this state, UI state, settings and moment. A pure function: equal arguments give equal views. */
 export function viewOf(state: State, ui: UiState, settings: Settings, now: number, placement: Placement, env: ViewEnv, view: "room" | "graveyard" = "room"): ViewModel {
   const phase = state.phase;
+  if(phase === "paused")placement={...placement,zoneControls:{...placement.zoneControls,pause:placement.zoneControls.resume}};
   const running = isRunning(phase);
   const time = timeOf(state, ui, now);
   const wide = placement.mode === "wide";

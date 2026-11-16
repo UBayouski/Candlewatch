@@ -249,6 +249,7 @@ export interface GhostReading {
   readonly index: number;
   /** The `scale(...)` of the group's transform: the ghost's size. */
   readonly size: number;
+  readonly rest: { readonly x:number; readonly y:number; readonly tilt:number };
   readonly rect: Rect;
 }
 
@@ -271,7 +272,9 @@ export const readGhosts = (page: Page): Promise<GhostsReading> =>
       .filter((g) => !g.classList.contains("leaving"))
       .map((g) => {
         const m = /scale\(([^)]+)\)/.exec(g.getAttribute("transform") ?? "");
-        return { slot: Number(g.getAttribute("data-slot")), index: Number(g.getAttribute("data-index")), size: Number(m?.[1] ?? NaN), rect: box(g) };
+        const transform=g.getAttribute("transform")??"";
+        const rest=/translate\(([^ ]+) ([^)]+)\) rotate\(([^)]+)\)/.exec(transform);
+        return { rest:{x:Number(rest?.[1]),y:Number(rest?.[2]),tilt:Number(rest?.[3])}, slot: Number(g.getAttribute("data-slot")), index: Number(g.getAttribute("data-index")), size: Number(m?.[1] ?? NaN), rect: box(g) };
       });
     const mark = document.querySelector("#ghost-root .overflow");
     const shown = mark !== null && !mark.hasAttribute("hidden");

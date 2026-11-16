@@ -2,6 +2,8 @@
 // Pure: a viewport size in, pixel rectangles out. It keeps its own copy of the few scene numbers it must avoid
 // (the scene is not imported); layout.test.ts compares them with src/scene/constants.ts and the halo markup.
 
+export const ZONE_WIDTHS = { pause:98, resume:110, snuff:140, settings:111, gap:8, anchor:16 } as const;
+
 export interface Rect {
   readonly x: number;
   readonly y: number;
@@ -45,6 +47,7 @@ export interface Placement {
   };
   readonly zoneControls: {
     readonly pause: Rect;
+    readonly resume: Rect;
     readonly snuff: Rect;
     readonly settings: Rect;
     /** True in the wide mode: the buttons show their text. */
@@ -141,9 +144,9 @@ export function placeControls(vw: number, vh: number): Placement {
   let statusRunning: Rect;
   let statusResting: Rect;
   if (wide) {
-    pause = rect(textArea.x - 16 - 128, by, 128, T);
-    snuff = rect(textArea.x + textArea.w + 16, by, 160, T);
-    settings = rect(snuff.x + snuff.w + G, by, 96, T);
+    pause = rect(textArea.x - ZONE_WIDTHS.anchor - ZONE_WIDTHS.pause, by, ZONE_WIDTHS.pause, T);
+    snuff = rect(textArea.x + textArea.w + ZONE_WIDTHS.anchor, by, ZONE_WIDTHS.snuff, T);
+    settings = rect(snuff.x + snuff.w + ZONE_WIDTHS.gap, by, ZONE_WIDTHS.settings, T);
     statusRunning = rect(textArea.x, statusY, textArea.w, 20);
     const half = Math.max(0, Math.min(cx - M, settings.x - G - cx));
     statusResting = rect(cx - half, statusY, 2 * half, 20);
@@ -220,7 +223,7 @@ export function placeControls(vw: number, vh: number): Placement {
     statusRunning,
     statusResting,
     setup: { chooser, lengthError, cells, intent, light },
-    zoneControls: { pause, snuff, settings, labelled: wide },
+    zoneControls: { pause, resume: wide ? rect(textArea.x-ZONE_WIDTHS.anchor-ZONE_WIDTHS.resume,by,ZONE_WIDTHS.resume,T) : pause, snuff, settings, labelled: wide },
     snuffDialog,
     settingsPanel,
     keepClear: { column, windowPane: windowPx, door: toPx(DOOR_RECT), ghostCells: GHOST_CELLS.map(toPx) },

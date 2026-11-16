@@ -2,8 +2,9 @@
 // ghosts exist (visibleGhosts does) and never reads the clock. Positions use the transform attribute, never a style attribute.
 import { STRINGS } from "../strings";
 import { fill } from "../ui/format";
-import { silhouettePath } from "./silhouette";
-import { GHOST_SLOTS, OVERFLOW_MARK } from "./slots";
+import { ghostShape, GHOST_EYES, GHOST_EYE_STYLE } from "./silhouette";
+import { placeGhost } from "./place";
+import { OVERFLOW_MARK } from "./slots";
 import type { DrawnGhost } from "./visible";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -31,6 +32,14 @@ export function createGhostLayer(root: HTMLElement): GhostLayer {
   svg.setAttribute("aria-hidden", "true");
   svg.setAttribute("data-reduced", "false");
 
+  const defs = document.createElementNS(SVG_NS,"defs");
+  const glow = document.createElementNS(SVG_NS,"radialGradient");
+  glow.setAttribute("id","cw-ghost-glow");
+  for(const [offset,opacity] of [[0,.85],[1,0]]){
+    const stop=document.createElementNS(SVG_NS,"stop");
+    stop.setAttribute("offset",String(offset));stop.setAttribute("stop-color","#fff");stop.setAttribute("stop-opacity",String(opacity));glow.append(stop);
+  }
+  defs.append(glow);svg.append(defs);
   const mark = document.createElementNS(SVG_NS, "text");
   mark.setAttribute("class", "overflow");
   mark.setAttribute("x", String(OVERFLOW_MARK.x));
@@ -55,14 +64,22 @@ export function createGhostLayer(root: HTMLElement): GhostLayer {
     group.setAttribute("class", "ghost");
     group.setAttribute("data-slot", String(g.slot));
     group.setAttribute("data-index", String(g.index));
-    const at = GHOST_SLOTS[g.slot] ?? GHOST_SLOTS[0];
-    group.setAttribute("transform", `translate(${at?.cx ?? 0} ${at?.cy ?? 0}) scale(${g.size})`);
+    const at = placeGhost(g.slot,g.index,g.size);
+    group.setAttribute("transform", `translate(${at.x} ${at.y}) rotate(${at.tilt}) scale(${g.size})`);
     const inner = document.createElementNS(SVG_NS, "g");
     inner.setAttribute("class", "drift");
     const body = document.createElementNS(SVG_NS, "path");
     body.setAttribute("class", "body");
-    body.setAttribute("d", silhouettePath());
+    body.setAttribute("d", ghostShape(at.variant));
     inner.append(body);
+    const glow=document.createElementNS(SVG_NS,"ellipse");glow.setAttribute("class","inner-glow");
+    for(const [key,value] of Object.entries({cx:0,cy:-12,rx:17,ry:24}))glow.setAttribute(key,String(value));
+    inner.append(glow);
+    for(const [x,y] of GHOST_EYES[at.variant] ?? GHOST_EYES[0]){
+      const eye=document.createElementNS(SVG_NS,"ellipse");eye.setAttribute("class","eye");
+      for(const [key,value] of Object.entries({cx:x,cy:y,rx:GHOST_EYE_STYLE.rx,ry:GHOST_EYE_STYLE.ry}))eye.setAttribute(key,String(value));
+      inner.append(eye);
+    }
     group.append(inner);
     return group;
   };

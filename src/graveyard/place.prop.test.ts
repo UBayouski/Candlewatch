@@ -1,3 +1,7 @@
+import { INITIAL_STATE, step } from "../engine";
+import { arbScript, arbT0, runScript } from "../engine/test-kit";
+import { sceneModel } from "../scene/model";
+import { dawnFor } from "./view";
 import { isDeepStrictEqual } from "node:util";
 import * as fc from "fast-check";
 import { expect,it } from "vitest";
@@ -64,4 +68,17 @@ it("Feature: room-art, Property 11: The Place keeps off every text line",()=>{
   });
   expect(violations).toEqual([]);
  }),{...PROP_PARAMS,examples:[[fullStones],[fullShelf]]});
+});
+
+it("Feature: room-art, Property 6b: The Place sky follows the scene dawn",()=>{
+ fc.assert(fc.property(fc.constantFrom("idle","lit","paused","snuffed","burned-out"),arbT0,arbScript,(phase,t0,script)=>{
+  const lit=step(INITIAL_STATE,{type:"light",length:25},t0);
+  const sample=phase==="idle"?INITIAL_STATE:phase==="paused"?step(lit,{type:"pause"},t0):phase==="snuffed"?step(lit,{type:"snuff"},t0):phase==="burned-out"?step(lit,{type:"tick"},t0+25*60000):lit;
+  const errors:string[]=[];
+  for(const {state,now} of [{state:sample,now:t0+25*60000},...runScript(script,t0).map(t=>({state:t.after,now:t.now}))]){
+   if(dawnFor(state)!==sceneModel(state,now).dawn)errors.push(`${state.phase}: Place ${dawnFor(state)}, scene ${sceneModel(state,now).dawn}`);
+   if(state.phase==="idle" && dawnFor(state)!==0)errors.push(`idle dawn ${dawnFor(state)}`);
+  }
+  expect(errors).toEqual([]);
+ }),PROP_PARAMS);
 });

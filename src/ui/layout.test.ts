@@ -140,14 +140,14 @@ describe("1280 x 800 (wide, column), design 6.5", () => {
     expectRect(p.setup.intent, [904, 180, 352, 44], "intent");
     expectRect(p.setup.light, [904, 240, 352, 52], "light");
   });
-  it("puts the time, the status and the labelled buttons in the zone", () => {
+  it("puts the time, the status and the labelled buttons in the zone (room-art R9 widths)", () => {
     expect(p.timeSize).toBe(44);
     expectRect(p.time, [572, 720, 136, 44], "time");
     expectRect(p.statusRunning, [488, 764, 304, 20], "status running");
-    expectRect(p.statusResting, [312, 764, 656, 20], "status resting");
-    expectRect(p.zoneControls.pause, [344, 738, 128, 44], "pause");
-    expectRect(p.zoneControls.snuff, [808, 738, 160, 44], "snuff");
-    expectRect(p.zoneControls.settings, [976, 738, 96, 44], "settings");
+    expectRect(p.statusResting, [332, 764, 616, 20], "status resting");
+    expectRect(p.zoneControls.pause, [374, 738, 98, 44], "pause");
+    expectRect(p.zoneControls.snuff, [808, 738, 140, 44], "snuff");
+    expectRect(p.zoneControls.settings, [956, 738, 111, 44], "settings");
     expect(p.zoneControls.labelled).toBe(true);
   });
   it("places the overlays in the side columns", () => {
@@ -181,11 +181,11 @@ describe("the other sizes of design 6.5", () => {
     expectRect(p.setup.intent, [8, 108, 176, 44], "intent");
     expectRect(p.setup.light, [356, 108, 116, 52], "light");
   });
-  it("1920 x 1080: wide, a 360 px column and Settings at x 1349", () => {
+  it("1920 x 1080: wide, a 360 px column and Settings at x 1329 (room-art R9 widths)", () => {
     const p = placeControls(1920, 1080);
     expect([p.mode, p.variant]).toEqual(["wide", "column"]);
     expectRect(p.setup.chooser, [1536, 96, 360, 44], "chooser");
-    expect(p.zoneControls.settings.x).toBeCloseTo(1349.2, 6);
+    expect(p.zoneControls.settings.x).toBeCloseTo(1329.2, 6);
   });
 });
 
@@ -252,4 +252,13 @@ describe("the Door and the ghost cells (ghosts-and-graveyard CR5)", () => {
       expect(cell.y + cell.h).toBeLessThanOrEqual(p.floorY);
     }
   });
+});
+it("room-art: the wide button rectangles and status lines (R9)",()=>{
+ const p=placeControls(1280,800);
+ expect(p.zoneControls.pause).toEqual({x:374,y:738,w:98,h:44});
+ expect(p.zoneControls.resume).toEqual({x:362,y:738,w:110,h:44});
+ expect(p.zoneControls.snuff).toEqual({x:808,y:738,w:140,h:44});
+ expect(p.zoneControls.settings).toEqual({x:956,y:738,w:111,h:44});
+ expect(p.statusResting).toEqual({x:332,y:764,w:616,h:20});
+ expect(p.statusRunning).toEqual({x:488,y:764,w:304,h:20});
 });

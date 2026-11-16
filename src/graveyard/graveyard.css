@@ -305,34 +305,29 @@
 
 /* The Door a hand can open: a lit doorway in an arched frame and an amber handle. It shows "no candle burns". */
 #ui .graveyard button.door {
-  background: var(--g-face);
+  background: transparent;
   border: var(--g-line) solid var(--g-text);
   border-radius: calc(40 * var(--u, 0.6px)) calc(40 * var(--u, 0.6px)) calc(4 * var(--u, 0.6px)) calc(4 * var(--u, 0.6px));
 }
 
-#ui .graveyard button.door::before {
-  content: "";
-  position: absolute;
-  inset: calc(10 * var(--u, 0.6px)) calc(10 * var(--u, 0.6px)) 0;
-  background: var(--g-warm);
-  border-radius: calc(30 * var(--u, 0.6px)) calc(30 * var(--u, 0.6px)) 0 0;
-}
+#ui .graveyard button.door::before { display: none; }
 
 #ui .graveyard button.door::after {
   content: "";
   position: absolute;
-  right: calc(16 * var(--u, 0.6px));
-  top: calc(48 * var(--u, 0.6px));
-  width: calc(10 * var(--u, 0.6px));
-  height: calc(10 * var(--u, 0.6px));
+  right: calc(14 * var(--u, 0.6px));
+  top: calc(40 * var(--u, 0.6px));
+  width: calc(11 * var(--u, 0.6px));
+  height: calc(11 * var(--u, 0.6px));
   background: var(--g-amber);
   border-radius: 50%;
+  box-shadow: 0 0 0 1px #05070d;
 }
 
 /* The shut door: dark, barred across, no handle, not focusable. It shows "a focus session is running". */
 #ui .graveyard .door-shut {
-  background: #05070d;
-  border: var(--g-line) solid var(--g-text-subtle);
+  background: transparent;
+  border: var(--g-line) solid var(--g-text);
   border-radius: calc(40 * var(--u, 0.6px)) calc(40 * var(--u, 0.6px)) calc(4 * var(--u, 0.6px)) calc(4 * var(--u, 0.6px));
 }
 
@@ -341,9 +336,10 @@
   position: absolute;
   left: calc(-1 * var(--g-line));
   right: calc(-1 * var(--g-line));
-  top: calc(40 * var(--u, 0.6px));
-  height: calc(8 * var(--u, 0.6px));
+  top: calc(36 * var(--u, 0.6px));
+  height: calc(7 * var(--u, 0.6px));
   background: var(--g-text-subtle);
+  box-shadow: 0 0 0 1px #05070d;
 }
 
 /* The return control: the same place as the Door, in the interface's control look (warm fill, amber border), like Settings (D17). */
@@ -444,3 +440,30 @@
     border-color: #ffffff;
   }
 }
+
+@media (forced-colors: active) {
+ #ui .graveyard button.door, #ui .graveyard .door-shut { background: transparent; border-color: CanvasText; }
+ #ui .graveyard .door-shut::after { background: CanvasText; }
+ #ui .graveyard button.door::after { background: Highlight; }
+}
+
+/* room-art Place: all item geometry is unchanged. */
+#ui .graveyard { --window-night: #0d1424; --window-moon: #1a2540; --window-dawn: #566683; --dawn-cool: #4a5a78; --dawn-warm: #5a4a52; --room-night: #05070d; }
+#ui .graveyard svg.place { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: visible; display: block; }
+#ui .graveyard { --set-earth-a: #5b4a3e; --set-earth-b: #3a2f28; --set-pebble: #6a5a4c; --set-blade: #566650; --set-mound: #745e4c; --set-stone-side: #566683; --set-shadow: #05070d;
+  --set-board-top: #7a5c3c; --set-board-front: #6a4e30; --set-board-grain: #33261a; --set-iron: #2c313f;
+  --set-sky-low: #2f3f66; --set-hill-far: #121a2e; --set-hill-mid: #0c1222; --set-hill-near: #070a11; --sky-star: #dfe8ff; }
+.ps-0 { stop-color: color-mix(in srgb, var(--window-dawn) calc(var(--dawn) * 100%), var(--window-night)); }
+.ps-1 { stop-color: color-mix(in srgb, var(--dawn-cool) calc(var(--dawn) * 100%), var(--window-moon)); }
+.ps-2 { stop-color: color-mix(in srgb, var(--dawn-warm) calc(var(--dawn) * 100%), var(--set-sky-low)); }
+.pg-h { stop-color: var(--set-earth-a); } .pg-0 { stop-color: var(--set-earth-a); } .pg-1 { stop-color: var(--set-earth-b); }
+.p-stars { opacity: calc(1 - var(--dawn)); } .p-stars circle { fill: var(--sky-star); }
+.p-tower { fill: var(--set-hill-near); } .p-hill-far { fill: var(--set-hill-far); } .p-hill-mid { fill: var(--set-hill-mid); } .p-hill-near { fill: var(--set-hill-near); }
+.e-pebble { stroke: var(--set-pebble); stroke-width: 4; stroke-linecap: round; stroke-opacity: 0.6; fill: none; }
+.e-blade { stroke: var(--set-blade); stroke-width: 1.3; stroke-linecap: round; fill: none; stroke-opacity: 0.7; }
+.p-mound { fill: var(--set-mound); } .p-tuft { stroke: var(--set-blade); stroke-width: 1.6; stroke-linecap: round; fill: none; }
+.p-side { fill: var(--set-stone-side); } .p-shadow { fill: var(--set-shadow); fill-opacity: 0.6; }
+.b-top { fill: var(--set-board-top); } .b-front { fill: var(--set-board-front); } .b-grain { stroke: var(--set-board-grain); stroke-width: 1; fill: none; } .b-iron { fill: var(--set-iron); }
+.p-night { fill: var(--room-night, #05070d); }
+
+@media (forced-colors: active) { #ui .graveyard .place { display: none; } }

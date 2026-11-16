@@ -337,7 +337,7 @@ Pairs added to the contrast tests (R10.5), with expected figures the build pins 
 
 - Ghost eyes `#0b1020` on the body (fill `#c9d6ee` at 0.55 over the brightest room `#566683`): about 8:1 (floor 3).
 - Door outline `#efe6cf` on the brightest plank `#7a5a38`: about 5.9:1; handle `#e6c27a`: about 4.1:1; bar `#cfc2a2`: about 4.4:1 (floor 3 each). The Door outline against `--g-face` stays 13.0:1 (the token stays for the existing pair).
-- Stub wax `#efe6cf` on `--set-board-top`: about 5:1 (floor 3). Stone edge `#8a93a6` on `--set-earth-a`: about 3.2:1 (the existing pair's figure, not lowered).
+- Stub wax `#efe6cf` on `--set-board-top`: about 5:1 (floor 3). Stone edge `#8a93a6` on `--set-earth-a`: at least 3:1 against the ground as drawn under the fixed night mask; the raw 2.73 is not the asserted pair (corrected by Q53).
 - Subtle text `#cfc2a2` on `--set-earth-a` (the brightest ground behind text): about 4.7:1 (floor 4.5); ivory on it about 6.8:1.
 
 ### D6. Frame, mullions, sill, stars
@@ -386,10 +386,10 @@ Layers, the Doorway_Light, the haze, the stones' side faces, mounds and shadows,
 
 | budget | limit | estimate / measured now |
 |---|---|---|
-| JS + CSS raw in `dist/` | 120 000 bytes | requirements: 89 360 before. The new art adds roughly 24 to 30 KB (setting constants and generators 9, ghosts 4, Place 6, CSS 9): **estimate 113 to 119 KB, tight**. The budget test is the authority. Unverified. |
+| JS + CSS raw in `dist/` | 120 000 bytes (by Q62) | requirements: 89 360 before. The new art adds roughly 24 to 30 KB (setting constants and generators 9, ghosts 4, Place 6, CSS 9): **estimate 113 to 119 KB, tight**. The budget test is the authority. Unverified. |
 | elements in scene SVG + ghost layer + Place, added | before + 300 | counted by `prototype/count.mjs` with the **real limits of `src/graveyard/visible.ts`** (`DEFAULT_LIMITS`: 10 Stones, 3 days, 4 stubs a day): scene SVG 79 before, **+96** (the wall tile is 6 elements, the rest is the frame, table, holder, Door wood, stars, the veil, the edge shade, the warm tint, defs and the mask hole); ghost layer **+3 per ghost** (6 against 3): **+36** at 12 ghosts; Place with 10 Stones and 3 rows of 4 Stubs: **128** (70 with an empty history). **Worst case added: 260**, 40 under the limit. |
 | forbidden filters | none of `feTurbulence`, `feDisplacementMap`, `feMorphology`, `feConvolveMatrix`; no CSS `filter` on a group repainted every frame | none used; the one blur is on the glass group, which has no per-frame property |
-| frame interval, lit session, 1920 by 1080, real clock, at least 600 frames | median 17.5 ms or less, 95th percentile 25 ms or less on the author's machine | **not measured** (the prototype is static). The script `scripts/frame-budget.mjs` is written by a build task, outside `npm run verify`. |
+| frame interval, lit session, 1920 by 1080, real clock, at least 600 frames | median 17.5 ms or less, 95th percentile 25 ms or less with GPU rasterisation on the author's machine (by Q62); software recorded, not judged | **not measured** (the prototype is static). The script `scripts/frame-budget.mjs` is written by a build task, outside `npm run verify`. |
 
 Rasterising: the `.setting` group is static and sits under a masked rect whose mask changes with the radius only, so a flame redraw does not invalidate it; the frame script decides, and the fallback is one pre-composed mask. The `@property` transition runs only at the dawn.
 

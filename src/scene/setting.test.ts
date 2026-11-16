@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { DOOR_WOOD, HOLDER, PANES, PANE_FRAME, SETTING_TOKENS, STARS, TABLE, WALL, wallBlocks, wallCoursesB, wallHeights, wallTile } from "./setting";
 describe("room-art static setting", () => {
+ it("restarts a cornered wall course sequence", () => {
+  for (const seed of [-932354939, -1625496267, 29564193, 1199295222, 1353508983, 1354698148]) {
+   expect(wallCoursesB(seed)).toHaveLength(8);
+  }
+ });
  it("pins the shipped tile heights, blocks, widths, tones and determinism", () => {
   const a=wallCoursesB(WALL.seed),flat=a.flat();
   expect(wallHeights(WALL.seed)).toEqual([79,84,75,68,78,81,95,68]);

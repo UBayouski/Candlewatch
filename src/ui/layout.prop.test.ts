@@ -91,12 +91,13 @@ function sets(p: Placement): { setup: Item[]; running: Item[] } {
 }
 
 /** Every rule of design 6.8 for one viewport. Throws with the broken rule's name. */
-function violations(vw: number, vh: number): string[] {
+function violations(vw: number, vh: number, resume = false): string[] {
   const out: string[] = [];
   const bad = (rule: string, cond: boolean): void => {
     if (!cond) out.push(rule);
   };
-  const p = placeControls(vw, vh);
+  const base = placeControls(vw,vh);
+  const p = resume ? {...base,zoneControls:{...base.zoneControls,pause:base.zoneControls.resume}} : base;
   const viewport: Rect = { x: 0, y: 0, w: vw, h: vh };
   const { setup, running } = sets(p);
   const all: Item[] = [
@@ -248,4 +249,22 @@ describe("P10: layout geometry (R8.2 to R8.7, R10.6)", () => {
       PROP_PARAMS,
     );
   });
+});
+
+it("Feature: room-art, Property 10: Zone buttons keep padding, gaps and all layout rules",()=>{
+ fc.assert(fc.property(arbViewport,([w,h])=>{
+  const errors=[...violations(w,h),...violations(w,h,true)];const p=placeControls(w,h),z=p.zoneControls;
+  for(const [name,r] of Object.entries({pause:z.pause,resume:z.resume,snuff:z.snuff,settings:z.settings}))if(r.h!==44)errors.push(`${name} height ${r.h}`);
+  if(z.labelled){
+   const pads=[(z.pause.w-28-36.77)/2,(z.resume.w-28-49.78)/2,(z.snuff.w-28-79.47)/2,(z.settings.w-28-50.66)/2];
+   if(Math.max(...pads)-Math.min(...pads)>1)errors.push(`padding spread ${pads}`);
+   if(Math.abs(z.settings.x-right(z.snuff)-8)>1)errors.push(`settings gap ${z.settings.x-right(z.snuff)}`);
+   for(const pause of [z.pause,z.resume]){
+    const left=p.time.x-right(pause),rightGap=z.snuff.x-right(p.time);
+    if(Math.abs(left-rightGap)>1)errors.push(`time gaps ${left}/${rightGap}`);
+    if(p.textArea.x-right(pause)!==16)errors.push(`pause anchor ${p.textArea.x-right(pause)}`);
+   }
+  }else for(const r of [z.pause,z.resume,z.snuff,z.settings])if(r.w!==44)errors.push(`compact width ${r.w}`);
+  expect(errors).toEqual([]);
+ }),{...PROP_PARAMS,examples:NAMED.map(v=>[v])});
 });

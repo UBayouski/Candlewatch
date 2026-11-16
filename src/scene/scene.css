@@ -187,6 +187,7 @@ body {
 .candle-scene[data-settled="true"][data-ease="true"] .ember {
   transition: opacity 800ms ease;
 }
+.candle-scene[data-settled="true"][data-ease="true"] .stars,
 .candle-scene[data-settled="true"][data-ease="true"] .window-dawn,
 .candle-scene[data-settled="true"][data-ease="true"] .dawn-wash,
 .candle-scene[data-settled="true"][data-ease="true"] .zone-dawn {
@@ -201,6 +202,76 @@ body {
   from { transform: rotate(-3deg); }
   to { transform: rotate(3deg); }
 }
+
+/* --- Setting_Tokens (D5): each between --room-bg-darkest #05070d and --room-bg-brightest #566683 in luminance --- */
+.candle-scene {
+  --set-joint: #2b354b;
+  --set-stone-0: #566683; --set-stone-1: #51607e; --set-stone-2: #4c5a78; --set-stone-3: #58607a; --set-stone-4: #5e5c6e;
+  --set-veil: #3f4a62; --veil: 0.75; --wl-edge: 0.82;
+  --set-table-back: #3b2c1d; --set-table-front: #54402c; --set-table-seam: #20170f; --set-table-edge: #7d6040; --set-table-face: #3a2b1d;
+  --set-dish: #3a3d45; --set-dish-rim: #5f636d; --set-dish-in: #07090e;
+  --set-frame: #3c4660; --set-frame-hi: #566683; --set-sill: #4f5b78; --set-sill-hi: #566683;
+  --set-plank-a: #7a5a38; --set-plank-b: #4a3724; --set-plank-joint: #140e09; --set-grain: #33261a;
+  --set-surround: #3b4358; --set-recess: #0c0906; --set-threshold: #52607c;
+  --set-iron: #2c313f; --set-iron-hi: #4a5268; --set-rivet: #566683;
+  --sky-star: #dfe8ff;
+  --set-warm-tint: #7d5a34; /* the pool's warm tint (F16, adopted) */
+  /* the Window_Light (D3): levels of the hole in the night mask. Read: --dawn, and whether --light-radius is 0. Never the amount. */
+  --wl-night: 0.5;
+  --wl-snuffed: 0.09;
+  --wl-dawn: 1;
+  --wl-k: var(--dawn);
+  --wl-now: calc(var(--wl-snuffed) + (var(--wl-night) - var(--wl-snuffed)) * min(1, calc(var(--light-radius) * 1000)));
+  --wl: calc(var(--wl-now) + (var(--wl-dawn) - var(--wl-now)) * var(--wl-k));
+}
+/* The level eases with the dawn: 3 s, like .dawn-wash; 0 s with reduced motion (the scene's own reduced-motion rule). */
+@property --wl-k { syntax: "<number>"; inherits: true; initial-value: 0; }
+.candle-scene[data-settled="true"][data-ease="true"] { transition: --wl-k 3s ease; }
+.st-wl[data-k="1"] { --k: 1; }
+.st-wl[data-k="0.92"] { --k: 0.92; }
+.st-wl[data-k="0.78"] { --k: 0.78; }
+.st-wl[data-k="0.66"] { --k: 0.66; }
+.st-wl[data-k="0.52"] { --k: 0.52; }
+.st-wl[data-k="0.4"] { --k: 0.4; }
+.st-wl[data-k="0.3"] { --k: 0.3; }
+.st-wl { stop-opacity: calc(var(--wl) * var(--k, 1)); }
+
+/* In idle no light comes from the candle: the pool (at its minimum size) is not drawn. Read from the existing data-phase only. */
+.candle-scene[data-phase="idle"] .pool,
+.candle-scene[data-phase="idle"] .pool-tint { display: none; }
+
+/* --- the setting: static fills only, no animation, no transition, no model property --- */
+.s-joint { fill: var(--set-joint); fill-opacity: var(--joint-opacity, 0.6); }
+.st-veil { stop-color: var(--set-veil); stop-opacity: calc(var(--veil) * var(--k, 1)); }
+.st-wedge { stop-color: #fff; stop-opacity: calc(var(--wl-edge) * var(--k, 1)); }
+.s-b { fill-opacity: 0.55; }
+[data-k="0"] { --k: 0; } [data-k="1"] { --k: 1; }
+.s-b0 { fill: var(--set-stone-0); fill-opacity: 0.8; } .s-b1 { fill: var(--set-stone-1); fill-opacity: 0.8; }
+.s-b2 { fill: var(--set-stone-2); fill-opacity: 0.8; } .s-b3 { fill: var(--set-stone-3); fill-opacity: 0.78; }
+.s-b4 { fill: var(--set-stone-4); fill-opacity: 0.78; }
+/* The base: a lit lip high on the table, an under-line, a brighter pewter rim and a darker inside of the dish; the zone's soft shadow is short (change request F20 to candle-scene: 2 units up and 3 of blur, scene.css lines 177 and 178) */
+.t-lip { fill: var(--set-table-edge); } .t-under { stroke: var(--set-table-seam); stroke-width: 1.1; fill: none; }
+.st-table-back { stop-color: var(--set-table-back); } .st-table-front { stop-color: var(--set-table-front); }
+.t-seam { stroke: var(--set-table-seam); stroke-width: 1.1; stroke-opacity: 0.7; fill: none; }
+.t-back { stroke: var(--set-table-seam); stroke-width: 1.4; fill: none; }
+.t-face { fill: var(--set-table-face); }
+.h-body { fill: var(--set-dish); } .h-rim { fill: var(--set-dish-rim); } .h-in { fill: var(--set-dish-in); }
+.h-lip { stroke: var(--set-dish-rim); stroke-width: 1; fill: none; stroke-opacity: 0.8; }
+.f-wood { fill: var(--set-frame); } .f-hi { stroke: var(--set-frame-hi); stroke-width: 1.4; fill: none; }
+.f-sill { fill: var(--set-sill); } .f-sill-hi { stroke: var(--set-sill-hi); stroke-width: 1.4; fill: none; }
+.w-surround { fill: var(--set-surround); } .w-plank-a { fill: var(--set-plank-a); } .w-plank-b { fill: var(--set-plank-b); }
+.w-joint { stroke: var(--set-plank-joint); stroke-width: 1.8; fill: none; } .w-fibre { stroke: var(--set-grain); stroke-width: 1.1; fill: none; stroke-opacity: 0.85; }
+.w-iron { fill: var(--set-iron); } .w-pin { fill: var(--set-iron-hi); } .w-rivet { fill: var(--set-rivet); }
+.w-recess { stroke: var(--set-recess); stroke-width: 3.4; fill: none; stroke-opacity: 0.8; }
+.w-threshold { fill: var(--set-threshold); } .w-threshold-hi { stroke: var(--set-sill-hi); stroke-width: 1; fill: none; }
+.warm-tint { fill: var(--set-warm-tint); fill-opacity: 0.42; }
+.pool-tint { transform: translate(300px, calc(400px + (1 - var(--wax-height)) * 420px)) scale(var(--light-radius)); }
+
+/* the glass lies above the frame, in the four panes only; the stars change only with the dawn (D6) */
+.stars circle { fill: var(--sky-star); }
+.stars { opacity: calc(1 - var(--dawn)); }
+
+@media (forced-colors: active) { .setting, .warm-tint, .door-wood, .stars { display: none; } }
 
 /* --- reduced motion: the still version, even before the first model is applied (R9.5) --- */
 @media (prefers-reduced-motion: reduce) {

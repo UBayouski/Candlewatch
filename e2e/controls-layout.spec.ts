@@ -143,6 +143,7 @@ test.describe("the tables of design 6.5", () => {
     }
   });
 
+  // room-art R9: content-fit widths share padding; resting status follows Settings.
   test("1280 x 800 at rest and while a session runs", async ({ browser }) => {
     let app = await openApp(browser, { fixture: FIXTURES.idle, viewport: desktop });
     try {
@@ -151,17 +152,17 @@ test.describe("the tables of design 6.5", () => {
       near(await rectOf(page, "#intent-box"), [904, 180, 352, 44]);
       near(await rectOf(page, "#light"), [904, 240, 352, 52]);
       near(await rectOf(page, "#time"), [572, 720, 136, 44]);
-      near(await rectOf(page, "#status"), [312, 764, 656, 20]);
-      near(await rectOf(page, "#settings-button"), [976, 738, 96, 44]);
+      near(await rectOf(page, "#status"), [332, 764, 616, 20]);
+      near(await rectOf(page, "#settings-button"), [956, 738, 111, 44]);
     } finally {
       await app.close();
     }
     app = await openApp(browser, { fixture: FIXTURES.litStart, viewport: desktop });
     try {
       const { page } = app;
-      near(await rectOf(page, "#pause"), [344, 738, 128, 44]);
-      near(await rectOf(page, "#snuff"), [808, 738, 160, 44]);
-      near(await rectOf(page, "#settings-button"), [976, 738, 96, 44]);
+      near(await rectOf(page, "#pause"), [374, 738, 98, 44]);
+      near(await rectOf(page, "#snuff"), [808, 738, 140, 44]);
+      near(await rectOf(page, "#settings-button"), [956, 738, 111, 44]);
       near(await rectOf(page, "#status"), [488, 764, 304, 20]);
     } finally {
       await app.close();

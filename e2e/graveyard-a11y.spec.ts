@@ -296,10 +296,27 @@ test.describe("E6: text contrast from the computed colours against the real back
           const r = el.getBoundingClientRect();
           return { color: getComputedStyle(el).color, bg: getComputedStyle(el).backgroundColor, rect: { x: r.x, y: r.y, w: r.width, h: r.height } };
         }, selector);
-      // The real backgrounds, by pixel: the backdrop's opaque core (an empty corner, room x 590, y 795) and a stone's face.
-      const corner = toPage({ x: 590, y: 795, w: 0, h: 0 }, await stageOf(page));
-      const panelPx = await colourAt(page, corner.x, corner.y);
-      expect(panelPx).toEqual([0x08, 0x0b, 0x12]);
+      // Q55: the Place replaced the uniform panel; measure each affected text against its real neighbours.
+      const worstBacking=async(selector:string):Promise<number>=>{
+        const stage=await stageOf(page);
+        const readings=await page.locator(selector).evaluateAll(els=>els.filter(el=>el.checkVisibility()).map(el=>{const r=el.getBoundingClientRect();return {color:getComputedStyle(el).color,rect:{x:r.x,y:r.y,w:r.width,h:r.height},name:el.textContent};}));
+        expect(readings.length,selector).toBeGreaterThan(0);
+        let worstOverall=Infinity;
+        for(const {rect:r,color,name} of readings){
+          const xs=[r.x-3,r.x+r.w/2,r.x+r.w+3],ys=[r.y-3,r.y+r.h/2,r.y+r.h+3];
+          const points=[[xs[0],ys[0]],[xs[1],ys[0]],[xs[2],ys[0]],[xs[2],ys[1]],[xs[2],ys[2]],[xs[1],ys[2]],[xs[0],ys[2]],[xs[0],ys[1]]] as [number,number][];
+          let worst={ratio:Infinity,pixel:[0,0]};
+          for(const [x,y] of points){
+            expect(x).toBeGreaterThanOrEqual(stage.ox);expect(x).toBeLessThanOrEqual(stage.ox+600*stage.scale);
+            expect(y).toBeGreaterThanOrEqual(stage.oy);expect(y).toBeLessThanOrEqual(stage.oy+1000*stage.scale);
+            const ratio=contrast(parseRgb(color),await colourAt(page,x,y));if(ratio<worst.ratio)worst={ratio,pixel:[x,y]};
+          }
+          console.log(`CONTRAST Q55 ${name}: worst ${worst.ratio.toFixed(3)} at ${worst.pixel.join(",")}`);
+          expect(worst.ratio,`${selector} ${name} at ${worst.pixel}`).toBeGreaterThanOrEqual(4.5);
+          worstOverall=Math.min(worstOverall,worst.ratio);
+        }
+        return worstOverall;
+      };
       const stone = await read("#graveyard-stones button.item");
       const facePx = await colourAt(page, stone.rect.x + stone.rect.w / 2, stone.rect.y + stone.rect.h * 0.85); // below the two text lines
       expect(facePx).toEqual([0x14, 0x19, 0x2a]);
@@ -307,10 +324,8 @@ test.describe("E6: text contrast from the computed colours against the real back
       const stoneText = contrast(parseRgb((await read("#graveyard-stones .stone-date")).color), facePx);
       expect(stoneText).toBeGreaterThanOrEqual(4.5);
       expect(stoneText).toBeCloseTo(14.05, 1);
-      const countLine = contrast(parseRgb((await read("#graveyard-stones-count")).color), panelPx);
-      expect(countLine).toBeGreaterThanOrEqual(4.5);
-      const dayLabel = contrast(parseRgb((await read("#graveyard-shelf .day-label")).color), panelPx);
-      expect(dayLabel).toBeCloseTo(15.83, 1);
+      const countLine = await worstBacking("#graveyard-stones-count, #graveyard-shelf-count");
+      const dayLabel = await worstBacking("#graveyard-shelf .day-label");
       // The card: ivory on the interface's warm fill, opaque (D16).
       await press(page, "ArrowRight");
       const card = await read("#graveyard-card");

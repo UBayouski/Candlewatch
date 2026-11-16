@@ -71,14 +71,21 @@ const staggered = (a: Block[], b: Block[], gap: number) => a.every((p) => b.ever
 function build() {
   const r = mulberry32(B_SEED ^ 0x2545f491);
   const courses: Block[][] = [];
+  let attemptsSinceAccepted = 0;
   for (let guard = 0; courses.length < COURSE_COUNT; guard++) {
     if (guard > 50000) throw new Error("wall B: no staggered courses");
+    if (attemptsSinceAccepted > 2000) {
+      courses.length = 0;
+      attemptsSinceAccepted = 0;
+    }
+    attemptsSinceAccepted++;
     const ws = widths(r);
     let x = Math.floor(r() * TILE_W);
     const c = ws.map((w) => { const b: Block = { x: x % TILE_W, w, t: 0, off: 0, j: [], ins: [] }; x += w; return b; });
     if (courses.length > 0 && !staggered(courses[courses.length - 1]!, c, 30)) continue;
     if (courses.length === COURSE_COUNT - 1 && !staggered(c, courses[0]!, 30)) continue;
     courses.push(c);
+    attemptsSinceAccepted = 0;
   }
   // tones
   const tr = mulberry32(B_SEED ^ 0x9e3779b9);

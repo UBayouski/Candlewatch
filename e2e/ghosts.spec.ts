@@ -3,6 +3,7 @@
 // showing the page through its own visibilitychange listener while a candle burns (see `setVisibility` for why it is overridden).
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
+import { placeGhost } from "../src/ghosts/place";
 import { ghostSize } from "../src/engine";
 import { DOOR_RECT, GHOST_CELLS, KEEP_CLEAR_COLUMN_UNITS } from "../src/ui/layout";
 import {
@@ -78,7 +79,12 @@ test.describe("E4: one ghost per distraction, the newest G, and the mark", () =>
           if (n > G) expect(seen.mark.text).toBe(`+${n - G}`);
           // The newest G are drawn, each with the size of its own span.
           expect(seen.ghosts.map((g) => g.index).sort((a, b) => a - b)).toEqual(Array.from({ length: Math.min(n, G) }, (_, i) => Math.max(0, n - G) + i));
-          for (const g of seen.ghosts) expect(g.size).toBeCloseTo(ghostSize(spans[g.index] ?? NaN), 6);
+          for (const g of seen.ghosts) {
+            expect(g.size).toBeCloseTo(ghostSize(spans[g.index] ?? NaN), 6);
+            // room-art R11.5: the cell centre stays fixed; the resting drawing uses placeGhost.
+            const rest=placeGhost(g.slot,g.index,g.size);
+            expect(g.rest.x).toBeCloseTo(rest.x,6);expect(g.rest.y).toBeCloseTo(rest.y,6);expect(g.rest.tilt).toBeCloseTo(rest.tilt,6);
+          }
           expect(new Set(seen.ghosts.map((g) => g.slot)).size).toBe(seen.ghosts.length);
 
           const label = await sceneLabel(page);

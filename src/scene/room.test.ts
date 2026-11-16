@@ -61,9 +61,9 @@ describe("ROOM_SVG: the stage", () => {
 });
 
 describe("ROOM_SVG: layers (design 5.2)", () => {
-  const order = ["wall", "night", "dawn-wash", "window", "candle", "lit", "zone"];
+  const order = ["wall", "setting", "warm-tint", "night", "dawn-wash", "window", "stars", "candle", "lit", "zone"];
 
-  it("has the seven layers in the documented order, with .zone last", () => {
+  it("has the ten layers in the documented order, with .zone last", () => {
     const at = order.map((name) => ROOM_SVG.indexOf(`class="${name}"`));
     for (const i of at) expect(i).toBeGreaterThan(-1);
     expect([...at].sort((a, b) => a - b)).toEqual(at);
@@ -72,8 +72,11 @@ describe("ROOM_SVG: layers (design 5.2)", () => {
     expect(ROOM_SVG.slice(zoneEnd).replace(/<\/g>|<\/svg>|\s/g, "")).toBe("");
   });
 
-  it("has no grain, texture or other decoration-only layer (costume review, second pass)", () => {
-    expect(ROOM_SVG).not.toMatch(/grain|feTurbulence|<pattern\b/);
+  it("allows lit texture only inside the setting, with no expensive filter or grain id", () => {
+    // R3.1 allows lit texture inside the setting; costly filters and grain ids remain forbidden.
+    expect(ROOM_SVG).not.toMatch(/feTurbulence|id="[^"]*grain/i);
+    expect(groupInner(ROOM_SVG,"setting")).toMatch(/<pattern\b/);
+    expect(ROOM_SVG.replace(groupInner(ROOM_SVG,"setting"),"")).not.toMatch(/<pattern\b/);
   });
 
   it("draws the window pane above the dawn wash, so the pane lights up at dawn (review, task 23)", () => {
@@ -81,8 +84,11 @@ describe("ROOM_SVG: layers (design 5.2)", () => {
     expect(ROOM_SVG.indexOf('class="window"')).toBeGreaterThan(ROOM_SVG.indexOf('class="night"'));
   });
 
-  it("has no table, dish or floor element (F1, F2)", () => {
-    expect(ROOM_SVG).not.toMatch(/class="[^"]*\b(table|dish|floor)\b/);
+  it("keeps table, holder, dish and floor elements inside the setting", () => {
+    // A13: the table and holder return as lit setting, exclusively inside .setting.
+    const outside=ROOM_SVG.replace(groupInner(ROOM_SVG,"setting"),"");
+    expect(outside).not.toMatch(/class="[^"]*\b(table|holder|dish|floor)\b/);
+    expect(groupInner(ROOM_SVG,"setting")).toContain('class="holder"');
   });
 
   it(".wall and .night end at the floor line, y = 900", () => {
@@ -139,7 +145,11 @@ describe("ROOM_SVG: the lit group and the clip (F5)", () => {
 });
 
 describe("ROOM_SVG: the window (F3)", () => {
-  it("is only its two pane rects, with no frame, sill or curtain", () => {
+  it("keeps two pane rects under the pane mask, with frame and sill only in the setting", () => {
+    // R4: glass still consists of two unchanged rects; its frame belongs to the setting.
+    expect(element(ROOM_SVG,"g","window").attrs["mask"]).toBe("url(#cw-panes)");
+    expect(groupInner(ROOM_SVG,"setting")).toContain('class="frame"');
+    expect(groupInner(ROOM_SVG,"frame")).toContain('class="f-sill"');
     const inner = groupInner(ROOM_SVG, "window");
     expect(inner.match(/<rect\b/g)).toHaveLength(2);
     expect(inner.replace(/<rect\b[^>]*\/>/g, "").trim()).toBe("");
@@ -307,4 +317,13 @@ describe("ROOM_SVG: the cooling glow (review, task 23)", () => {
     expect(grad.indexOf("st-ember-in")).toBeLessThan(grad.indexOf("st-ember-mid"));
     expect(grad.indexOf("st-ember-mid")).toBeLessThan(grad.indexOf("st-ember-out"));
   });
+});
+
+it("room-art: wall veil and pool mask have their documented order",()=>{
+ const setting=groupInner(ROOM_SVG,"setting");
+ expect(setting.indexOf('class="wall-veil"')).toBeGreaterThan(setting.indexOf('class="wall-stone"'));
+ expect(setting.indexOf('class="wall-veil"')).toBeLessThan(setting.indexOf('class="table"'));
+ const mask=ROOM_SVG.match(/<mask id="cw-pool-mask"[^>]*>([\s\S]*?)<\/mask>/)?.[1] ?? "";
+ const at=["mask-all","win-light","win-edge","pool"].map(c=>mask.indexOf(`class="${c}"`));
+ expect(at.every(i=>i>=0)).toBe(true);expect([...at].sort((a,b)=>a-b)).toEqual(at);
 });

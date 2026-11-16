@@ -1,28 +1,4 @@
 // The ghost silhouette (ghosts-and-graveyard R9.3, decision L2). Pure: one path string in the 70 by 75 ghost box, centred on the origin.
-import { GHOST_BOX } from "./slots";
-
-/** A rounded head, straight sides and a wavy hem of four scallops. Every point lies inside the box [-35, 35] x [-37.5, 37.5]. */
-export function silhouettePath(): string {
-  const hw = GHOST_BOX.w / 2;
-  const hh = GHOST_BOX.h / 2;
-  const shoulder = -8;
-  const crest = hh - 9.5;
-  const step = GHOST_BOX.w / 4;
-  const parts = [
-    `M ${-hw} ${hh}`,
-    `L ${-hw} ${shoulder}`,
-    `C ${-hw} ${-28} ${-20} ${-hh} 0 ${-hh}`,
-    `C 20 ${-hh} ${hw} -28 ${hw} ${shoulder}`,
-    `L ${hw} ${hh}`,
-  ];
-  for (let i = 0; i < 4; i++) {
-    const from = hw - i * step;
-    parts.push(`Q ${from - step / 2} ${crest} ${from - step} ${hh}`);
-  }
-  parts.push("Z");
-  return parts.join(" ");
-}
-
 const GHOST_SHAPES = [
   // 0: the wisp trails down and to the right, a short flick hangs on the left
   "M -3 -37.5 C 10 -37.5 21 -28 21 -14 C 21 -2 18 8 24 18 C 29 26 35 30 35 37.5 C 26 33 14 36 7 27 C 0 20 -10 28 -17 19 C -23 12 -22 4 -22 -4 C -22 -10 -21 -14 -21 -16 C -21 -28 -12 -37.5 -3 -37.5 Z",

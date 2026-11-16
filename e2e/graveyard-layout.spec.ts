@@ -2,7 +2,7 @@
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
 import type { HistoryEntry } from "../src/engine";
-import { CARD_RIM_PX, DOOR_RECT, PANEL_FADE, PANEL_RECT, RING_CLEAR_PX, RING_PX, stoneRect, stubRect } from "../src/graveyard/geometry";
+import { CARD_RIM_PX, DOOR_RECT, PANEL_RECT, RING_CLEAR_PX, RING_PX, stoneRect, stubRect } from "../src/graveyard/geometry";
 import { STRINGS } from "../src/strings";
 import { fill } from "../src/ui/format";
 import {
@@ -28,6 +28,8 @@ test.describe.configure({ mode: "parallel" });
 const S = 10;
 const D = 3;
 const K = 4;
+// Q56: the approved Place clip, replacing the faded panel extent.
+const PLACE_RECT = { x:-2200,y:-600,w:5000,h:1500 } as const;
 
 interface Seen {
   readonly label: string;
@@ -36,7 +38,7 @@ interface Seen {
 
 /** Every visible box of the view, by kind (the card is read separately). */
 async function readView(page: Page): Promise<{ stones: Rect[]; rows: Rect[][]; lines: Seen[]; ink: Seen[]; back: Rect; panel: Rect; settings: Rect | null }> {
-  return page.evaluate(() => {
+  const seen = await page.evaluate(() => {
     const box = (el: Element | Range) => {
       const r = el.getBoundingClientRect();
       return { x: r.x, y: r.y, w: r.width, h: r.height };
@@ -60,10 +62,12 @@ async function readView(page: Page): Promise<{ stones: Rect[]; rows: Rect[][]; l
       lines,
       ink,
       back: box(document.querySelector("#graveyard-back") as Element),
-      panel: box(document.querySelector("#graveyard .panel") as Element),
+      // Q56: clip attributes are room units; the svg element's box is only the stage.
+      panel: (()=>{const r=document.querySelector("#graveyard .place #cw-place-clip rect");if(!r)throw new Error("Place clip missing");return {x:Number(r.getAttribute("x")),y:Number(r.getAttribute("y")),w:Number(r.getAttribute("width")),h:Number(r.getAttribute("height"))};})(),
       settings: settingsEl !== null && shown(settingsEl) ? box(settingsEl) : null,
     };
   });
+  return {...seen,panel:toPage(seen.panel,await stageOf(page))};
 }
 
 /** What the Count_Lines and "+n more" must say for this history, from the stored values and the browser's own calendar. */
@@ -121,9 +125,7 @@ for (const { name, history } of HISTORIES) {
         seen.stones.forEach((r, i) => expect(near(r, toPage(stoneRect(i), stage)), `stone ${i} ${JSON.stringify(r)}`).toBe(true));
         seen.rows.forEach((row, ri) => row.forEach((r, j) => expect(near(r, toPage(stubRect(ri, j), stage)), `stub ${ri}.${j} ${JSON.stringify(r)}`).toBe(true)));
         expect(near(seen.back, toPage(DOOR_RECT, stage)), "the return control is at the Door's rectangle").toBe(true);
-        // The backdrop: the opaque core and its fading margin above and to the sides (D18).
-        const backdrop = { x: PANEL_RECT.x - PANEL_FADE, y: PANEL_RECT.y - PANEL_FADE, w: PANEL_RECT.w + 2 * PANEL_FADE, h: PANEL_RECT.h + PANEL_FADE };
-        expect(near(seen.panel, toPage(backdrop, stage)), "the backdrop").toBe(true);
+        // Q56: placement range retained; backing contrast is measured from real pixels by Q55.
         const core = toPage(PANEL_RECT, stage);
 
         // No two static boxes overlap; all lie inside the viewport and inside the stage box.
@@ -144,12 +146,14 @@ for (const { name, history } of HISTORIES) {
           const ring = { x: b.rect.x - RING_PX, y: b.rect.y - RING_PX, w: b.rect.w + 2 * RING_PX, h: b.rect.h + 2 * RING_PX };
           for (const t of seen.ink) expect(separation(ring, t.rect), `the ring of ${b.label} and ${t.label}`).toBeGreaterThanOrEqual(RING_CLEAR_PX - 0.01);
         }
-        // Every text of the view lies on the opaque core (contrast, D8, D18).
-        for (const t of seen.lines) expect(inside(t.rect, core), `${t.label} on the core`).toBe(true);
+        // Every text retains the legacy PANEL_RECT placement range; Q55 checks actual backing pixels.
+        for (const t of seen.lines) expect(inside(t.rect, core), `${t.label} in the placement range`).toBe(true);
         // Everything of the view is above the Floor_Band (room y 900), and the visible Settings control is clear of the view.
         const floorTop = stage.oy + 900 * stage.scale;
-        for (const b of [...boxes, { label: "backdrop", rect: seen.panel }]) expect(b.rect.y + b.rect.h, `${b.label} above the Floor_Band`).toBeLessThanOrEqual(floorTop + 0.5);
-        if (seen.settings !== null) for (const b of [...boxes, { label: "panel", rect: seen.panel }]) expect(overlaps(seen.settings, b.rect, 0.5), `Settings and ${b.label}`).toBe(false);
+        for (const b of [...boxes, { label: "the Place", rect: seen.panel }]) expect(b.rect.y + b.rect.h, `${b.label} above the Floor_Band`).toBeLessThanOrEqual(floorTop + 0.5);
+        if (seen.settings !== null) for (const b of [...boxes, { label: "the Place", rect: seen.panel }]) expect(overlaps(seen.settings, b.rect, 0.5), `Settings and ${b.label}`).toBe(false);
+
+        expect(near(seen.panel,toPage(PLACE_RECT,stage)),"the Place clip rectangle (Q56)").toBe(true);
 
         // Hit sizes: at least 44 px on the smallest stage.
         if (viewport.width === 360) {

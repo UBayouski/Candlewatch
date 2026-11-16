@@ -46,3 +46,6 @@ export function viewStep(view: View, input: ViewInput): { view: View; focus: Vie
       return doorUsable(input.phase) ? { view, focus: "none" } : { view: "room", focus: "none" };
   }
 }
+
+/** The Place sky follows the completion state, exactly as the room does. */
+export function dawnFor(state: Pick<State,"phase">): number { return state.phase === "burned-out" ? 1 : 0; }

@@ -39,7 +39,7 @@ import type { CardInput, CardState } from "./card";
 import type { DayKeyFn } from "./days";
 import { navigate, NO_MEMORY, remember, tabStops } from "./focus";
 import type { FocusMemory, GroupId } from "./focus";
-import { CARD_RIM_PX, COUNT_LINE_Y, DOOR_RECT, EMPTY_LINE_Y, LABEL_Y, PANEL_FADE, PANEL_RECT, TEXT_LINE_H, placeCard } from "./geometry";
+import { CARD_RIM_PX, COUNT_LINE_Y, DOOR_RECT, EMPTY_LINE_Y, LABEL_Y, shelfRowY, TEXT_LINE_H, placeCard } from "./geometry";
 import type { Rect } from "./geometry";
 import { graveKeyAction } from "./keys";
 import type { GraveKeyContext } from "./keys";
@@ -48,7 +48,63 @@ import type { PlacedItem, ViewPlan } from "./plan";
 import { guardClick, guardDown, guardFocus, guardReset, NO_GESTURE } from "./tap-guard";
 import type { TapGuard } from "./tap-guard";
 import { DEFAULT_LIMITS, visibleHistory } from "./visible";
+import { dawnFor } from "./view";
+import { DOORWAY, HAZE, HORIZON_Y, groundMarks, scatter, shelfBoard, stoneMound, stoneShadow, stoneSide } from "./place";
 import type { DoorView, View } from "./view";
+
+const n=(v:number)=>String(Math.round(v*100)/100);
+const HORIZON=HORIZON_Y,STAR_SEED=4417;
+const hills = (base:number,amp:number,seed:number):string=>{
+ let d=`M-2200 ${HORIZON+6}`;
+ for(let x=-2200;x<=2800;x+=70)d+=` L${x} ${n(base-amp*(.5+.5*Math.sin(x*.0113+seed)*Math.cos(x*.0041+seed*2)+.25*Math.sin(x*.027+seed*3)))}`;
+ return d+` L2800 ${HORIZON+6} Z`;
+};
+const stoneArch = (r: Rect, ox = 0, oy = 0) => `M${n(r.x + ox)} ${n(r.y + r.h + oy)} V${n(r.y + 44 + oy)} A44 44 0 0 1 ${n(r.x + 44 + ox)} ${n(r.y + oy)} H${n(r.x + r.w - 44 + ox)} A44 44 0 0 1 ${n(r.x + r.w + ox)} ${n(r.y + 44 + oy)} V${n(r.y + r.h + oy)} Z`;
+/** Builds only numeric SVG geometry; user text is always handled by the existing textContent calls. */
+export function placeSvg(plan:ViewPlan,doc:Document):SVGSVGElement {
+ const attrs=(el:Element,values:Readonly<Record<string,string|number>>)=>{for(const [key,value] of Object.entries(values))el.setAttribute(key,String(value));};
+ const add=(parent:Element,tag:string,values:Readonly<Record<string,string|number>>={})=>{const el=doc.createElementNS(SVG_NS,tag);attrs(el,values);parent.append(el);return el;};
+ const path=(parent:Element,cls:string,d:string)=>add(parent,"path",{class:cls,d});
+ const rect=(parent:Element,cls:string,x:number,y:number,width:number,height:number,extra:Readonly<Record<string,string|number>>={})=>add(parent,"rect",{...(cls?{class:cls}:{}),x,y,width,height,...extra});
+ const svg=doc.createElementNS(SVG_NS,"svg");attrs(svg,{class:"place",viewBox:"0 0 600 1000",preserveAspectRatio:"xMidYMid meet","aria-hidden":"true",focusable:"false"});
+ const defs=add(svg,"defs");rect(add(defs,"clipPath",{id:"cw-place-clip"}),"",-2200,-600,5000,1500);
+ const grad=(tag:string,id:string,values:Readonly<Record<string,string|number>>,stops:Readonly<Record<string,string|number>>[])=>{const g=add(defs,tag,{id,...values});for(const stop of stops)add(g,"stop",stop);};
+ grad("linearGradient","cw-place-sky",{gradientUnits:"userSpaceOnUse",x1:0,y1:-600,x2:0,y2:HORIZON+HAZE},[{class:"ps-0",offset:0},{class:"ps-1",offset:.7},{class:"ps-2",offset:1}]);
+ grad("linearGradient","cw-place-ground",{gradientUnits:"userSpaceOnUse",x1:0,y1:HORIZON,x2:0,y2:900},[{class:"pg-h",offset:0,"stop-opacity":0},{class:"pg-0",offset:HAZE/(900-HORIZON)},{class:"pg-1",offset:1}]);
+ grad("linearGradient","cw-haze-ramp",{gradientUnits:"userSpaceOnUse",x1:0,y1:HORIZON,x2:0,y2:HORIZON+HAZE},[{offset:0,"stop-color":"#000"},{offset:1,"stop-color":"#fff"}]);
+ grad("radialGradient","cw-doorway-hole",{},[{offset:0,"stop-color":"#000","stop-opacity":.95},{offset:.6,"stop-color":"#000","stop-opacity":.7},{offset:1,"stop-color":"#000","stop-opacity":0}]);
+ const mask=add(defs,"mask",{id:"cw-place-mask",maskUnits:"userSpaceOnUse",x:-2200,y:HORIZON,width:5000,height:900-HORIZON});
+ rect(mask,"",-2200,HORIZON,5000,HAZE,{fill:"url(#cw-haze-ramp)"});rect(mask,"",-2200,HORIZON+HAZE,5000,900-HORIZON-HAZE,{fill:"#fff"});
+ add(mask,"circle",{class:"doorway",cx:DOORWAY.cx,cy:DOORWAY.cy,r:DOORWAY.r,fill:"url(#cw-doorway-hole)",transform:`translate(${DOORWAY.cx} ${DOORWAY.cy}) scale(${DOORWAY.sx} 1) translate(${-DOORWAY.cx} ${-DOORWAY.cy})`});
+ const content=add(svg,"g",{"clip-path":"url(#cw-place-clip)"});rect(content,"p-sky",-2200,-600,5000,HORIZON+HAZE+600,{fill:"url(#cw-place-sky)"});
+ const stars=add(content,"g",{class:"p-stars"});
+ scatter(STAR_SEED,{x0:-1100,x1:1700,y0:-420,y1:HORIZON-40},30,70,[]).forEach(([x,y],i)=>add(stars,"circle",{cx:n(x),cy:n(y),r:i%3===0?1.1:.8}));
+ path(content,"p-hill-far",hills(HORIZON-30,46,2.2));path(content,"p-hill-mid",hills(HORIZON-16,34,1.3));
+ const tower=add(content,"g",{class:"p-tower"});path(tower,"",`M681 ${HORIZON} L688 ${HORIZON-122} H712 L719 ${HORIZON} Z`);
+ rect(tower,"",683,HORIZON-130,34,8);rect(tower,"",691,HORIZON-154,18,24);path(tower,"",`M689 ${HORIZON-154} Q700 ${HORIZON-170} 711 ${HORIZON-154} Z`);rect(tower,"",699,HORIZON-176,2,8);
+ path(content,"p-hill-near",hills(HORIZON-4,26,4.1));
+ const setting=add(content,"g",{class:"p-setting"});rect(setting,"p-ground",-2200,HORIZON,5000,900-HORIZON,{fill:"url(#cw-place-ground)"});
+ const line=(y:number):Rect=>({x:14,y,w:572,h:TEXT_LINE_H}),avoid:Rect[]=[line(LABEL_Y.stones),line(LABEL_Y.shelf)];
+ if(plan.stonesCount!==null)avoid.push(line(COUNT_LINE_Y.stones));if(plan.daysCount!==null)avoid.push(line(COUNT_LINE_Y.shelf));
+ if(!plan.stones.length)avoid.push(line(EMPTY_LINE_Y.stones));if(!plan.rows.length)avoid.push(line(EMPTY_LINE_Y.shelf));
+ for(const r of plan.rows){avoid.push(r.labelRect);if(r.more)avoid.push(r.more.rect);}
+ const {pebbles,blades}=groundMarks(7741,avoid);
+ path(setting,"e-pebble",pebbles.map(([x,y])=>`M${n(x)} ${n(y)}h0`).join(""));
+ path(setting,"e-blade",blades.map(([x,y],i)=>`M${n(x)} ${n(y)}l${i%2?1.4:-1.4} -6M${n(x+3.5)} ${n(y+.6)}l${i%3?-.8:1.2} -5`).join(""));
+ for(const {rect:r} of plan.stones){
+  path(setting,"p-shadow",`M${stoneShadow(r).map(p=>p.map(n).join(" ")).join(" L")} Z`);
+  const mound=stoneMound(r);path(setting,"p-mound",`M${mound[0]?.map(n).join(" ")} Q${mound.slice(1,3).map(p=>p.map(n).join(" ")).join(" ")} Q${mound.slice(3).map(p=>p.map(n).join(" ")).join(" ")} Z`);
+  path(setting,"p-side",stoneSide(r).map(q=>stoneArch(q)).join(" "));
+  const f=r.y+r.h;path(setting,"p-tuft",`M${r.x-12} ${f+3} l-1 -6 M${r.x-6} ${f+4} l2 -7 M${r.x+r.w+4} ${f+4} l-1 -6 M${r.x+r.w+10} ${f+3} l2 -7`);
+ }
+ plan.rows.forEach((row,i)=>{
+  const y=shelfRowY(i),board=shelfBoard(y,row.stubs.length),x=board.x,w=board.w,g=add(setting,"g",{class:"p-board"});
+  rect(g,"b-top",x,board.y,w,board.h,{rx:1.5});rect(g,"b-front",x,y+75,w,6,{rx:1});
+  path(g,"b-grain",`M${x+8} ${y+72} H${n(x+w*.4)} M${n(x+w*.5)} ${y+74} H${x+w-8}`);
+  rect(g,"b-iron",x+6,y+81,5,10);rect(g,"b-iron",x+w-11,y+81,5,10);
+ });
+ rect(content,"p-night",-2200,HORIZON,5000,900-HORIZON,{mask:"url(#cw-place-mask)"});return svg;
+}
 
 export interface GraveyardHooks {
   /** The engine phase now. */
@@ -76,8 +132,6 @@ export interface Graveyard {
   focusDoor(): void;
 }
 
-// The backdrop: the opaque core and its fading margin above and to the sides (D18).
-const BACKDROP_RECT: Rect = { x: PANEL_RECT.x - PANEL_FADE, y: PANEL_RECT.y - PANEL_FADE, w: PANEL_RECT.w + 2 * PANEL_FADE, h: PANEL_RECT.h + PANEL_FADE };
 const LINE = { x: 20, w: 560, h: TEXT_LINE_H } as const;
 
 const IDS = {
@@ -148,8 +202,6 @@ export function createGraveyard(root: HTMLElement, hooks: GraveyardHooks): Grave
 
   // The wrapper has no box of its own: its children sit at room units relative to the section (L6).
   const wrapper = make(doc, "div", { class: "view" });
-  const panel = make(doc, "div", { class: "panel", "aria-hidden": "true" });
-  place(panel, BACKDROP_RECT, true);
   // The view's heading names it for a screen reader (R7.9) and is not seen: the visible "Graveyard" label would repeat it (D19).
   const title = make(doc, "h2", { id: IDS.title, class: "title" }, STRINGS.graveyard.title);
 
@@ -175,7 +227,7 @@ export function createGraveyard(root: HTMLElement, hooks: GraveyardHooks): Grave
   arrow.append(arrowShape);
   back.append(arrow);
 
-  wrapper.append(panel, title, stonesGroup, shelfGroup, card);
+  wrapper.append(title, stonesGroup, shelfGroup, card);
   section.append(shutDoor, doorButton, wrapper, back);
   root.append(section);
   wrapper.hidden = true;
@@ -424,6 +476,7 @@ export function createGraveyard(root: HTMLElement, hooks: GraveyardHooks): Grave
       writeVar("--u", `${stage.scale}px`);
       writeVar("--ox", `${stage.ox}px`);
       writeVar("--oy", `${stage.oy}px`);
+      writeVar("--dawn",String(dawnFor({phase:hooks.phase()})));
 
       setAttr(section, "data-view", view);
       setHidden(shutDoor, !input.door.shut);
@@ -433,9 +486,13 @@ export function createGraveyard(root: HTMLElement, hooks: GraveyardHooks): Grave
         if (previous !== "graveyard" || builtHistory !== input.history || builtDayKeyOf !== input.dayKeyOf) {
           builtHistory = input.history;
           builtDayKeyOf = input.dayKeyOf;
-          rebuild(planView(visibleHistory(input.history, { ...DEFAULT_LIMITS, dayKeyOf: input.dayKeyOf })));
+          const next=planView(visibleHistory(input.history,{...DEFAULT_LIMITS,dayKeyOf:input.dayKeyOf}));
+          rebuild(next);
+          section.querySelector(":scope > svg.place")?.remove();
+          section.prepend(placeSvg(next,doc));
         }
       } else if (previous === "graveyard") {
+        section.querySelector(":scope > svg.place")?.remove();
         cardState = NO_CARD;
         guard = NO_GESTURE;
         renderCard();

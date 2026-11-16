@@ -1,3 +1,4 @@
+import { STRINGS } from "../strings";
 import { describe, expect, it } from "vitest";
 import { INITIAL_STATE, step } from "../engine";
 import type { State } from "../engine";
@@ -217,4 +218,12 @@ describe("the graveyard view (ghosts-and-graveyard R3.13, R6.16)", () => {
     expect(viewOf(INITIAL_STATE, ui0, DEFAULT_SETTINGS, T0, placement, FINE)).toEqual(viewOf(INITIAL_STATE, ui0, DEFAULT_SETTINGS, T0, placement, FINE, "room"));
     expect(view(INITIAL_STATE, T0).tabOrder).toEqual(["chooser", "intent", "light", "settings"]);
   });
+});
+it("room-art: paused uses the Resume rectangle with its right anchor fixed",()=>{
+ const paused=step(lit(),{type:"pause"},T0);
+ const v=viewOf(paused,ui0,DEFAULT_SETTINGS,T0,wide,FINE);
+ expect(v.placement.zoneControls.pause).toEqual(wide.zoneControls.resume);
+});
+it("room-art: zone labels stay inside the recorded character bounds",()=>{
+ for(const [label,max] of [[STRINGS.pause.pause,6],[STRINGS.pause.resume,7],[STRINGS.snuff.open,14],[STRINGS.settings.open,8]] as const)expect(Array.from(label).length,label).toBeLessThanOrEqual(max);
 });

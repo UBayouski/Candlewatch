@@ -278,3 +278,26 @@ describe("review changes (task 23)", () => {
     expect(rule(".st-ember-out")).toContain("stop-opacity: 0");
   });
 });
+
+describe("room-art: static setting and light rules",()=>{
+ it("has exactly the thirty scene-owned tokens within the room luminance stops",()=>{
+  const tokens=declarations.filter(d=>d.name.startsWith("--set-"));expect(tokens).toHaveLength(30);
+  for(const t of tokens){expect(luminance(t.value),t.name).toBeGreaterThanOrEqual(luminance(palette("--room-bg-darkest")));expect(luminance(t.value),t.name).toBeLessThanOrEqual(luminance(palette("--room-bg-brightest")));}
+ });
+ it("keeps setting descendants static and free of model variables",()=>{
+  const model=readFileSync(new URL("./render.ts",import.meta.url),"utf8").match(/"--[\w-]+"/g)??[];
+  for(const b of blocks.filter(b=>b.selectors.some(s=>/\.(?:setting|s-[\w-]+|t-[\w-]+|h-[\w-]+|f-[\w-]+|w-[\w-]+|st-veil|st-table-[\w-]+)(?=[\s.:#>{,]|$)/.test(s)))){
+   expect(b.body,b.selectors.join(",")).not.toMatch(/(?:animation|transition)\s*:/);
+   for(const v of model)expect(b.body,b.selectors.join(",")).not.toContain(`var(${v.slice(1,-1)}`);
+  }
+ });
+ it("registers and eases the window level, with the reduced-motion override",()=>{
+  expect(CSS).toMatch(/@property --wl-k\s*\{[^}]*syntax: "<number>";[^}]*inherits: true;[^}]*initial-value: 0/);
+  expect(rule('.candle-scene[data-settled="true"][data-ease="true"]')).toContain("transition: --wl-k 3s ease");
+  expect(CSS).toMatch(/@media \(prefers-reduced-motion: reduce\)[\s\S]*transition: none !important/);
+ });
+ it("hides both pool holes in idle and drops setting/tint in forced colours",()=>{
+  for(const cls of ["pool","pool-tint"])expect(rule(`.candle-scene[data-phase="idle"] .${cls}`)).toContain("display: none");
+  expect(CSS).toMatch(/@media \(forced-colors: active\)[\s\S]*\.setting, \.warm-tint, \.door-wood, \.stars \{ display: none/);
+ });
+});

@@ -1,8 +1,11 @@
+import { readFileSync } from "node:fs";
+import { litColour, settingColour, poolRadiusDrawn } from "./light";
+import type { Colour } from "./light";
 import { isDeepStrictEqual } from "node:util";
 import * as fc from "fast-check";
 import { expect, it } from "vitest";
 import { PROP_PARAMS } from "../engine/test-kit";
-import { PANES, STARS, WALL, wallBlocks, wallCoursesB, wallHeights, starOpacity } from "./setting";
+import { SETTING_TOKENS, PANES, STARS, WALL, wallBlocks, wallCoursesB, wallHeights, starOpacity } from "./setting";
 
 /** Only walk a differing value on failure, keeping the diagnostic short and precise. */
 function firstDifference(a: unknown, b: unknown, name: string): string {
@@ -82,4 +85,25 @@ it("Feature: room-art, Property 14: Wall B's generator keeps its invariants",()=
   });
   expect(violations).toEqual([]);
  }),{...PROP_PARAMS,examples:[[WALL.seed]]});
+});
+
+// Every token, including copies across folder boundaries, is checked from the shipped stylesheets.
+it("Feature: room-art, Property 8: Every setting colour stays between the room stops",()=>{
+ const sheets=["scene/scene.css","ghosts/ghosts.css","graveyard/graveyard.css"].map(p=>readFileSync(new URL("../"+p,import.meta.url),"utf8"));
+ const tokens=sheets.flatMap(css=>[...css.matchAll(/(--set-[\w-]+):\s*(#[0-9a-fA-F]{6})\b/g)].map(m=>[m[1]??"",m[2]??""] as const));
+ const rgb=(s:string):Colour=>[1,3,5].map(i=>parseInt(s.slice(i,i+2),16)) as unknown as Colour;
+ const lum=(c:Colour)=>{const v=c.map(n=>n/255<=.04045?n/255/12.92:((n/255+.055)/1.055)**2.4);return (v[0]??0)*.2126+(v[1]??0)*.7152+(v[2]??0)*.0722;};
+ const lo=lum(rgb("#05070d")),hi=lum(rgb("#566683"));
+ fc.assert(fc.property(fc.double({min:-2200,max:2800,noNaN:true}),fc.double({min:-600,max:1000,noNaN:true}),fc.double({min:400,max:820,noNaN:true}),fc.double({min:0,max:1,noNaN:true}),fc.double({min:0,max:1,noNaN:true}),fc.constantFrom("idle","lit","paused","burned-out","snuffed"),fc.boolean(),(x,y,f,r,dawn,phase,isWall)=>{
+  const errors:string[]=[],names=new Set(tokens.map(([n])=>n)),rd=poolRadiusDrawn(phase,r);
+  for(const name of SETTING_TOKENS)if(!names.has(name))errors.push(`missing ${name}`);
+  for(const [name,hex] of tokens){
+   if(!SETTING_TOKENS.some(t=>t===name))errors.push(`unexpected ${name}`);
+   const colour=rgb(hex);
+   for(const [kind,c] of [["token",colour],["veiled/tinted",settingColour(colour,isWall,x,y,f,rd)],["lit",litColour(colour,isWall,x,y,f,rd,r,dawn)]] as const){
+    const L=lum(c);if(!(L>=lo-1e-14 && L<=hi+1e-14))errors.push(`${name} ${kind} luminance ${L} outside ${lo}..${hi}`);
+   }
+  }
+  expect(errors).toEqual([]);
+ }),PROP_PARAMS);
 });

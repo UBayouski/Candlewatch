@@ -90,3 +90,13 @@
   transition: none;
   animation: none;
 }
+
+/* room-art: identity-based shapes, internal glow and identical eyes by variant. */
+.ghost-layer { --ghost-eye: #0b1020; }
+.ghost-layer .eye { fill: var(--ghost-eye); }
+.ghost-layer .inner-glow { fill: url(#cw-ghost-glow); }
+@media (forced-colors: active) {
+  .ghost-layer .body, .ghost-layer .eye { stroke: CanvasText; }
+  .ghost-layer .eye { fill: Canvas; }
+  .ghost-layer .inner-glow { display: none; }
+}
