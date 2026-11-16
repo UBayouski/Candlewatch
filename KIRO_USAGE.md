@@ -890,9 +890,198 @@ Surface: Kiro CLI. The review of the finished scene ran with the costume-reviewe
 - **E7:** All seven sizes passed for large and empty histories, with at least eight backing samples per text line and the unchanged 4.5:1 floor. Worst large-history contrast was 7.347 to 7.374; worst empty-history contrast 6.961 to 7.038, against the Prototype's subtle-text estimate about 4.7. The computed Stone edge against pixels of its drawn ground reached a minimum 3.208:1 (floor 3). The Doorway radius 760-to-1600 mutation survived the text floor, so E7 was strengthened with the approved 760-unit geometry; it then failed and was reverted, with `place.ts` diff clean. The Q66 forced-colours mutation was caught and reverted. The complete Place spec passed 17/17 tests.
 - **Checkpoint:** Tasks 19 to 26 are ticked. One-command `npm run verify` passed check, 121 unit files / 1,572 tests, build, and 518 e2e passed / 9 skipped in 2.2 minutes. No timeout. E13 passed in its opt-in run and remains skipped by default. Idle joint 1.127488 (Prototype 1.127; floor 1.10), dawn joint 1.059564 (Prototype 1.060; floor 1.04), and edge patch 11 (Prototype 11; floor 8) remain the thinnest readings. Built JS+CSS is 119,760 bytes against the 120,000 cap. Q66's graveyard CSS selector is the only retained shipped-source change; Q73, Q76 and Q77 made none. No screenshots were retaken, no costume review was done, and no commit, push, deploy or task 27 work was done. Batch 4 ends here.
 
+## 2026-11-16 - room-art batch 5 costume-reviewer first pass
+
+- **Surface:** Kiro CLI. The owner ran the costume-reviewer agent in a separate logged-in Kiro CLI session. The text below is the owner's verbatim paste of its first pass. Verdict CHANGES NEEDED; Q80 accepts F2 and F3 and requests a token-only F1 fix. The first trial did not reach the target, so task 30.1 remains open.
+- **Q79 and task 29.2:** D11 and tech.md record 390 measured maximum-history elements (scene 184, ghosts 78, Place 128) against 415, alongside the Prototype's 375; built JS+CSS 119,760 bytes against 120,000 and GPU frame median/p95 16.7/16.8 ms over 600 frames. Structure and README list the built room-art files and 62 screenshots.
+- **Q80 trial and stop:** The token-only rim `#5f636d` to `#62656d` and inside `#07090e` to `#05070d` read 1.404 ring/inside at phone, short of 1.50. Phone ring/front, lip/under and lip/top were 1.665/1.291/1.089; desktop ratios were 1.626/1.739/1.559/1.361. A further test-only probe with seven in-range rim colours and the night-minimum inside peaked at 1.405. Trial art and test-floor changes were reverted; source/test diffs are clean. No screenshot retake or full verify followed because F1 is unresolved. Tasks 30 and 31 stay unticked pending an owner decision and a second real reviewer pass.
+- **Q81 amendment:** The owner accepted F1 as drawn. The original dish tokens and 1.35 phone E15 floor remain; the build matches the approved Prototype, and the task 28.2 3x recognisability crop passed. D13 retains a thicker compact dish ring as a possible later improvement. The earlier Q80 stop above is historical; only the second reviewer pass remains for task 30.1.
+- **Q81 verification:** One `npm run verify` command passed check, 121 unit files / 1,572 tests, build, and 521 e2e passed / 9 skipped in 2.8 minutes. No Q81 source, test or screenshot change. Task 30.1 remains unticked for the second reviewer pass; task 31 was not started.
+
+### Raw costume-reviewer output, first pass (verbatim)
+
+• Verdict: CHANGES NEEDED. Two findings must be fixed or explicitly waived (F1, F2). The rest are advisory.
+
+Scope of what I read. I read room.ts, scene.css, setting.ts, light.ts, ghosts.css, layer.ts, silhouette.ts, graveyard.css and graveyard/place.ts. I did not read backdrop.ts, ghosts/place.ts, view-dom.ts or ui.css, and I did not read requirements.md or design D11/D13.
+I viewed 10 of the 62 screenshots: idle phone and desktop, lit-half phone, wide and 4k, snuffed desktop, ghosts-g-plus-9 desktop, graveyard small phone and large wide. I viewed two Prototype pictures: proto-base-crop-phone.png and proto-graveyard-small-phone.png. I
+have no tool to run anything. The tool output has no line numbers, so I cite files by selector or symbol. Contrast ratios are my hand calculation from the hex values, at token level (before lighting). Pool and window light can only darken a token, so this is the
+brightest case for the setting. The build figures you supplied are quoted, not measured by me.
+
+Rule 1: state and setting
+- (a) Moving and changing elements. Every element I could trace shows one piece of state.
+  - Flame: session state.
+  - Pool: progress.
+  - Wax: time left.
+  - Ghosts: distractions. Variant is index mod 3 and carries no state, and eyes are identical per variant.
+  - Stars fade with --dawn, which is allowed as Window_Sky.
+  - The Place's hills and lighthouse are unlit sky Surface, allowed only there.
+
+- (b) Still elements inside .setting.
+  - Wall, veil, table, holder, frame and Door wood are all inside .setting in room.ts (settingGroup).
+  - .warm-tint is outside .setting. It is the pool's own mask, so it adds no light.
+  - The Place's Doorway_Light is a separate light source. It is allowed by D9 and noted for the record. The right part of the graveyard ground is unlit, which is accepted as F18.
+
+- (c) Impostors.
+  - The wall accent tones --set-stone-3 and --set-stone-4 are warm (#58607a, #5e5c6e). They read as faint brown blocks in the 1920 and 4k pictures and are not mistaken for flame or ember.
+  - The Door's latch plate is iron-dark. The plank browns (#7a5a38, #4a3724) are far from flame amber #ff9b2f.
+
+- (d) Ornaments. I found no bats, pumpkins, cobwebs or skulls. The lighthouse appears only in the Place.
+- F1 (blocking). The dish and the table's lit edge are not clearly recognisable at 360 by 640.
+  - Files: scene.css (.t-lip, .h-rim, .h-in, .h-lip) and room.ts (settingGroup).
+  - At 1x in candle-idle-phone.png and candle-lit-half-phone.png, the table is a thin brown line about 2 px high. The dish is a thin dark ellipse under the candle. I would not name either object without the spec.
+  - The Prototype crop proto-base-crop-phone.png is rendered at 3x. There the lip and the pewter ring are plain.
+  - Your 360 figures are dish ring/inside 1.387 and lip/top 1.089. The design gave 1.50 and 1.09 at lit half. Idle is lower, so the dish ring is the weak one.
+  - Fix: raise the dish ring against its inside, for example a lighter --set-dish-rim or a darker --set-dish-in. Both are within the token ceiling, since --set-dish-in is already near night. Alternatively thicken the lip in the compact layout. Then retake the phone
+screenshots and judge them at 1x.
+
+- F2 (advisory). Door bar. The shut Door's bar (graveyard.css .door-shut::after, and the barred Door in the room screenshots) reads as a flat cream strip across the wood. It is state-bearing, so it is allowed. At 4k it looks like a placeholder. Add a one-unit darker
+lower edge or iron end caps.
+
+Rule 2: reduced motion
+- scene.css ends with a rule that sets animation: none !important and transition: none !important on .candle-scene and its children. That includes the --wl-k ease on the element itself.
+- ghosts.css begins with the same rule for .ghost-layer, and layer.ts drops fading ghosts when reduced.
+- Setting colours do not depend on motion, so every Still_Setting is identical with reduced motion.
+- No state is shown by motion alone. Size, colour and text carry it.
+- I did not read render.ts for flicker. The -reduced screenshots were not viewed.
+
+Rule 3: contrast (hand-computed)
+
+┌────────────────────────────────────────────────────────────┬───────────────┬────────────┐
+│ Pair                                                       │ Ratio         │ Result     │
+├────────────────────────────────────────────────────────────┼───────────────┼────────────┤
+│ Time text ivory #efe6cf on zone rest #080b12               │ 15.8          │ pass       │
+├────────────────────────────────────────────────────────────┼───────────────┼────────────┤
+│ Time text on zone dawn #4b4358                             │ 7.5           │ pass       │
+├────────────────────────────────────────────────────────────┼───────────────┼────────────┤
+│ Ghost eyes #0b1020 on body over darkest room, glow ignored │ 4.3           │ pass (3:1) │
+├────────────────────────────────────────────────────────────┼───────────────┼────────────┤
+│ Ghost eyes on body over brightest wall                     │ 7.5           │ pass       │
+├────────────────────────────────────────────────────────────┼───────────────┼────────────┤
+│ Door border ivory on --set-plank-a                         │ 5.3           │ pass       │
+├────────────────────────────────────────────────────────────┼───────────────┼────────────┤
+│ Door bar #cfc2a2 on plank-a                                │ 3.55          │ pass       │
+├────────────────────────────────────────────────────────────┼───────────────┼────────────┤
+│ Door handle #e6c27a on plank-a                             │ 3.7           │ pass       │
+├────────────────────────────────────────────────────────────┼───────────────┼────────────┤
+│ Stub wax shade on --set-board-top                          │ 3.47          │ pass       │
+├────────────────────────────────────────────────────────────┼───────────────┼────────────┤
+│ Subtle text #cfc2a2 on brightest ground --set-earth-a      │ 4.76          │ pass       │
+├────────────────────────────────────────────────────────────┼───────────────┼────────────┤
+│ Stone edge on drawn ground                                 │ 3.208 (yours) │ pass       │
+├────────────────────────────────────────────────────────────┼───────────────┼────────────┤
+│ Stone edge #8a93a6 on stone side face #566683, token level │ 1.88          │ unverified │
+└────────────────────────────────────────────────────────────┴───────────────┴────────────┘
+
+- F3 (blocking unless waived). Stone edge against its side face.
+    - Files: graveyard.css (--g-stone-edge, .p-side using --set-stone-side: #566683) and place.ts (stoneSide).
+    - The side face is drawn directly beside the arch edge, brightest near the Doorway_Light. The floor you cite is edge against ground only.
+    - I cannot tell from the code whether contrast.test.ts covers the side face. If it does not, add the pair or darken --set-stone-side. The picture reads fine because the side faces are lit dark, so this may only need a test.
+
+  - Mound text. --set-mound: #745e4c would give subtle text only about 3.4:1. By design no text sits on a mound (the mounds end 12 units below the foot, not 17). I did not read view-dom.ts or the layout, so I cannot confirm that for the count line. Your measured text
+lines of 4.5 or more cover it.
+  - Other pairs (Text_Backing, Door border and bar on planks as drawn): cannot be determined from the code beyond the above.
+
+  Rule 4: does it read
+
+  The lit room reads as a candlelit stone room at all sizes. The graveyard reads as outdoors. The small phone graveyard matches the Prototype closely.
+
+  Three weakest elements
+  1. The dish and table base at phone size (F1). It is a thin line and a dark ellipse. Raise the rim contrast and the lip height at the compact layout.
+  2. The graveyard ground. In graveyard-large-wide.png it is a flat brown field with near-invisible pebbles and grass. The right third goes black (F18). The flat grey wedges at the right end of each stone row read as leftover shapes, not cast shadows (stoneShadow in
+place.ts, .p-shadow). Fixes: lower the shadow opacity or shorten it, add a subtle second light falloff, or raise mark contrast slightly. Stay under the token ceiling.
+  3. The wall's rows. Several courses read as roof shingles because the staircase bottoms are shallow and the dark joints are uniform. Warm accent blocks are scattered across the whole wall. Fix: more varied joint width in the highlights, and keep the accent stones out
+of the pool's centre.
+
+  I considered the Door bar as a candidate (F2). It is a placeholder-like strip but small.
+
+  Rule 5: edges, idle, snuffed
+  - The setting reaches both edges at 360 and 3840. The 4k picture shows wall to the edge fading by the veil. I saw no empty band.
+  - Idle shows a room, not black.
+  - Snuffed (candle-snuffed-desktop.png) is the darkest picture. It differs from idle by more than brightness: smoke wisp, wax stub, a dark Door with a handle, and a dimmer window.
+
+  The three explicit checks
+  1. Idle joint ratio at 360: 1.127488 against a floor of 1.10, a margin of 0.027. It equals the Prototype's 1.127. Pass, but it is the thinnest margin in the wall. The dawn ratio of 1.0596 against 1.04 is also thin.
+  2. Vertical banding at 2560 and 3840: in candle-lit-half-4k.png I saw no banding. There is no 2560 screenshot, so I rely on your E14 and residual (2.987 percent against a 6 percent limit) and did not confirm 2560 by eye.
+  3. Dish and table lit edge at 360 by 640: not clearly recognisable at 1x (F1). I viewed it only in the idle and lit-half phone screenshots, not in proto-base-crop-desktop.png or a 3x crop of the build.
+
+  Other checks
+  - No trademark or real product name found in the files I read. No "Pomodoro" found.
+  - Screenshots: the 62 should include every state in the scene. Any change for F1, F2 or F3 alters the picture, so retake candle-* (all phone, desktop and wide variants), ghosts-* and graveyard-* before closing 30.1. State which were retaken.
+
+## 2026-11-16 - room-art batch 5 costume-reviewer second pass
+
+- **Surface:** Kiro CLI. The owner ran the same read-only costume-reviewer in a separate logged-in Kiro CLI session. Its second-pass verdict is PASS. The raw output below is the owner's verbatim paste. Task 30.1 is complete; task 31 follows.
+
+### Raw costume-reviewer output, second pass (verbatim)
+
+• Verdict: PASS
+
+  I found nothing new that needs a change. I did not run anything, and the contrast and geometry figures below are the ones you supplied. F1, F2, F3 and weakest elements 2 and 3 are treated as decided under D13 and Q80/Q81.
+
+  Files and pictures read this pass
+  - src/scene/backdrop.ts, src/ghosts/place.ts, src/graveyard/view-dom.ts, src/ui/ui.css and src/scene/render.ts.
+  - design.md D11, D12 and D13.
+  - A grep of the reduced-motion rules in scene.css, ghosts.css and graveyard.css, plus model.ts and flicker.ts.
+  - candle-idle-phone, candle-lit-half-phone, proto-base-crop-phone, and the reduced-motion shots for last-minute, snuffed and paused.
+
+  Not read or not seen
+  - I did not read requirements.md R10.5 or the Resolved Questions in full. A search for "Q79/Q80/Q81" found no matching entry, so I am relying on the D13 text for their outcomes.
+  - I did not see the 2560 wide picture, so the "no vertical banding at 2560" check rests on your E14 figure, not on my eyes.
+  - I did not open the other reduced-motion shots (start, half, idle, burned-out), the graveyard pictures or the ghost pictures.
+
+  Rule 1 – state and setting
+  - (a) Candle, flame, pool and ghosts each carry one state. The reduced-motion last-minute shot shows a small gutter flame with a short pool, paused shows a blue flame and the "Resume" button, and snuffed shows smoke with a stub. Every table state has a visible
+element.
+  - (b) Wall, veil, table, dish, frame and Door wood are still, and the screenshots show the wall lit only by the pool and the window. The stars are Window_Sky.
+  - view-dom.ts placeSvg: the hills and the lighthouse (.p-tower) are unlit, with no lamp or beam, so they count as sky.
+  - (c) Impostors: in the reduced-motion shots the warm accent stones (#5e5c6e) read as brownish-mauve wall blocks. None is mistaken for the ember or the flame.
+  - (d) No ornament found. A search of src/** for "Pomodoro" found it only in a test that forbids it.
+
+  Rule 2 – reduced motion
+  - render.ts has no motion logic. The model decides it: model.ts uses NO_FLICKER and sets animateDrips, animateSmoke and animateEase to false.
+  - scene.css ends with a reduced-motion block for .candle-scene *, and ghosts.css and ui.css open with theirs. ghosts.css also has a data-reduced rule for the user setting.
+  - The graveyard root is inside #ui, so the ui.css block covers it. graveyard.css also says nothing there animates.
+  - The Window_Light's 3 s ease (@property --wl-k) is switched off by the same rule. The reduced-motion shots still show every state through size, colour and text.
+
+  Rule 3 – contrast
+  - All pairs come from your figures: the joint ratios, the Stone edge on the drawn ground (3.208 against 3), the worst graveyard text line (4.5 or more) and the dish ratios.
+  - ui.css tokens, as hand calculations: --ui-text #efe6cf on --ui-bg #1a130d is about 14:1, and --ui-text-subtle #cfc2a2 on the same fill is about 9.9:1, which matches the file's own 9.89 comment.
+  - The time text is ivory on the zone fill, 15.83:1 at rest and 7.53:1 at the dawn, per the design's measured figures. In the shots, 00:30, 25:00 and 15:00 sit on the near-black zone with no text over a lit area.
+  - I could not derive the Door bar, Stub wax or ghost eye pairs from the code I read. The design cites tests for them, and I did not check those tests.
+
+  Rule 4 – three weakest elements (reading only, no new finding)
+  1. The dish at 360 wide. In proto-base-crop-phone.png the ring is a thin line. This is F1, already accepted.
+  2. The Door at 360 wide is about 48 by 52 px, and its planks are hard to tell from the wall. The idle shot shows a small amber dot as the handle. This is only a note.
+  3. The wall faces are flat, one tone per block. This was accepted as weakest element 3.
+
+  Rule 5 – edges and states
+  - The wall runs to both edges in the 1280 and 360 shots, with no empty band. Idle shows a room and not black.
+  - Snuffed is the darkest state, and it differs from idle by more than brightness: smoke, a stub, no flame and a different status line.
+  - The idle joint ratio of 1.127 against 1.10, the dawn ratio of 1.0596 against 1.04 and the edge patch of 11 against 8 are your figures and all pass.
+  - The dish and the table's lit edge are recognisable in the 3x crop. In the 1x phone shot the dish reads only as a dark disc under the candle, which is F1 again.
+
+  Other checks and a reminder
+  - Reading the whole place.ts and backdrop.ts, I found no problem. view-dom.ts writes --dawn itself, as the design says, and all positions go through style.setProperty, so no inline style breaks the CSP.
+  - The 119 760 bytes (cap 120 000) and 390 elements (cap 415) are your figures. They leave a 240-byte margin, so any further visible change needs the byte budget re-checked.
+  - No trademark or real product name turned up in the files I read.
+  - I haven't seen a screenshot-retake note. Any later change to what a user sees needs the affected screenshots in docs/screenshots/ retaken.
+
 ### Q78 post-review correction (owner, 2026-11-16)
 
 - **Surface:** Kiro CLI.
 - **Finding:** Q77's pixel explanation was incomplete: `openView` focuses the first Stone and opens its card over the second row. The page (67,244) pink-purple pixel is the fringe of the card's own text; the “6 Nov” Stone date beneath it is not visible. No Place art change is needed.
 - **E7 correction:** Removed the assertion-free Q77 diagnostic test. Before hiding text leaves, test-only pointer events allow `document.elementFromPoint` to identify coverage at each ink centre without changing the picture. All seven large-history sizes skipped eight covered lines, including the “6 Nov” date; empty-history sizes skipped none. Every open-card line and at least one visible Stone date were measured at the unchanged 4.5 floor. The Place spec passed 16/16. A skip-everything mutation failed the visible Stone-date assertion and was reverted byte for byte. Q66 graveyard.css remains the sole retained shipped-source change.
 - **Checkpoint:** One-command `npm run verify` passed check, 121 unit files / 1,572 tests, build, and 517 e2e passed / 9 skipped in 2.2 minutes. Removing the assertion-free diagnostic accounts for one fewer e2e test. Tasks 19 to 26 remain ticked; task 27 is unstarted. No commit, push or deploy. Batch 4 ends here.
+
+## 2026-11-16 - room-art batch 5 completed checkpoint (tasks 27 to 31)
+
+- **Surface:** Kiro CLI.
+- **What was built:** Previous batches built the pure setting, light, backdrop, ghost placement and Place geometry modules; wired room, ghost, Door, Place and zone art; and added property, unit and e2e tests. Batch 5 added three opt-in screenshot cases, the canonical 62-name list and E11, retook and looked at all 62 PNGs, measured frames, updated D11, steering and README, and recorded two real costume-reviewer passes. Owner decisions through Q81 are in requirements and task Results. No shipped source, visible string, dependency or asset was added in batch 5.
+- **Properties and mutations:** P1 to P14 and P6b passed with the full 300-run PROP_PARAMS setting; no property failed in batch 5. Historical P14 failure: seed -932354939, fast-check seed -1449098941, path 267; fixed by Q57. All named mutations and faults were caught and reverted: 41 in batch 2, 18 in batch 3, the batch 4 E-test mutations and task 27's two E11 mutations. Initial survivors were strengthened in tests and rerun. No mutation remains in shipped source.
+- **Screenshots and three checks:** All 62 PNGs were retaken with CANDLEWATCH_SHOTS=1, then opened individually and compared with the 24 frozen Prototype pictures; the opt-in variable was cleared. Phone idle joint/board ratio 1.127488 against floor 1.10 (Prototype 1.127). Uncommitted 2560 by 1440 and 4K lit-half pictures showed smooth edge fades without visible banding; E14 matched Prototype within 0.5 percentage points, residual about 2.987% against 6. Device-scale-3 phone and desktop base crops showed pewter ring, dark inside and lit table lip; Q81 accepts the thin 1x phone ring. Extra pictures stayed outside the repo.
+- **Budgets:** Dawn joint 1.059564 against 1.04 (Prototype 1.060), edge patch 11 summed channels against 8 (Prototype 11). Built JS+CSS 119,760 bytes against 120,000; the earlier 113 to 119 KB estimate remained unverified until task 25.2. Maximum-history elements 390 (scene 184, ghosts 78, Place 128) against 415 by Q79; Prototype 375. GPU rasterisation over 600 lit frames at 1920 by 1080: median 16.7 ms against 17.5, p95 16.8 ms against 25; software 83.3/116.6 ms, recorded but not judged by Q62.
+- **Costume review:** First pass CHANGES NEEDED: F1 phone dish accepted by Q81 after eight in-range colour trials peaked at 1.405 and build/Prototype matched; a thicker compact ring is a possible later improvement. F2 Door bar and F3 Stone edge/side accepted by Q80 for their state role and the required drawn-ground contrast. Ground/F18 and flat wall courses accepted as approved pictures, with proposed improvements in D13. Second pass PASS, no new required change: phone dish and wall retain those outcomes; its small-Door note is accepted because the Door remains state-bearing, with contrast pinned. The reviewer did not inspect all 62 pictures or the temporary 2560 picture; task 28.2 and E14 cover those checks. Both raw outputs appear above, and D13 records every finding and outcome.
+- **Counts:** Batch 2 baseline after batch 1: 106 unit files / 1,502 tests, 350 e2e passed / 7 skipped. Batch 2 ended 117 / 1,549 and 350 / 7; batch 3 ended 121 / 1,572 and 351 / 7; batch 4 ended 121 / 1,572 and 517 / 9. Final one-command npm run verify passed check, 121 unit files / 1,572 tests, build and 521 e2e passed / 9 skipped in 3.3 minutes. E13 remains opt-in in the default run and passed separately in batch 4.
+- **Steering and scope:** structure.md lists the built modules, Prototype, frame script, e2e files and 62 screenshots; tech.md records bytes, elements and GPU frame figures; README lists room-art as built. The committed favicon.svg and three self-hosted UI fonts predate room-art; the owner confirmed the asset check means no new image or font. No new dependency, window.__ global or shipped style attribute was found. Protected engine, storage, distraction, main.ts, render.yaml, scene model and render.ts property table have no diff; package files are unchanged. F18 and approved Wall B remain as drawn. No Prototype, source art or screenshot changed after Q81. No commit, push or deploy.
+- **Next:** The owner should look at the room once on a laptop and a phone. Sound-and-title batch 4 (tasks 19 to 27) runs next after this spec; the two builds never run at the same time.
+- **Boundary:** Batch 5 ends here.

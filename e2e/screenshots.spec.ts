@@ -29,7 +29,7 @@ import {
   viewOf,
 } from "./graveyard-fixtures";
 import type { Fixture } from "./graveyard-fixtures";
-import { STATES, VIEWPORTS, openScene } from "./scene-fixtures";
+import { FIXTURES as SCENE_FIXTURES, STATES, VIEWPORTS, openScene } from "./scene-fixtures";
 
 test.describe.configure({ mode: "parallel" });
 
@@ -193,3 +193,50 @@ for (const shot of SHOTS) {
     }
   });
 }
+
+test.describe("room-art added screenshots", () => {
+  test.describe.configure({ mode: "serial" });
+  test.setTimeout(120_000);
+
+  for (const shot of [
+    { file: "candle-lit-half-wide.png", viewport: VIEWPORTS.wide },
+    { file: "candle-lit-half-4k.png", viewport: { width: 3840, height: 2160 } },
+  ]) {
+    test(shot.file, async ({ browser }, testInfo) => {
+      const target = OPT_IN ? join(DIR, shot.file) : testInfo.outputPath(shot.file);
+      if (OPT_IN) mkdirSync(DIR, { recursive: true });
+      const scene = await openScene(browser, SCENE_FIXTURES.litHalf, { viewport: shot.viewport });
+      try {
+        const { page } = scene;
+        await fontsLoaded(page);
+        await page.mouse.move(1, 1);
+        await expect(page.locator("#ui button:hover, #ui input:hover")).toHaveCount(0);
+        await page.screenshot({ path: target, animations: "disabled" });
+        const fonts = await platformFonts(page, "#time");
+        expect(fonts.length).toBeGreaterThan(0);
+        for (const font of fonts) expect(font).toMatchObject({ family: expect.stringMatching(/^Cormorant Garamond/), custom: true });
+        const figures = judgeFigures(await readFigures(page, "#time"));
+        expect(figures.lining).toBe(true);
+        console.log(`SHOT ${shot.file} | text ${JSON.stringify((await page.locator("#time").textContent())?.trim())} | lining ${figures.lining}`);
+      } finally { await scene.close(); }
+    });
+  }
+
+  test("graveyard-large-wide.png", async ({ browser }, testInfo) => {
+    const file = "graveyard-large-wide.png";
+    const target = OPT_IN ? join(DIR, file) : testInfo.outputPath(file);
+    if (OPT_IN) mkdirSync(DIR, { recursive: true });
+    const app = await openGraveyardApp(browser, { fixture: largeFixture, viewport: VIEWPORTS.wide });
+    try {
+      const { page } = app;
+      await plainView(page);
+      await fontsLoaded(page);
+      await page.mouse.move(1, 1);
+      expect(await viewOf(page)).toBe("graveyard");
+      expect(await page.locator("#graveyard-card").isVisible()).toBe(false);
+      await page.screenshot({ path: target, animations: "disabled" });
+      console.log(`SHOT ${file} | view graveyard | ghosts ${(await readGhosts(page)).ghosts.length} | card false`);
+      expect(app.errors).toEqual([]);
+    } finally { await app.close(); }
+  });
+});

@@ -38,7 +38,7 @@ Inline SVG driven by CSS custom properties. Flame: layered radial gradients with
 - The Content-Security-Policy allows only `'self'` and `'none'`: no inline style or script, no remote font, no network call. Set styles with `style.setProperty`, import fonts so Vite hashes them into `/assets/`, never put them in `public/`.
 - No agent creates or changes a Render resource; the repo owner does, in the dashboard.
 
-- **Performance budget (`room-art`, being built):** JS and CSS in `dist/` total at most 120 000 bytes (by Q62); at most 300 added elements across the scene SVG, ghost layer and Place; none of `feTurbulence`, `feDisplacementMap`, `feMorphology`, `feConvolveMatrix`, and no CSS filter on a group repainted each frame. A local script outside `npm run verify` measures at least 600 real-clock frames at 1920 by 1080 on the author's machine: median frame interval at most 17.5 ms and 95th percentile at most 25 ms with GPU rasterisation; default software timing is recorded but not judged (by Q62).
+- **Performance budget (`room-art`):** JS and CSS in `dist/` total at most 120 000 bytes (by Q62), measured 119 760; at most 415 total elements across the scene SVG, ghost layer and Place, measured 390 at maximum history (by Q79); none of `feTurbulence`, `feDisplacementMap`, `feMorphology`, `feConvolveMatrix`, and no CSS filter on a group repainted each frame. At 1920 by 1080 over 600 real-clock lit frames, GPU rasterisation measured median 16.7 ms and p95 16.8 ms against limits 17.5/25 ms (by Q62); default software measured 83.3/116.6 ms for information only.
 
 ## Property-based tests to keep true
 

@@ -7,14 +7,16 @@ candlewatch/
   .kiro/
     steering/          product.md, tech.md, structure.md, scene.md
     specs/             one folder per spec (see below)
+      room-art/prototype/  frozen static Prototype, its 24 `proto-*.png` references and source/build scripts (not shipped)
     hooks/             agent hooks
     settings/          mcp.json
   render.yaml          the hosting Blueprint: service, build, publish path and the one copy of the security and cache headers
+  scripts/frame-budget.mjs  local GPU and software frame-interval measurement, outside npm run verify
   playwright.live.config.ts   config for `npm run smoke` (e2e/live.spec.ts against BASE_URL)
   docs/
     BRIEF.md           product brief (input, do not edit unasked)
-    screenshots/       current screenshots (62, room-art, being built): 21 `candle-*` (every state), 20 `controls-*` (screens, focus, dialogs), 9 `ghosts-*`
-                       (0, 1, 12 and 12 + 9 distractions) and 9 `graveyard-*` (small and large history, cards by keyboard and touch);
+    screenshots/       62 room-art screenshots: 23 `candle-*` (every state, wide and 4K), 20 `controls-*` (screens, focus, dialogs), 9 `ghosts-*`
+                       (0, 1, 12 and 12 + 9 distractions) and 10 `graveyard-*` (small and large history, cards by keyboard and touch, wide);
                        taken with CANDLEWATCH_SHOTS=1
   src/
     engine/            pure session engine: types, step/settle, selectors, serialization (no DOM);
@@ -32,8 +34,8 @@ candlewatch/
                        render.ts (writes custom properties and data attributes; `Scene.apply(model, { labelSuffix })` adds the distraction
                        count to the accessible name), index.ts is the public surface;
                        scene-kit.ts holds the scene test arbitraries and trace helpers (test-only, never imported by source);
-                       setting.ts, light.ts, backdrop.ts (room-art, being built)
-    hosting/           test-only: blueprint.ts reads and understands render.yaml; render-blueprint.test.ts and static-only.test.ts
+                       setting.ts, light.ts, backdrop.ts (room-art setting, lighting and backdrop geometry)
+    hosting/           test-only: blueprint.ts reads and understands render.yaml; render-blueprint.test.ts, static-only.test.ts and prototype.test.ts
                        keep it and the shipped source honest. No shipped file imports it
     ui/                the interface layer: a pure core and a thin DOM layer.
                        Pure (no DOM, `Date` or `Math.random`; a purity test enforces it): format.ts (time text), length.ts (length and intent
@@ -48,13 +50,13 @@ candlewatch/
                          Alegreya Sans 400 and 700 (text): alegreya-sans-latin-400.woff2, alegreya-sans-latin-700.woff2, OFL-alegreya-sans.txt
     ghosts/            one ghost per distraction (ghosts-and-graveyard). Pure: slots.ts (12 slots, drift, the Overflow_Mark place),
                        visible.ts (`visibleGhosts`: the newest G with their sizes), label.ts (`countWords`, the scene label suffix),
-                       silhouette.ts (the ghost path); place.ts (room-art, being built). DOM: layer.ts (one SVG above the scene, below the interface), ghosts.css (fill,
+                       silhouette.ts (the ghost path); place.ts (room-art placement). DOM: layer.ts (one SVG above the scene, below the interface), ghosts.css (fill,
                        stroke, fade, drift, the still version). test-kit.ts is test-only; purity.test.ts and contrast.test.ts guard the folder
     graveyard/         the Door, the Graveyard and the Shelf (ghosts-and-graveyard). Pure: days.ts (index, day groups, carved date),
                        visible.ts (S, D, K limits, `visibleHistory`), text.ts (names, card lines, count lines), geometry.ts (room-unit
                        rectangles, ring clearance, `placeCard`), focus.ts (roving focus), card.ts (the card state machine and its marker),
                        view.ts (Door and view switch), keys.ts (the graveyard key map), plan.ts (the view plan), tap-guard.ts (tap versus
-                       focus), day-key.ts (`localDayKey`, the one reader of `Date` here); place.ts (room-art, being built). DOM: view-dom.ts (builds and applies the view,
+                       focus), day-key.ts (`localDayKey`, the one reader of `Date` here); place.ts (room-art placement). DOM: view-dom.ts (builds and applies the view,
                        turns events into inputs), graveyard.css (the view, the Door, the card; imported after ui.css). test-kit.ts is
                        test-only; purity.test.ts, contrast.test.ts and ui-only.prop.test.ts guard the folder
     audio/             Web Audio cues
@@ -75,6 +77,7 @@ candlewatch/
                        graveyard-a11y.spec.ts (aria snapshots, live log, label count, focus ring, contrast), ghosts.spec.ts (counts, live
                        hide and show, slots, reduced motion, drift, ghosts off), graveyard-fixtures.ts (histories, stored states, door and
                        ghost readings, visibility, room units to pixels),
+                       room-art-fixtures.ts, room-art-*.spec.ts (E1 to E15), screenshot-list.ts (62-name inventory), prototype.spec.ts (opt-in frozen Prototype check),
                        fixtures-imports.spec.ts, smoke.spec.ts,
                        headers-local.spec.ts (the real build under the Blueprint's headers),
                        live.spec.ts (the smoke test: runs under `npm run e2e` against vite preview, and under `npm run smoke` against BASE_URL)
@@ -96,7 +99,7 @@ candlewatch/
 - Only `main.ts` and `ui/` own the clock source and pass `now` into the engine.
 - `src/ui/` imports the engine's `index.ts`, `src/strings.ts` and the `Settings` type from `src/storage/settings.ts`, and its own files; the engine never imports it. `ui/test-kit.ts` is test-only and never imported by source files.
 - `src/scene/` imports only the engine's `index.ts`, `src/strings.ts` (the five accessible names) and its own files; the engine never imports it. `scene-kit.ts` is test-only and never imported by source files.
-- The scene shows state and the still setting that the candle's light or the window's light falls on (the Lit Setting rule): moving or changing elements show state; still elements sit in one group below the night layer. A wall grain was removed under the earlier rule; a lit wall texture replaces it. The pool carries a warm tint and is not drawn in idle; the Window_Light and the wall fade toward the left and right edges by the Edge_Shade and the Wall_Veil; the zone's shadow is short (`room-art`, being built).
+- The scene shows state and the still setting that the candle's light or the window's light falls on (the Lit Setting rule): moving or changing elements show state; still elements sit in one group below the night layer. A wall grain was removed under the earlier rule; a lit wall texture replaces it. The pool carries a warm tint and is not drawn in idle; the Window_Light and the wall fade toward the left and right edges by the Edge_Shade and the Wall_Veil; the zone's shadow is short (`room-art`).
 - `src/ghosts/` and `src/graveyard/` import the engine's `index.ts`, `src/strings.ts`, the pure `src/ui/format.ts` and `src/ui/layout.ts`
   (and, in `graveyard/keys.ts`, the key types of `src/ui/keys.ts`, type-only) and their own files. Neither imports the other. Their pure
   files read no DOM, clock or randomness; `graveyard/day-key.ts` alone reads `Date`. `src/ui/` imports neither folder (it keeps its
