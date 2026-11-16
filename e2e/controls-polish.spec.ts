@@ -419,10 +419,12 @@ test("the top edge of the zone band melts into the room instead of ending in a l
       const c = await colourAt(page, 100, y);
       return Math.max(...c.map((v, i) => Math.abs(v - (zone[i] ?? 0))));
     };
-    const [near, middle, far] = [await distance(floorY - 2), await distance(floorY - 8), await distance(floorY - 30)];
+    // Owner-approved room-art CR12: sample inside the short shadow; the dawn wash farther away is not monotone.
+    const [near, middle, far, room] = [await distance(floorY - 1), await distance(floorY - 3), await distance(floorY - 5), await distance(floorY - 30)];
     expect(near).toBeLessThan(middle);
     expect(middle).toBeLessThan(far);
     expect(near).toBeLessThan(8); // the band's own colour at the edge: no line
+    expect(room).toBeGreaterThan(8); // the room outside the shadow differs from the band; no order against far
   } finally {
     await app.close();
   }

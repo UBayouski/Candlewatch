@@ -10,7 +10,7 @@ Fixed inputs from the existing specs:
 - The history document (version 1) holds finished and snuffed sessions as `HistoryEntry` values: `startedAt`, `endedAt`, `lengthMin`, `intent`, `outcome`, `distractions`, `timeAwayMs`. The graveyard and the shelf read it and store nothing new.
 - The candle scene owns the 600 by 1000 stage, its layers, the reserved edge bands (x 0..110 and x 490..600) and the floor band below y = 900, which is reserved for the time text.
 - `controls-and-access` owns the controls, the focus order, the key map and the settings document (which already holds "ghosts on or off"). This spec lists Change Requests against `controls-and-access` and does not edit that spec.
-- The costume rule applies to every new element: each element shows exactly one piece of state and nothing is decoration.
+- The costume rule applies to every new element: each moving or changing element shows exactly one piece of state, and each still element is a lit setting (`room-art`). *(Amended by room-art task 1.4, A17.)*
 
 The requirements fix constraints. The layout numbers S (stones drawn), D (days drawn), K (stubs per day) and G (ghost slots) are derived in the design from the stage geometry. They are not guessed here.
 
@@ -121,7 +121,7 @@ The requirements fix constraints. The layout numbers S (stones drawn), D (days d
 5. THE Day_Shelf SHALL show its Day_Key date as real text, built like the Carved_Date.
 6. THE Stub SHALL show one piece of state only: that a focus session burned out on that day; the Stub's look SHALL carry no other state.
 7. THE Stone SHALL show one piece of state only: that a focus session was snuffed, with its intent and date.
-8. THE Graveyard_View SHALL contain no element that does not map to a piece of state or to an action the user can take.
+8. THE Graveyard_View SHALL contain no element that does not map to a piece of state or to an action the user can take, or that is a Still_Setting of the Place under the Lit Setting rule. *(Amended by room-art task 1.4, A18.)*
 9. WHILE a Group has no drawn Items, THE Graveyard_View SHALL show a short line from `src/strings.ts` ("Nothing is buried here." or "The shelf is bare.", the final wording of `sound-and-title`) in place of the Group's Items. *(Amended by sound-and-title task 14.2, CR5.)*
 10. THE Graveyard_View SHALL NOT scroll in either direction at the viewports 360 by 640, 768 by 1024, 1280 by 800 and 1920 by 1080.
 11. THE Graveyard_View SHALL keep every drawn Item, Count_Line, empty-state line, Details_Card and the Door's return control inside the viewport and clear of one another.

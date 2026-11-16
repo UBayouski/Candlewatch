@@ -22,7 +22,7 @@
 
 ## Scene
 
-Inline SVG driven by CSS custom properties. Flame: layered radial gradients with a seeded flicker. Light pool: a radial mask whose radius follows the wax. The scene's accessible name is the flame's name plus the distraction count, passed in as `labelSuffix` by `main.ts`. Ghosts are not part of the scene SVG: `src/ghosts/` draws them in their own SVG layer above it, with the scene's scaling rule, as translucent shapes with a slow CSS drift. The Door and the graveyard view are HTML in `src/graveyard/`, placed on the stage box in room units. See `scene.md` for the look and accessibility rules.
+Inline SVG driven by CSS custom properties. Flame: layered radial gradients with a seeded flicker. Light pool: a radial mask whose radius follows the wax. Setting: one group below the night layer, lit by the pool's mask and the window's light. The scene's accessible name is the flame's name plus the distraction count, passed in as `labelSuffix` by `main.ts`. Ghosts are not part of the scene SVG: `src/ghosts/` draws them in their own SVG layer above it, with the scene's scaling rule, as translucent shapes with a slow CSS drift. The Door and the graveyard view are HTML in `src/graveyard/`, placed on the stage box in room units. See `scene.md` for the look and accessibility rules.
 
 ## Scripts
 
@@ -35,6 +35,8 @@ Inline SVG driven by CSS custom properties. Flame: layered radial gradients with
 - Render sets `Strict-Transport-Security` itself; the Blueprint does not define it. `npm run smoke` checks it (B4).
 - The Content-Security-Policy allows only `'self'` and `'none'`: no inline style or script, no remote font, no network call. Set styles with `style.setProperty`, import fonts so Vite hashes them into `/assets/`, never put them in `public/`.
 - No agent creates or changes a Render resource; the repo owner does, in the dashboard.
+
+- **Performance budget (`room-art`, being built):** JS and CSS in `dist/` total at most 120 000 bytes; at most 300 added elements across the scene SVG, ghost layer and Place; none of `feTurbulence`, `feDisplacementMap`, `feMorphology`, `feConvolveMatrix`, and no CSS filter on a group repainted each frame. A local script outside `npm run verify` measures at least 600 real-clock frames at 1920 by 1080 on the author's machine: median frame interval at most 17.5 ms and 95th percentile at most 25 ms.
 
 ## Property-based tests to keep true
 

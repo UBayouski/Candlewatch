@@ -112,12 +112,12 @@ The scene never owns time. It reads engine state only through the session-engine
 1. The model SHALL give a light radius in [0, 1] for the pool of light around the candle.
 2. WHILE the phase is `lit` or `paused`, THE light radius SHALL be a non-decreasing function of wax height, with a minimum above 0. The light SHALL therefore shrink as the wax falls, stay the same while `paused`, and be at its smallest (the room darkest) in the last moments before the end.
 3. The light radius SHALL NOT grow from one `now` to a later `now` for the same running state, nor across any event sequence the engine can produce, including pause, resume and reload.
-4. WHILE the phase is `idle`, THE light radius SHALL be the same small value as the minimum in R7.2: a dim room around an unlit candle (Decision Q1).
+4. WHILE the phase is `idle`, THE model SHALL keep `lightRadius = LIGHT_MIN`, the same small value as the minimum in R7.2, but the pool and its warm tint SHALL NOT be drawn: `.pool` and `.pool-tint` are `display: none` while `data-phase="idle"`. The room is lit by the Window_Light alone, so no light appears to come from the unlit candle. *(Amended by room-art task 1.3, A28/CR13; no scene model field changes.)*
 5. WHEN the phase is `snuffed`, THE light radius SHALL be 0 and the room dark. WHEN the phase is `burned-out`, THE light radius SHALL be 0 and the dawn (R8) lights the room instead.
 6. The model SHALL NOT make the light shrink for any reason other than wax height. The flicker may move the edge of the pool by a small amount (R6) but SHALL NOT change the radius value.
 7. The scene SHALL publish the room's background colour at its darkest and at its brightest as two CSS custom properties, so that the `controls-and-access` spec can check the time text for WCAG AA contrast against both. This spec does not check the time text.
 8. The scene SHALL reserve a time-text zone for `controls-and-access`: the band below the floor line, which is the candle's base, with a text area marked in the markup. The flame, its halo, the drips, the smoke and the light pool SHALL never enter the zone, at any wax height. The zone SHALL have its own darkest and brightest background, published as two CSS custom properties, and the contrast of ivory (`#efe6cf`) against each SHALL be at least 4.5:1. The time text SHALL be at least ivory in brightness (relative luminance at least that of `#efe6cf`) (costume review F2, F5).
-9. The light pool's intensity SHALL be constant: the pool shows progress only, by its radius, and the flame's glow SHALL NOT change it (costume review F4).
+9. The light pool's intensity SHALL be constant: the pool shows progress only, by its radius, and the flame's glow SHALL NOT change it (costume review F4). A warm tint of constant alpha lies in the pool's shape (`room-art` R3.22); the pool's intensity, profile and radius rule are unchanged. *(Amended by room-art task 1.3, A29.)*
 
 ### R8. The dawn
 
@@ -129,7 +129,7 @@ The scene never owns time. It reads engine state only through the session-engine
 4. In the dawn, the room SHALL fill with pale early light (cool at the window, warm low on the wall) and the candle SHALL be an unlit stub. The look SHALL still be different from `idle` in colour and brightness, so that the dawn can be told from a dim waiting room in the still version.
 5. The model SHALL give the break flag `cooling`, equal to `isBreak(state, now)`. WHILE `cooling` is true, THE renderer SHALL show a faint warm glow on the wick of the stub ("the wax cools"). The glow ends when `cooling` turns false. It does not change the dawn amount, the light radius or the flame mode. The glow is a still shape and colour, so it is shown in reduced motion too; only any easing of it is motion.
 6. The chime that goes with the dawn belongs to the `sound-and-title` spec. *(Amended by sound-and-title task 14.1, CR14: done by `sound-and-title`: the `chime` plays at the dawn, `titleFor` writes the page title.)*
-7. The dawn SHALL be a wash layered above the night layer. The night layer SHALL NOT be faded by the dawn, so that each layer shows one thing (costume review F4). The window pane SHALL have a faint, constant night colour at rest that is visible against the wall, so the dawn reads as the window lighting up; the colour carries no state (costume review F3).
+7. The dawn SHALL be a wash layered above the night layer. The night layer SHALL NOT be faded by the dawn, so that each layer shows one thing (costume review F4). The window pane SHALL have a faint, constant night colour at rest that is visible against the wall, so the dawn reads as the window lighting up; the colour carries no state (costume review F3). The glass has a frame and stars inside the pane's rectangle; the stars change only with the dawn. The window is also a dim light source (`room-art` R4). *(Amended by room-art task 1.3, A12.)*
 
 ### R9. Reduced motion
 
@@ -163,7 +163,7 @@ The scene never owns time. It reads engine state only through the session-engine
 5. All colours and sizes that change with state SHALL be set through CSS custom properties on the scene root. The renderer SHALL write only custom properties and data attributes (for the discrete flame mode and phase), never inline styles on individual shapes or inline logic.
 6. The renderer SHALL contain no branching on phase, time or wax. All such decisions are in the model.
 7. No trademarks, logos or real product names, in code, comments, copy or assets. Say "focus session" (see `product.md`, Naming).
-8. A new visual element SHALL map to a piece of state, or it SHALL NOT ship (`product.md`). Every element in this spec maps as follows: candle and wax to time left, drips to quarters burned, flame to session state, light pool to progress, dawn to completion, the wick glow to the break, smoke to an ended session, the stub to an ended session, the window pane to completion, the wall to nothing of its own (it is the surface the light pool reveals, so it carries progress), and the zone to a reserved area for the time text that also brightens at dawn. There is no table and no dish (costume review F1).
+8. A new moving or changing visual element SHALL map to a piece of state, and a new still element SHALL be a lit setting under the Lit Setting rule, or it SHALL NOT ship. The wall, the table top, the holder and the window frame are lit settings (`room-art`). *(Amended by room-art task 1.3, A11.)*
 
 ### R12. Accessible name
 
@@ -220,7 +220,7 @@ None. The five questions from the first review are answered below.
 
 ## Decisions
 
-- **Q1. The idle candle:** yes. `idle` draws a whole candle (wax height 1) in a dim room at the minimum light radius. R3.3 stays as the one stated exception to "wax height equals `waxFraction`".
+- **Q1. The idle candle:** yes. `idle` draws a whole candle (wax height 1) in a dim room at the minimum light radius. R3.3 stays as the one stated exception to "wax height equals `waxFraction`". **room-art task 1.3, A28:** the model still gives `LIGHT_MIN`, but the pool and its tint are not drawn in idle; the Window_Light alone lights the room (R7.4).
 - **Q2. Snuffed candle:** yes. A snuffed candle is a fixed stub. The remaining-wax detail belongs to `ghosts-and-graveyard`. No engine change.
 - **Q3. Dawn and the break:** yes. The dawn stays at 1 for the whole `burned-out` phase. `cooling` only adds a faint warm glow on the wick while `isBreak` is true (R8.5).
 - **Q4. Drips:** three, at 25, 50 and 75 percent burned. This is a **deliberate change from the brief**, which says "a drip at each quarter" (section 4). At 100 percent the candle is out and the flame mode already shows the end, so a fourth drip would say nothing new. The brief itself is not edited.

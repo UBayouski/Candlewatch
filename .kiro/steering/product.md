@@ -8,7 +8,7 @@ Source of truth for scope: `docs/BRIEF.md`. Do not edit it unless the user asks.
 
 ## The rule
 
-**The costume is the function: every spooky element shows one piece of state.** Nothing is decoration only. Take the costume off and nothing is left to read. Any new visual element must map to a piece of state, or it does not ship.
+**The costume is the function: every spooky element shows one piece of state.** Anything that moves or changes shows one piece of state. A still setting (a wall, a table, a window frame, door wood, ground) may be drawn only where the candle's light or the window's light falls on it, so it makes the light's state easier to read. No still setting may look like a state element. Nothing is a stock Halloween ornament. Take the setting off and every state is still readable. Any new moving or changing element must map to a piece of state, and any new still element must be a lit setting, or it does not ship.
 
 | Element | Shows |
 |---|---|
@@ -19,6 +19,7 @@ Source of truth for scope: `docs/BRIEF.md`. Do not edit it unless the user asks.
 | Graveyard | Snuffed sessions (a gravestone with intent and date) |
 | Shelf | Finished sessions (a candle stub, one shelf per day) |
 | Dawn | Completion |
+| Setting (wall, table, holder, window frame, door wood, ground) | Nothing of its own: where the candle's light or the window's light reaches, so the light is easier to read |
 
 Time left is also always shown as text (`12:31`), in the page title while a session runs, and to screen readers.
 

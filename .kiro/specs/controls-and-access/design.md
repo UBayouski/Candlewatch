@@ -481,7 +481,7 @@ Constants: touch target `T = 44`, gap `G = 8`, margin `M = 8`, pads `PAD_COLUMN 
 
 **Compact zone.** Pause at `(M, by)`, Settings at `(vw − M − T, by)`, Let it go dark at `(settings.x − G − T, by)`, all `T × T` (icons with text names). The status line is centred on `cx` and bounded by the buttons: while running, its half-width is `min(cx − (pause.x + T + G), (snuff.x − G) − cx)`; at rest it is `min(cx − M, (settings.x − G) − cx)`, and it may take two lines (40 px) when `zoneH >= 80`.
 
-**Wide zone.** Pause `128 × T`, its right edge 16 px before the text area; Let it go dark `160 × T`, 16 px after it; Settings `96 × T`, `G` after Let it go dark. All labelled. The status line is the width of the text area while running; at rest it is centred on `cx` and bounded by `M` and `settings.x − G`.
+**Wide zone (amended by room-art task 1.4, A22).** Pause `98 x T` (Resume `110 x T`), its right edge 16 px before the text area; Let it go dark `140 x T`, 16 px after it; Settings `111 x T`, `G = 8` after Let it go dark. All labelled, with one inner padding of about 16.1 px within 1 px across buttons and Pause/Resume; the gap to the time-text box is 100 px on both sides at 1280 by 800. The status line is the width of the text area while running; at rest it is centred on `cx` and bounded by `M` and `settings.x - G`.
 
 **Setup controls** (idle and the ended phases; always above the floor line; reading order chooser, intent, Light):
 - **Compact, `top-row`** (the window pane starts at `window.y >= 50`, which holds at 360 × 640): the chooser is a row of four cells across the viewport, `(M, 4)`, width `vw − 2M`, `T` high, each cell `(vw − 2M − 3G) / 4` wide. Under it, at `y = 56`: the intent field at `x = M`, width `window.x − G − M`, `T` high; and Light, `116 × 52`, at `x = vw − M − 116`.
@@ -536,16 +536,16 @@ While running, the upper room has nothing persistent. While idle or ended it has
 | Intent field | 904, 180, 352, 44 | same |
 | Light | 904, 240, 352, 52 | same |
 | Time text (box about 136 wide, 44 high) | 572, 722, 136, 44 | inside the text area |
-| Status line while running | 488, 766, 304, 20 | the width of the text area |
-| Status line at rest | 312, 766, 656, 20 | 8 px short of Settings (starts 976) |
-| Pause or Resume (labelled) | 344, 738, 128, 44 | ends 16 px before the text area |
-| Let it go dark (labelled) | 808, 738, 160, 44 | starts 16 px after the text area |
-| Settings (labelled) | 976, 738, 96, 44 | 8 px after Let it go dark |
+| Status line while running | 488, 764, 304, 20 | the width of the text area; room-art A22, existing build rectangle |
+| Status line at rest | 332, 764, 616, 20 | 8 px short of Settings (starts 956); room-art A22 |
+| Pause (Resume), labelled | 374, 738, 98, 44 (Resume: 362, 738, 110, 44) | ends 16 px before the text area; room-art A22 |
+| Let it go dark (labelled) | 808, 738, 140, 44 | starts 16 px after the text area; room-art A22 |
+| Settings (labelled) | 956, 738, 111, 44 | 8 px after Let it go dark; room-art A22 |
 | Left door slot | x 400..488, y ≥ 240 | nothing of this spec there |
 | Snuff dialog | 904, 96, 352, ≤ 260 | right column, clear of the stage |
 | Settings panel | 24, 96, 352, ≤ 360 | left side area, clear of the stage |
 
-Other sizes follow from the same rules: 375 × 667 compact `top-row` (the chooser row 359 wide, intent 134, zone 83.5 px); 768 × 1024 compact `top-row` (`s = 1.024`, the window top is 51.2; the chooser row 752 wide, intent 307, zone 102 px); 480 × 800 compact `left-region` (the window top is 40, so the chooser is a 2 × 2 grid at 8, 4, the intent field is 8, 108, 176 wide, Light at 356, 108); 1920 × 1080 wide (`ox = 636`, column 360 wide, Settings at x 1349).
+Other sizes follow from the same rules: 375 × 667 compact `top-row` (the chooser row 359 wide, intent 134, zone 83.5 px); 768 × 1024 compact `top-row` (`s = 1.024`, the window top is 51.2; the chooser row 752 wide, intent 307, zone 102 px); 480 × 800 compact `left-region` (the window top is 40, so the chooser is a 2 × 2 grid at 8, 4, the intent field is 8, 108, 176 wide, Light at 356, 108); 1920 × 1080 wide (`ox = 636`, column 360 wide, Settings positioned by the amended wide-zone rule (room-art A22)).
 ### 6.6 Overlays
 
 Overlays are exempt from the keep-clear rule while open (Decision Q2) but are placed to avoid the flame and halo wherever there is room. Wide: in the free side columns (the stage is not touched at all). Compact: the snuff dialog is anchored to the top and no taller than the space above the halo's highest point (178 px at 360 × 640), so it covers the window and the upper pool but never the flame or the halo, at any wax height. The settings panel is taller (a heading, two switches, the length chooser and a Close button: about 280 px at 360 × 640) and may cover the upper candle; it is a deliberate, brief visit. The room behind is not dimmed or blurred, and the candle keeps burning and redrawing behind and under the dialogs.
@@ -1028,7 +1028,7 @@ Findings and fixes:
 6. **Keep burning was not the primary action.** Fixed: Keep burning is the filled primary button and the focused one; Snuff it is the plain one.
 7. **The length error was far from its field.** Fixed: in the wide layout the message stands directly under the chooser (`setup.lengthError`, `#length-error`, `aria-describedby` points at it); the compact layout has no rectangle for it and keeps it in the status line.
 8. **The custom field looked like a fourth preset.** Fixed: the cue is "__ min", an underscore to type over, and the compact intent field says "Intent (optional)" so it is not cut.
-9. **The zone edge was a hard line.** Fixed: a soft edge on the floor band in `scene.css`.
+9. **The zone edge was a hard line.** Fixed: a soft edge on the floor band in `scene.css`. **Amended by room-art task 1.3 (CR12, owner-approved):** the B2 base uses the short `0 -2px 3px` shadow. The melting-edge test now samples 1/3/5 px inside its reach with rising distance and the same nearest < 8 limit; 30 px only shows a distinct room colour, not monotone dawn wash. The no-dawn-shadow mutation fails; see room-art design section 7 and Q43.
 10. **The phone settings panel left a sliver of the chooser above it.** Fixed: the panel starts at the top edge (y 0), and P10 asserts it covers the chooser wholly.
 
 Kept by design (not changed):

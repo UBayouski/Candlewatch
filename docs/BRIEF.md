@@ -38,7 +38,7 @@ really died. Take the costume off and nothing is left to read: the costume is th
 
 ## 4. The costume is the function
 
-Each spooky element shows one piece of state. Nothing is decoration only.
+Each spooky element shows one piece of state. A still setting may stand behind them only where the candle's light or the window's light falls on it.
 
 | Element | Shows | Behaviour |
 |---|---|---|
