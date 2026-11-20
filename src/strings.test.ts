@@ -102,7 +102,7 @@ describe("ghosts-and-graveyard strings are all used (task 17.1)", () => {
   });
 
   it("keeps visible text out of the new folders (no literal reads as a sentence)", () => {
-    const visible = (s: string): boolean => !/^[a-z][A-Za-z0-9-]*(?: [a-z][A-Za-z0-9-]*)*$/.test(s) && (/[A-Za-z]{2,}\s+[A-Za-z]/.test(s) || /[A-Za-z]{3,}[.!?�]$/.test(s));
+    const visible = (s: string): boolean => !/^[a-z][A-Za-z0-9-]*(?: [a-z][A-Za-z0-9-]*)*$/.test(s) && (/[A-Za-z]{2,}\s+[A-Za-z]/.test(s) || /[A-Za-z]{3,}[.!?\u2026]$/.test(s));
     const found: string[] = [];
     for (const { name, code } of sources) {
       const noImports = code.replace(/^\s*(?:import|export)\b[^;]*?\bfrom\s+["'][^"']*["'];?/gm, "");

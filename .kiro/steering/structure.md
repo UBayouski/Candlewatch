@@ -70,7 +70,7 @@ candlewatch/
     after-step.ts      composes the Cue, page title and Hidden_Tick control for dispatch
     wiring.ts          visibility wiring helpers for main.ts (injected document, clock and dispatch)
   e2e/                 Playwright tests: scene.spec.ts (states, reduced motion, viewports, zone, ember, window, halo),
-                       screenshots.spec.ts (takes the 21 `candle-*`, 9 `ghosts-*` and 9 `graveyard-*` PNGs in docs/screenshots/),
+                       screenshots.spec.ts (takes the 23 `candle-*`, 9 `ghosts-*` and 10 `graveyard-*` PNGs in docs/screenshots/),
                        scene-fixtures.ts (stored sessions and pixel helpers),
                        controls.spec.ts (whole sessions by keyboard and touch), controls-layout.spec.ts (geometry, keep-clear rule),
                        controls-a11y.spec.ts (roles, names, live region, focus, reduced motion), controls-polish.spec.ts (fonts, figures, palette,

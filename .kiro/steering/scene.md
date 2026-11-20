@@ -13,7 +13,7 @@ Applies when working on `src/scene/**` or any CSS. Remember the core rule: the c
 - Nothing like a retro OS, not 1-bit, not a spreadsheet. It must look nothing like the other entries by the same author.
 - SVG and CSS only: candle, wax drips, flame (layered radial gradients with a seeded flicker), light pool (radial mask whose radius follows the wax), ghosts (translucent shapes with eyes, a soft glow and a slow drift, in their own layer, `src/ghosts/`), and the setting (wall, table, holder, window frame), drawn in one group below the night layer so that the pool and the window's light light it.
 - The Door at the left of the floor is a wooden door and shows one piece of state: usable (an amber handle, no bar) when no candle burns, barred (a bar, no handle) while a session runs. The graveyard view (`src/graveyard/`) is a place with a sky, a ground and a wooden shelf, in the scene's palette and room units, and runs edge to edge above the floor line.
-- The pool carries a warm tint and is not drawn in idle. The Window_Light and the wall fade toward the left and right edges by the Edge_Shade and the Wall_Veil. The zone's shadow is short so the table and the Holder stay lit (`room-art`, being built).
+- The pool carries a warm tint and is not drawn in idle. The Window_Light and the wall fade toward the left and right edges by the Edge_Shade and the Wall_Veil. The zone's shadow is short so the table and the Holder stay lit (`room-art`).
 - Responsive from a phone in portrait to a wide desktop.
 
 ## Reduced motion
