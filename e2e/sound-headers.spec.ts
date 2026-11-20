@@ -42,6 +42,9 @@ test.describe("sound E10: the real build under Blueprint headers", () => {
   test.setTimeout(90_000);
   test("a short keyboard session plays strike and chime with no policy or request failure", async ({ page }) => {
     const traffic = await serve(page);
+    // The current Playwright docs recommend `install` slightly early, load, then `pauseAt`. This repo pauses first because that order failed
+    // on loads over 4.9 s, and it relies on `pauseAt` installing the clock itself (true in 1.65.0; re-check on any Playwright upgrade; the
+    // guard test is in e2e/fixtures-imports.spec.ts).
     await page.clock.pauseAt(Date.UTC(2026, 10, 10, 20, 0, 0));
     await page.goto("/");
     await page.clock.runFor(48);

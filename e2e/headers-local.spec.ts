@@ -88,6 +88,9 @@ test.describe("the real build under the Blueprint's headers", () => {
     // The clock starts paused at the load instant (pauseAt is the first clock call, so no wall time is counted between installing and pausing):
     // the page loads at exactly that instant however long the load takes, and the frames keep the 16 ms grid from it. Nothing then
     // depends on the machine's speed (the old `install` let the clock run during the load and failed when the load took over 4.9 s).
+    // The current Playwright docs recommend `install` slightly early, load, then `pauseAt`. This repo pauses first because that order failed
+    // on loads over 4.9 s, and it relies on `pauseAt` installing the clock itself (true in 1.65.0; re-check on any Playwright upgrade; the
+    // guard test is in e2e/fixtures-imports.spec.ts).
     await page.clock.pauseAt(fixture.now - 5000);
     await page.goto("/");
     // Run, not jump: every timer and frame of the 5 s after the load fires at its own instant, as when the clock ran during the load.

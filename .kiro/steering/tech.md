@@ -54,6 +54,6 @@ Inline SVG driven by CSS custom properties. Flame: layered radial gradients with
 ## Conventions
 
 - Test the engine with an injected `now`; never fake time inside engine code.
-- E2E tests use Playwright's clock control to run whole sessions in seconds. Pause the clock before the page loads (`page.clock.pauseAt`, then `goto`, then `runFor`), never `install` and let it run during the load: a slow load must not change what is drawn or break the setup.
+- E2E tests use Playwright's clock control to run whole sessions in seconds. Pause the clock before the page loads (`page.clock.pauseAt`, then `goto`, then `runFor`), never `install` and let it run during the load: a slow load must not change what is drawn or break the setup. The current Playwright docs recommend `install` slightly early, load, then `pauseAt`; this repo pauses first because that order failed on loads over 4.9 s, and it relies on `pauseAt` installing the clock itself (true in 1.65.0; guarded by a test in `e2e/fixtures-imports.spec.ts`; re-check when `@playwright/test` is upgraded).
 - Headless Chromium never hides a page by itself; e2e tests drive the page's own `visibilitychange` listener with `visibilityState` overridden (`setVisibility` in `e2e/graveyard-fixtures.ts`).
 - No `any`; prefer discriminated unions for states and events.

@@ -16,6 +16,20 @@ test("no shipped file imports the room-art browser fixture", () => {
   }
 });
 
+// Guard for the pause-first clock order (tech.md, e2e clock rule). The docs recommend install, load, pauseAt; the fixtures call pauseAt first
+// and rely on it installing the fake clock (Playwright 1.65.0). If this fails after an upgrade, move the fixtures to the documented order.
+test("pauseAt as the first clock call installs the clock: Date.now is the paused time and stays put", async ({ page }) => {
+  const paused = Date.UTC(2026, 10, 10, 20, 0, 0);
+  await page.clock.pauseAt(paused);
+  await page.goto("/");
+  const first = await page.evaluate(() => Date.now());
+  await new Promise((resolve) => setTimeout(resolve, 300)); // a real wait: a running clock would move
+  const second = await page.evaluate(() => Date.now());
+  const message = "pauseAt no longer installs the clock when it is the first clock call; the fixtures need the documented order (install slightly early, load, then pauseAt)";
+  expect(first, message).toBe(paused);
+  expect(second, message).toBe(paused);
+});
+
 test("fixtures can be built in Node from the engine and storage modules", async ({ page }) => {
   const state = step(INITIAL_STATE, { type: "light", length: 25 }, T0);
   const session = serializeSession(state);

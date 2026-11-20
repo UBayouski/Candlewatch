@@ -123,6 +123,16 @@ describe("play (rules 1 to 6)", () => {
     expect(ctx().sources()).toEqual([]);
   });
 
+  it("a resume() that rejects at play (the spec's interrupted or closed refusal) drops the Cue, throws nothing and leaves the player unlocked", async () => {
+    const { player, ctx } = setup({ resumeMode: "throw" });
+    expect(() => player.play("strike")).not.toThrow();
+    expect(ctx().resumeCalls).toBe(2); // one in unlock, one in play
+    await flush(); // the rejection is handled inside the player; vitest fails the run on an unhandled one
+    expect(ctx().sources()).toEqual([]);
+    expect(startedCues(ctx())).toEqual([]);
+    expect(player.isUnlocked()).toBe(true);
+  });
+
   it("a deferred resume() starts the held request once, and only the latest (D19)", async () => {
     const { player, ctx } = setup({ resumeMode: "deferred" });
     player.play("strike");
