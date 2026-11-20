@@ -114,6 +114,8 @@ Start only after both other entries have their videos recorded and write-ups dra
 | Nov 26 to Nov 28 | Sound, reduced motion, contrast, phone layout, deploy. Feature freeze Nov 28 |
 | Nov 29 to Dec 3 | Screenshots, README, write-up, video. Submit Dec 3 with a one-day margin |
 
+Actual: built 2026-11-10 to 2026-11-16, starting in the Kiro CLI; see KIRO_USAGE.md.
+
 ## 11. Spec plan (in order)
 
 1. `session-engine`: states, transitions, timestamp time math, pause limit, persistence and reload recovery.
