@@ -555,3 +555,30 @@ Conventions for every task:
   ]
 }
 ```
+
+## Amendment 2026-11-20: a card follows the keyboard, not the pointer
+
+*(Appended after the spec was finished. Tasks 1 to 28 and their ticks are unchanged. Requirements R5.16 to R5.22 and P17; design D24 and Property 23. Run in order. Stop after 29.1 and wait for the owner's approval of the failing test, then after any step that fails a stated limit.)*
+
+- [x] 29. A card follows the keyboard, not the pointer (D24)
+  - [x] 29.1 Tests first
+    - `src/graveyard/tap-guard.test.ts`: rewrite the four cases whose expected values state the old rule or the old state shape (the touch tap case, "a mouse click is not a tap and its focus is not dropped", "a gesture on one item never drops the focus of another or taps another", "a touch elsewhere is a tap-away") to the new rule, without weakening them; add: mouse pointerdown, then focus, then click on the same item gives no card input and no tap; a pointerdown on a non-item makes the next focus dropped; a focus with no preceding pointerdown is a keyboard focus; a key press after a pointer input makes the next focus a keyboard focus; `pointercancel` keeps the modality.
+    - `src/graveyard/tap-guard.prop.test.ts` (new): Property 23 through `PROP_PARAMS`.
+    - `e2e/graveyard.spec.ts`: E8 (open with a real mouse click on the Door: no card, no `data-card-open`; hover a second item, move to empty ground: none; click an item, hover another, leave: none), E9 (click an item, press an arrow key: the card and marker follow the new item), E10 (open by keyboard: the first item's card shows), E11 (touch: tap the Door, no card; tap a stone, its card; tap elsewhere, none). Show E8 failing on the current code.
+    - Reword the stale comments only: `e2e/graveyard.spec.ts` line 556 and `e2e/screenshots.spec.ts` line 91. No step is removed.
+    - _Requirements: R5.16 to R5.22. Properties: 23._
+  - [x] 29.2 The smallest change
+    - Extend `src/graveyard/tap-guard.ts` (`Modality`, the `modality` field, `guardDown`, `guardFocus`, `guardClick` keeping the modality, `guardReset` for keys, new `guardCancel`) and its use in `src/graveyard/view-dom.ts`: `guardDown` in every view (tap-away only in the graveyard), `guardCancel` for `pointercancel` and for leaving the view. Do not change `card.ts`'s rules; if the tests cannot pass without that, stop and tell the owner.
+    - _Requirements: R5.16 to R5.22._
+  - [x] 29.3 Size cap
+    - Run `npm run build` and report built JavaScript plus CSS in bytes against 120 000 (119 760 before). If it does not fit, stop and report the overage; do not raise the cap or cut something else.
+  - [x] 29.4 Verify
+    - `npm run verify`; report the unit file and test counts and the end-to-end counts.
+  - [x] 29.5 Screenshots
+    - Of the ten `graveyard-*` pictures, only the two touch cards change route (design D24). Retake the screenshot specs into a scratch copy and compare the bytes with `docs/screenshots/`; run the list check (E11 of `room-art`); retake into `docs/screenshots/` only a picture that differs, and look at each retaken picture.
+    - _Requirements: R11.14._
+  - [x] 29.6 Costume review
+    - Run the `costume-reviewer` agent on the change (interface change) and record its verdict in design D24's Result. If it cannot run, say so.
+  - [x] 29.7 Log
+    - Append the `KIRO_USAGE.md` entry (surface, what was asked, the failing-then-passing test, the byte count, the counts, the screenshot decision, the review verdict, what could not be verified), tick these tasks, and fill D24's Result.
+    - Result (2026-11-20): all seven done. E8, E8 mixed and E11 failed on the old code and pass; unit 122 files and 1,583 tests, end-to-end 555 passed and 9 skipped, `npm run check` clean. Built JavaScript plus CSS 119,989 bytes against 120,000 (119,760 before; 11 bytes left). Two touch card pictures retaken (they differed by a few hundred pixels of at most 4 of 255 on the desktop one). Costume review PASS with two minor findings, recorded in D24's Result. `card.ts` unchanged.

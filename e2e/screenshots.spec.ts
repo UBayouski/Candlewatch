@@ -88,7 +88,7 @@ const keyboardCard = async (page: Page): Promise<void> => {
   await openView(page);
   await press(page, "ArrowRight");
 };
-/** By touch: the Door tapped, the panel tapped to clear the opening card, then the first Stub of the Shelf tapped. */
+/** By touch: the Door tapped (no card opens by itself, D24), the panel tapped (a tap-away that now clears nothing; kept so the route is the same), then the first Stub of the Shelf tapped. */
 const touchCard = async (page: Page): Promise<void> => {
   await page.locator("#door").tap();
   await settle(page);

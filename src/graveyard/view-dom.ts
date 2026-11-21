@@ -45,7 +45,7 @@ import { graveKeyAction } from "./keys";
 import type { GraveKeyContext } from "./keys";
 import { planView } from "./plan";
 import type { PlacedItem, ViewPlan } from "./plan";
-import { guardClick, guardDown, guardFocus, guardReset, NO_GESTURE } from "./tap-guard";
+import { guardCancel, guardClick, guardDown, guardFocus, guardReset, NO_GESTURE } from "./tap-guard";
 import type { TapGuard } from "./tap-guard";
 import { DEFAULT_LIMITS, visibleHistory } from "./visible";
 import { dawnFor } from "./view";
@@ -413,13 +413,13 @@ export function createGraveyard(root: HTMLElement, hooks: GraveyardHooks): Grave
   back.addEventListener("click", () => hooks.onView("leave"));
 
   doc.addEventListener("pointerdown", (e: PointerEvent) => {
-    if (view !== "graveyard") return;
-    const result = guardDown(guard, e.pointerType, refOf(e.target)?.id ?? null);
+    // Every view: a press on the Door in the Room sets the modality before the click opens the view (D24).
+    const result = guardDown(guard, e.pointerType, view === "graveyard" ? (refOf(e.target)?.id ?? null) : null);
     guard = result.guard;
-    if (result.away) stepCard({ type: "tap-away" });
+    if (view === "graveyard" && result.away) stepCard({ type: "tap-away" });
   });
   doc.addEventListener("pointercancel", () => {
-    guard = guardReset();
+    guard = guardCancel(guard);
   });
 
   doc.addEventListener("keydown", (e: KeyboardEvent) => {
@@ -494,7 +494,7 @@ export function createGraveyard(root: HTMLElement, hooks: GraveyardHooks): Grave
       } else if (previous === "graveyard") {
         section.querySelector(":scope > svg.place")?.remove();
         cardState = NO_CARD;
-        guard = NO_GESTURE;
+        guard = guardCancel(guard); // the gesture ends; no key was pressed, so the modality stays (D24)
         renderCard();
       }
       setHidden(wrapper, view !== "graveyard");

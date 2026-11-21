@@ -359,3 +359,31 @@ This spec does not edit `controls-and-access`. The following changes are request
 - **Count_Line wording.** Resolved, finalised by `sound-and-title`, section 4.2: "n older stones out of sight" and "n older days out of sight" (singular forms "1 older stone out of sight" and "1 older day out of sight").
 - **Empty-state wording.** Resolved, finalised by `sound-and-title`, section 4.2: "Nothing is buried here." and "The shelf is bare.".
 - **Null-intent line.** Resolved, finalised by `sound-and-title`, section 4.2: "Unnamed watch" for the Stone face and the Item name; "an unnamed watch" inside the first card line.
+
+
+## Amendment 2026-11-20: a card follows the keyboard, not the pointer (R5.16 to R5.22)
+
+*(Appended after the spec was finished. Nothing above is changed and no ticked task is reopened. It answers two bugs found by hand with a mouse. First: after a click on a stone or a stub, every later hover ended by showing the clicked item's card instead of hiding. Second, the more common one: opening the view with a mouse click on the Door, and clicking nothing else, already leaves the first item focused with its card shown and its marker set, so every later hover ended on that card. Both come from the same fault: a focus that a pointer caused was treated as keyboard focus (R5.3). See design D24.)*
+
+#### Added Acceptance Criteria for Requirement 5
+
+16. WHEN the user opens the Graveyard_View with a mouse click or a touch on the Door, THE Graveyard_View SHALL show no Details_Card and SHALL mark no Item with `data-card-open`. Focus SHALL still move to the first Group's Remembered_Item (CR3, R6.5), as before.
+17. WHEN the user opens the Graveyard_View with the keyboard (the Door's key, or Enter or Space on the Door), THE Graveyard_View SHALL show the Details_Card of the Item that receives focus, as before.
+18. WHEN the user presses a mouse button on an Item, THE Graveyard_View SHALL NOT show, hold or pin that Item's Details_Card because of the focus the press gives the Item's button. The button SHALL still receive DOM focus and become the Group's Remembered_Item (R6.18). A mouse click on an Item SHALL NOT toggle the card (R5.6 and R5.7 apply to touch and pen only); the hover card of R5.4 is already shown while the pointer is over the Item.
+19. WHEN the mouse pointer leaves an Item whose Details_Card was shown by hovering, and the last input was a pointer, THE Graveyard_View SHALL hide the card. Where the last input was a key press and an Item holds keyboard focus, R5.4's fallback to the focused Item's card is unchanged.
+20. WHEN any key is pressed after a pointer input, THE Graveyard_View SHALL return to keyboard behaviour: the next focus, in particular from an arrow, Home, End or Tab key press, shows the card of the newly focused Item (R5.3), moving from the Item that holds DOM focus.
+21. WHEN the user taps an Item with touch or pen, THE Graveyard_View SHALL toggle its Details_Card as before, and a tap anywhere else SHALL hide it (R5.6, R5.7, R5.8). The one change for touch: after a tap on the Door, no card opens by itself (R5.16).
+22. THE criteria R5.3 to R5.9, R5.14, R5.15, R6.2 to R6.5 and R6.18 SHALL keep their meaning: keyboard focus shows a card, hover shows a card without moving focus, Escape and the roving tab stop are unchanged, and focus that a pointer moves to an Item still records it as the Remembered_Item. "Keyboard focus" in R5.3 means focus that no pointer input caused: the last input before it was a key press, or there has been no input.
+
+#### Added Property-Based Test
+
+| ID | Property | Covers |
+|---|---|---|
+| P17 | For any sequence of `pointerdown` (mouse, touch or pen, on an item or elsewhere), `pointercancel`, `keydown`, `focus` and `click` inputs, a focus is dropped for card purposes exactly when the last `pointerdown` came after the last `keydown`, or a touch or pen gesture is on that item; a tap is reported only for a touch or pen gesture on the clicked item, so a mouse click is never a tap; and a `pointercancel` ends the gesture without changing which kind of input came last (design Property 23). | R5.16 to R5.22 |
+
+#### Added Playwright Tests
+
+- **E8.** With a real mouse: open the view with a click on the Door. No card is shown and no item carries `data-card-open`. Hover a second item, move the pointer to empty ground: no card again. Then click an item, hover another, move away: no card.
+- **E9.** With a real mouse: click an item, press an arrow key. The card and the marker follow the newly focused item.
+- **E10.** Open the view with the keyboard: the first item's card is shown (guards today's behaviour).
+- **E11.** Touch: tap the Door and no card is shown; tap a stone and its card is shown; tap elsewhere and no card is shown.

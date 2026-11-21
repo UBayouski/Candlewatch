@@ -543,6 +543,140 @@ test.describe("the open card's item carries the marker (D22, costume review find
   });
 });
 
+// --- amendment 2026-11-20 (R5.16 to R5.22, D24): a card follows the keyboard, not the pointer ---------------------------------------
+
+/** The ids that carry the open card's marker. */
+const markedIds = async (page: Page): Promise<string[]> => (await markers(page)).map((m) => m.id);
+
+test.describe("a card follows the keyboard, not the pointer (D24)", () => {
+  test("E8: a mouse click on the Door opens the view with no card and no marker; hovering, leaving and clicking items leave none", async ({ browser }) => {
+    const app = await openGraveyardApp(browser, { fixture: burnedOutSmall });
+    try {
+      const { page } = app;
+      const history = (await storedState(page)).history;
+      await page.locator("#door").click();
+      await settle(page);
+      expect(await viewOf(page)).toBe("graveyard");
+      const ids = await itemIds(page);
+      expect(ids.length).toBeGreaterThanOrEqual(3);
+      expect(ids, "the focus still moves to an item when the view opens (CR3, R6.5)").toContain(await activeId(page));
+      expect(await cardLines(page), "opening with a mouse click shows no card").toBeNull();
+      expect(await markedIds(page), "opening with a mouse click marks no item").toEqual([]);
+
+      const first = await activeId(page);
+      const second = ids.find((id) => id !== first) ?? "";
+      await page.locator(`[id="${second}"]`).hover();
+      await settle(page);
+      expect(await cardLines(page), "hover shows the card (R5.4)").toEqual(await expectedLines(page, entryOfId(history, second)));
+      await page.mouse.move(1, 1);
+      await settle(page);
+      expect(await cardLines(page), "leaving a hovered item hides the card").toBeNull();
+      expect(await markedIds(page)).toEqual([]);
+
+      // Then a click on an item, a hover over another, and out again.
+      await page.locator(`[id="${second}"]`).click();
+      await settle(page);
+      expect(await activeId(page), "a mouse click still gives the button real DOM focus").toBe(second);
+      const third = ids.find((id) => id !== first && id !== second) ?? "";
+      await page.locator(`[id="${third}"]`).hover();
+      await settle(page);
+      expect(await cardLines(page)).toEqual(await expectedLines(page, entryOfId(history, third)));
+      await page.mouse.move(1, 1);
+      await settle(page);
+      expect(await cardLines(page), "after a click and a hover, leaving hides the card").toBeNull();
+      expect(await markedIds(page)).toEqual([]);
+      expect(app.errors).toEqual([]);
+    } finally {
+      await app.close();
+    }
+  });
+
+  test("E8 mixed: opened by the g key, the first card shows; a mouse click on another item and a move to empty ground leave no card and no marker", async ({ browser }) => {
+    const app = await openGraveyardApp(browser, { fixture: burnedOutSmall });
+    try {
+      const { page } = app;
+      const history = (await storedState(page)).history;
+      await openView(page);
+      const first = await activeId(page);
+      expect(await cardLines(page), "opened by key: the first item's card shows").toEqual(await expectedLines(page, entryOfId(history, first)));
+      expect(await markedIds(page)).toEqual([first]);
+      const other = (await itemIds(page)).find((id) => id !== first) ?? "";
+      await page.locator(`[id="${other}"]`).click();
+      await settle(page);
+      expect(await activeId(page)).toBe(other);
+      await page.mouse.move(1, 1);
+      await settle(page);
+      expect(await cardLines(page), "the click moved focus off the first item and pinned nothing").toBeNull();
+      expect(await markedIds(page)).toEqual([]);
+      expect(app.errors).toEqual([]);
+    } finally {
+      await app.close();
+    }
+  });
+
+  test("E9: after a mouse click on an item, an arrow key returns to keyboard behaviour: the card and the marker follow the newly focused item", async ({ browser }) => {
+    const app = await openGraveyardApp(browser, { fixture: burnedOutSmall });
+    try {
+      const { page } = app;
+      const history = (await storedState(page)).history;
+      await page.locator("#door").click();
+      await settle(page);
+      const ids = await itemIds(page);
+      const clicked = ids[0] ?? "";
+      const next = ids[1] ?? "";
+      expect(await groupOf(page, next)).toBe(await groupOf(page, clicked));
+      await page.locator(`[id="${clicked}"]`).click();
+      await settle(page);
+      await press(page, "ArrowRight");
+      expect(await activeId(page), "the arrow key moves on from the clicked item").toBe(next);
+      expect(await cardLines(page)).toEqual(await expectedLines(page, entryOfId(history, next)));
+      expect(await markedIds(page)).toEqual([next]);
+      expect(app.errors).toEqual([]);
+    } finally {
+      await app.close();
+    }
+  });
+
+  test("E10: opened by the keyboard, the first item's card is shown", async ({ browser }) => {
+    const app = await openGraveyardApp(browser, { fixture: burnedOutSmall });
+    try {
+      const { page } = app;
+      const history = (await storedState(page)).history;
+      await openView(page);
+      const first = await activeId(page);
+      expect(await cardLines(page)).toEqual(await expectedLines(page, entryOfId(history, first)));
+      expect(await markedIds(page)).toEqual([first]);
+      expect(app.errors).toEqual([]);
+    } finally {
+      await app.close();
+    }
+  });
+
+  test("E11: touch: a tap on the Door opens no card, a tap on a stone shows its card, a tap elsewhere hides it", async ({ browser }) => {
+    const app = await openGraveyardApp(browser, { fixture: burnedOutSmall, viewport: VIEWPORTS.phone, mobile: true });
+    try {
+      const { page } = app;
+      const history = (await storedState(page)).history;
+      await page.locator("#door").tap();
+      await settle(page);
+      expect(await viewOf(page)).toBe("graveyard");
+      expect(await cardLines(page), "a tap on the Door opens no card by itself").toBeNull();
+      expect(await markedIds(page)).toEqual([]);
+      const stone = (await itemIds(page))[0] ?? "";
+      await page.locator(`[id="${stone}"]`).tap();
+      await settle(page);
+      expect(await cardLines(page)).toEqual(await expectedLines(page, entryOfId(history, stone)));
+      expect(await markedIds(page)).toEqual([stone]);
+      await tapAway(page);
+      expect(await cardLines(page)).toBeNull();
+      expect(await markedIds(page)).toEqual([]);
+      expect(app.errors).toEqual([]);
+    } finally {
+      await app.close();
+    }
+  });
+});
+
 test.describe("E2: every card by tap alone", () => {
   for (const fixture of E2_FIXTURES) {
     test(`${fixture.name}: a tap shows the card, a second tap hides it, a tap elsewhere hides it`, async ({ browser }) => {
@@ -553,7 +687,7 @@ test.describe("E2: every card by tap alone", () => {
         await page.locator("#door").tap();
         await settle(page);
         expect(await viewOf(page)).toBe("graveyard");
-        // Opening moved the focus to the first stop and showed its card: a tap on the panel clears it, so every card below is a tap's.
+        // Opening by touch moves the focus to the first stop and shows no card (D24); a tap on the panel clears nothing, so every card below is a tap's.
         await tapAway(page);
         expect(await cardLines(page)).toBeNull();
         const drawn = await itemIds(page);

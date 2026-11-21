@@ -1040,3 +1040,138 @@ Reflection on the prework: the requirements' P1 and P3 both concern grouping, bu
 - **D21. Graveyard text is 14 px at 360 x 640 (first costume review, advisory 6).** Read: `controls-and-access` R13.4 sets "the body text SHALL be at least 16 CSS pixels" for that spec's interface (the setup controls, the zone and the dialogs). This spec's requirements set no text size for the view: R4.14 sets only contrast, and L11 records the 12 px of the first layout. So the 16 px floor does not bind the count lines, the labels, the Stone text or the card. Where the layout has room, every text of the view is now 23.4 units (14 px at the smallest scale, 18.7 px at 1280 x 800) on 28-unit lines; the card's lines are 27 units so eight lines and the padding still fit 240. To pay for it the Stones are 74 high (44.4 px, still above the 44 px hit size), the rows and lines move (graveyard label 215, Stones 257 and 341, count line 429, Shelf label 463, shelf rows 505, 589 and 673, count line 761, ending at 789, 16 units above the return control). S, D and K are unchanged; Properties 16 and 17 and the ring rule of D14 hold. What 16 px would cost: 26.7-unit text on 32-unit lines needs 4 more units for each of the six text lines (24) and two-line Stones of at least 78 units (8 more for two rows), 32 units in all, against 16 left above the return control; one row of Stones (S = 5) or one Day_Shelf (D = 2) would have to go. The Stone face at 14 px holds about 6 characters of the intent instead of 8 ("No inte…"); the full intent stays in the Item's name and on its card (R4.3).
 - **D22. The open card's item carries the ring (first costume review, finding 1, R5.9).** On touch and hover nothing showed which item the card described. The item whose card is shown gets `data-card-open`, drawn with the same 3 px ivory ring with a 3 px offset as `:focus-visible` (forced colours: Highlight), in every input mode, and loses it when the card hides. `cardMarker(state, drawn)` in `card.ts` decides it: the shown id when it is drawn, else none, so at most one item carries it (Property 15 checks it on every step). The ring keeps D14's clearance, because it is the focus ring's shape. `graveyard.spec.ts` checks on the phone that a tapped item shows the ring while its card is open and loses it on a second tap and on a tap elsewhere, and by keyboard and hover that it follows the card and clears on Escape.
 - **D23. Ghost columns keep their fixed x (first costume review, advisory 5, declined).** A fixed offset of up to 15 units per slot does not fit: a ghost cell is 90 by 95 units, a ghost at full size is 70 by 75 and drifts 8 units each way (86 by 91), so 2 units are left on each side of every cell. Any offset over 2 units takes a full-size ghost out of its cell at a drift extreme, which Property 20 and the keep-clear check of `controls-and-access` P10 forbid. The equal pitch stays; a smaller drift or smaller ghosts would make room, and neither was asked for. **Superseded by room-art task 1.4, A20:** the cells, `GHOST_SLOTS` and drift stay. The resting position moves inside each cell by an identity-seeded offset bounded by its spare room, small at size 1 and larger at small sizes, with tilt capped at 3 degrees (`room-art` R5.6 to R5.8).
+
+## Amendment 2026-11-20: a card follows the keyboard, not the pointer
+
+*(Appended after the spec was finished. Nothing above is changed. Requirements: R5.16 to R5.22 and P17 in `requirements.md`; tasks: 29 in `tasks.md`. This revises the first draft of this amendment, which marked only a mouse press on an item and so missed the Door.)*
+
+### The bug and its causes
+
+Two ways to the same fault. Both end with the card state holding `focused` for an item that only a pointer focused, so every `unhover` falls back to that item's card (`card.ts`, `unhover`):
+
+1. **A click on an item.** Items are buttons, so a mouse press focuses the button. `focusin` in `view-dom.ts` sends `cardStep(focus)` unless `guardFocus` drops the event, and `tap-guard.ts` drops only the focus that follows a touch or pen `pointerdown` on that item (D11). A mouse `pointerdown` "ends any gesture and is neither".
+2. **Opening with a mouse click on the Door** (found on the live site in a fresh profile; the more common case). `focusFirst()` focuses the first item when the view opens (CR3). The Door is not an item, so `guardDown` records nothing for it, and `guardFocus` does not drop that focus. The first item's card is shown, and `data-card-open` is set, before the user has touched an item. A second cause hides behind it: the `pointerdown` listener starts with `if (view !== "graveyard") return;`, so a press in the Room, such as the one on the Door, never reaches the guard at all.
+
+`card.ts` is right: its comment on `focus` says "keyboard focus (not a pointer's)". The DOM layer sent it focus that a pointer had caused.
+
+### What calls `guardReset` today
+
+Read from `view-dom.ts`:
+
+- line 426, the first statement of the `keydown` listener (any key, in any view): `guard = guardReset()`;
+- line 422, the `pointercancel` listener: `guard = guardReset()`;
+- line 497, in `apply`, when the view leaves the graveyard: `guard = NO_GESTURE`.
+
+All three clear the touch gesture. Under a modality rule the first is "a key was pressed" and the other two are not, so they are split (below).
+
+### D24. The guard records the kind of the last input
+
+D11 stays true for touch and pen. The mouse mark of the first draft is replaced by a modality, which also covers the Door:
+
+```ts
+export type Modality = "keyboard" | "pointer";
+export interface TapGuard {
+  readonly gesture: string | null; // a touch or pen gesture on this item (D11, unchanged)
+  readonly modality: Modality;     // the kind of the last input: a pointerdown, or a key press
+}
+export const NO_GESTURE: TapGuard = { gesture: null, modality: "keyboard" }; // start state, and the state after a key press
+```
+
+- `guardDown(guard, pointerType, itemId)`: **any** pointer type, anywhere, sets `modality` to `"pointer"`. A touch or pen on an item also starts `gesture` (as before); a touch or pen elsewhere is a tap-away with `gesture` cleared (as before); a mouse on an item or elsewhere clears `gesture` and is neither a tap nor a tap-away (as before).
+- `guardFocus(guard, itemId)`: `drop` is true when `guard.modality === "pointer"` or `guard.gesture === itemId`. The second clause is always implied by the first, because a gesture is only ever started by a pointerdown; it stays in the text so the existing touch rule (D11) reads unchanged.
+- `guardClick(guard, itemId)`: unchanged in meaning. `tap` is true exactly when `gesture === itemId`, so a mouse click is never a tap. It ends the gesture and leaves the modality alone.
+- `guardReset()`: returns `NO_GESTURE` (modality `"keyboard"`). It is for a key press only (line 426).
+- **New `guardCancel(guard)`**: returns `{ gesture: null, modality: guard.modality }`. It is for `pointercancel` (line 422) and for leaving the graveyard (line 497): the touch gesture ends, and the modality is not switched to `"keyboard"`, because no key was pressed.
+
+`view-dom.ts` wiring:
+
+- `pointerdown` listener: call `guardDown` in **every** view, so a press on the Door in the Room sets the modality before the click opens the view. `cardStep(tap-away)` stays inside the graveyard view only (`view === "graveyard" && result.away`).
+- `focusin`: unchanged in order. `remember` and `applyTabStops` always run; `cardStep(focus)` runs only when `guardFocus` does not drop. A dropped focus leaves the element with real DOM focus.
+- `focusFirst()` and `focusDoor()` are unchanged: focus still moves as CR3 and R6.5 require. Only whether the card follows changes.
+- Nothing in `src/` stops propagation of `pointerdown` or `keydown` (searched), so the existing document listeners see every press.
+
+Walk-through (modality at each step, and whether the card follows focus):
+
+| Input | Modality | Card |
+|---|---|---|
+| Open by `g`, or Enter or Space on the Door | key press, so `keyboard` | `focusFirst` focus is kept: the first item's card shows (as today) |
+| Open by a mouse click or a touch on the Door | pointerdown, so `pointer` | `focusFirst` focus is dropped: no card, no marker, focus on the first item |
+| Mouse click on an item, then hover and leave others | `pointer` | focus dropped; each `unhover` finds `focused === null` and hides the card |
+| Any key press, then focus moves (arrow, Home, End, Tab) | `keyboard` | focus is kept: the card follows the focused item |
+| Touch tap on an item | `pointer` | focus dropped, `click` is the tap (toggle), as D11 |
+| Touch tap elsewhere | `pointer` | `tap-away`, as D11 |
+| Keyboard focus on A, then hovering B and leaving, no pointerdown | `keyboard` | unchanged: `unhover` falls back to A's card (existing e2e cases) |
+| `pointercancel` | unchanged | the gesture ends, the modality stays |
+
+What does not change:
+
+- `card.ts` and its rules (section 3.6). Section 3.6 needs no edit; the comment on `focus` becomes true in the DOM layer.
+- `focusout` still sends `blur`, so a pointer click on item B while item A has keyboard focus hides A's card (it moves DOM focus away from A) and B's hover card stays.
+- `remember` and the roving tab stop (R6.18) are as before: a dropped focus still records the item.
+- Enter on an item still shows its card (D13): `show-card` acts on the DOM-focused item, so it works after a mouse click too.
+- Escape, `g` and the other keys: unchanged. Keyboard-only use, touch and pen: unchanged except that a tap on the Door no longer opens a card.
+
+### Section 4.3, Events (restated for reading; the original text above stands)
+
+- `pointerdown` (any view): `guardDown` sets the modality to pointer. A touch or pen on an item marks the gesture (D11). A touch or pen outside any item, in the graveyard view, is `cardStep(tap-away)`.
+- `focusin` on an item: `remember`, then `cardStep(focus)` unless the guard drops it (the last input was a pointer, or the touch gesture is on this item).
+- `keydown`: `guardReset()` first, then the key map as before.
+- `pointercancel` and leaving the view: `guardCancel`.
+- `click` on an item: a tap when the touch or pen gesture was on it; a mouse click does nothing extra.
+
+### Properties after the amendment
+
+| Property | Status |
+|---|---|
+| 12 (roving focus keeps one stop and stays in its Group) | Holds unchanged: `focusin` still remembers the item. |
+| 15 (one card at most, shown by the rules) | Holds unchanged: `card.ts` is not touched, and the property tests `cardStep` directly. |
+| 22 (the view never triggers a room action) | Holds unchanged. |
+| Properties 1 to 11, 13, 14, 16 to 21 | Hold unchanged: they do not involve the guard. |
+| Existing e2e cases "hover shows a card without moving the focus, and leaving falls back to the focused Item's card" and "by keyboard and by hover the marker follows the card" (`graveyard.spec.ts` 417 and 521) | Hold unchanged: they use keyboard focus and a hover with no `pointerdown`. |
+| `tap-guard.test.ts`, four cases whose expected values state the old rule or the old state shape | **Superseded** and rewritten, not weakened: the touch tap case (`click.guard` is no longer `NO_GESTURE`, the modality stays `"pointer"`); "a mouse click is not a tap and its focus is not dropped" (the focus after a mouse pointerdown is dropped, the click is not a tap); "a gesture on one item never drops the focus of another or taps another" (the click on the other item is still no tap, but its focus is now dropped too while the last input was a pointer); and "a touch elsewhere is a tap-away" (the guard is `{ gesture: null, modality: "pointer" }`). The other four cases keep passing unchanged. |
+| Comments that say an opening card is shown by touch (`graveyard.spec.ts` line 556, `screenshots.spec.ts` line 91) | Stale after the change; reworded in task 29.1 (comments only; the steps stay, the tap on the panel is then a no-op). |
+
+**New: Property 23: The guard drops what a pointer focused, and only that.** *For any* sequence of `pointerdown` (mouse, touch or pen, on one of a few item ids or elsewhere), `pointercancel`, `keydown`, `focus` and `click` inputs: `guardFocus` drops a focus exactly when the last `pointerdown` came after the last `keydown` (the start counts as keyboard), or a touch or pen gesture is on that item; `guardClick` reports a tap exactly when a touch or pen gesture is on the clicked item, and never after a mouse press; a `keydown` leaves no gesture and the keyboard modality; a `pointercancel` clears the gesture and leaves the modality as it was.
+
+**Validates: Requirements 5.16, 5.18, 5.20, 5.21, 5.22** (requirements P17).
+
+Unit cases added with it (`tap-guard.test.ts`): mouse pointerdown, then focus, then click on the same item gives no card input and no tap; a pointerdown on a non-item (the Door) makes the next focus on any item dropped; a focus with no preceding pointerdown is a keyboard focus; a key press after a pointer input makes the next focus a keyboard focus; `pointercancel` keeps the modality.
+
+### How the graveyard screenshots open the view, and whether this change alters them
+
+Read from `e2e/screenshots.spec.ts` (`plainView`, `keyboardCard`, `touchCard`):
+
+| Picture | How the view is opened and prepared | Altered by this change |
+|---|---|---|
+| `graveyard-small-desktop` | `g` key, then Escape (keyboard) | No |
+| `graveyard-small-phone` | `g` key, then Escape (keyboard, phone viewport) | No |
+| `graveyard-large-desktop` | `g` key, then Escape (keyboard) | No |
+| `graveyard-large-phone` | `g` key, then Escape (keyboard, phone viewport) | No |
+| `graveyard-large-desktop-reduced` | `g` key, then Escape (keyboard, reduced motion) | No |
+| `graveyard-large-wide` | `g` key, then Escape, then `mouse.move(1, 1)` (a move, not a press) | No |
+| `graveyard-card-keyboard-desktop` | `g` key, then ArrowRight (keyboard) | No |
+| `graveyard-card-keyboard-phone` | `g` key, then ArrowRight (keyboard, phone viewport) | No |
+| `graveyard-card-touch-desktop` | Door `tap()`, a tap on the panel corner, then a tap on the first Stub of the Shelf (touch screen) | The route differs, the picture is not expected to: after the Door tap no card opens, so the tap on the panel clears nothing; the last tap shows the Stub's card as before. Confirmed by pixel comparison in task 29.5 |
+| `graveyard-card-touch-phone` | the same, on the phone | The same |
+
+No graveyard picture is opened by a mouse click. The eight keyboard pictures do not change: a key press sets the keyboard modality, so `focusFirst` still shows the first item's card, and Escape then hides it. The two touch pictures are the only ones whose route changes; task 29.5 retakes them into a scratch copy, compares the bytes with the files in `docs/screenshots/`, and retakes into `docs/screenshots/` only if they differ, then looks at each retaken picture.
+
+### Does anything depend on a card being shown on open?
+
+- **Accessibility (R7):** no. R7.3 and R7.4 put the card's text in the accessibility tree for each item through `aria-describedby` even when the card is not shown, so a screen reader does not need the card on screen. R7.9 and R7.10 (a heading names the view, one polite announcement) do not involve the card. R3.14 and CR3 require that focus move on open, not that a card show. R5.3 asks for a card on keyboard focus, which E10 still guards.
+- **Costume rule (`product.md`):** no. The rule says each moving or changing element shows one piece of state. The card shows an entry's details on demand, and its marker (D22, `data-card-open`) shows which item the card is for: a card that is not shown has no marker, so the marker and the card still agree (R5.9, Property 15). Showing fewer cards on open removes a case where the ring appeared with no input on that item.
+- **Tests:** only comments and two incidental setup steps assume an opening card (`graveyard.spec.ts` 449, 491 to 494 and 553 to 558, `screenshots.spec.ts` 93 to 98); each step still holds with no card to clear. `npm run verify` is the check.
+
+### Limit
+
+Some browsers, such as Safari on macOS, do not focus a button when it is clicked, so a click there sends no `focusin` at all. The change does nothing there and breaks nothing there. E8 to E11 run in Chromium only.
+
+### Tests, size and review
+
+- E8 to E11 (`e2e/graveyard.spec.ts`; E8 and E9 with a real mouse, E11 with touch) as in the requirements amendment. E8 fails on the current code first.
+- Size: built JavaScript plus CSS must stay within the 120 000-byte cap (measured 119 760 before this change, 240 bytes of room). If the change does not fit, it is reported; the cap is not raised and nothing else is cut.
+- Review: this is an interface change, so the `costume-reviewer` runs on it (task 29.6), and its verdict is recorded here.
+
+### Result
+
+Done by task 29 on 2026-11-20. Before: E8, the mixed case and E11 failed on the old code (the card of the first or the clicked item stayed shown after a mouse open, a mouse click and a touch open). After: they pass, with `card.ts` unchanged and the mixed case green through `focusout` alone; unit 122 files and 1,583 tests, end-to-end 555 passed and 9 skipped, `npm run check` clean. Size: JavaScript plus CSS 119,989 bytes against the 120,000 cap (119,760 before), so 11 bytes of room remain. Screenshots: the eight keyboard pictures are untouched; the two touch cards were retaken and differ by a few hundred pixels of at most 4 of 255 (desktop) and a few dozen (phone), looked at and the same picture. Costume review (a sub-agent of the Kiro CLI session): PASS with two minor findings. Finding 1: some pictures show the ivory ring on the first stone with no card; it is the keyboard `:focus-visible` ring after `g` and Escape, which shares the marker's outline by D14 and D22, and a mouse open draws no ring (checked: `:focus-visible` false, no marker); kept as it is. Finding 2: after a mouse or touch open a sighted user sees no card until a hover or tap; all details stay one gesture away and in the accessibility tree (R7.3, R7.4); accepted. Limit: where a click does not focus a button (Safari on macOS) the change has no effect; the new cases run in Chromium only.
