@@ -3,8 +3,8 @@
 import type { Indexed } from "./days";
 import { formatCarvedDate } from "./days";
 import type { NavLayout } from "./focus";
-import { dateLabelRect, moreRect, stoneRect, stubRect } from "./geometry";
-import type { Rect } from "./geometry";
+import { dateLabelRect, moreRect, stoneFace, stoneRect, STONES_PER_ROW, stubRect } from "./geometry";
+import type { Rect, StoneFace } from "./geometry";
 import { cardLines, daysCountLine, itemName, moreText, stoneIntent, stonesCountLine } from "./text";
 import type { VisibleHistory } from "./visible";
 
@@ -21,6 +21,7 @@ export interface PlacedStone extends PlacedItem {
   /** The Carved_Date and the intent shown on the face (R4.2, R4.3). */
   readonly date: string;
   readonly intent: string;
+  readonly face: StoneFace;
 }
 
 export interface ShelfRowPlan {
@@ -47,11 +48,11 @@ const placed = (item: Indexed, rect: Rect): PlacedItem => ({ item, id: item.id, 
 
 /** Stone i at `stoneRect(i)`; Day_Shelf row r at `shelfRowY(r)` with stub j at `stubRect(r, j)` (L7). */
 export function planView(visible: VisibleHistory): ViewPlan {
-  const stones = visible.stones.map((item, i): PlacedStone => ({
-    ...placed(item, stoneRect(i)),
-    date: formatCarvedDate(item.dayKey),
-    intent: stoneIntent(item.entry),
-  }));
+  const stones = visible.stones.map((item, i): PlacedStone => {
+    const rect = stoneRect(i);
+    return { ...placed(item, rect), date: formatCarvedDate(item.dayKey), intent: stoneIntent(item.entry),
+      face: stoneFace(item.id, rect, i < STONES_PER_ROW) };
+  });
   const rows = visible.shelves.map((shelf, r): ShelfRowPlan => {
     const text = moreText(shelf.hiddenStubs);
     return {

@@ -16,9 +16,10 @@
   --g-text: #efe6cf; /* scene --wax-ivory, interface --ui-text */
   --g-text-subtle: #cfc2a2; /* scene --wax-shade: 11.15:1 on the core */
   --g-panel: #080b12; /* scene --zone-bg-darkest, the zone at rest (D8, D18) */
-  --g-stone: #14192a; /* scene --wall-top: the stone is the night wall's stone (D15) */
-  --g-stone-edge: #8a93a6; /* scene --smoke-colour: weathered stone edge */
-  --g-ground: #5a4a52; /* scene --dawn-warm: the earth the stones stand in and the shelf board, 2.38:1 on the core (D15) */
+  --g-stone: #292b35; /* Weathered face under the pale cut edge. */
+  --g-stone-edge: #b5bcc9;
+  --g-plaque: #242737;
+  --g-ground: #5a4a52; /* The earth the stones stand in and the shelf board, 2.38:1 on the core (D15) */
   --g-wax: #efe6cf; /* scene --wax-ivory */
   --g-wax-shade: #cfc2a2; /* scene --wax-shade */
   --g-wick: #8a93a6; /* scene --smoke-colour: a burned wick is ash grey */
@@ -135,48 +136,95 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Stone: 100 by 74 units (60 by 44.4 px at 360 x 640), an arched top, standing in the ground; the Carved_Date and the intent on the
-   face, two 28-unit lines (L7, D14, D15, D21). */
+/* The hit target and focus ring frame the carved shape without clipping it. */
 #ui .graveyard .stone {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: flex-start;
+  --stone-mineral: #3d3e3d;
+  --stone-lichen: #a7a27555;
+  --stone-wear-x: 15%;
+  --stone-crack: linear-gradient(128deg, transparent 38%, #181711 42% 51%, transparent 54%) 94% 23% / 17% 17% no-repeat;
   width: calc(100 * var(--u, 0.6px));
   height: calc(74 * var(--u, 0.6px));
-  padding: calc(10 * var(--u, 0.6px)) calc(6 * var(--u, 0.6px)) calc(4 * var(--u, 0.6px));
-  background: var(--g-stone);
-  border: var(--g-line) solid var(--g-stone-edge);
-  border-bottom: 0;
-  border-radius: calc(44 * var(--u, 0.6px)) calc(44 * var(--u, 0.6px)) 0 0;
   text-align: center;
 }
 
-/* The ground the stone stands in: under the stone and 5 units past each side, so the ground of a row is one line where stones stand
-   side by side, and there is no ground where there is no stone (D15). */
+#ui .graveyard .stone[data-crown="1"] {
+  --stone-mineral: #48413b;
+  --stone-lichen: #9a8b685c;
+  --stone-wear-x: 85%;
+  --stone-crack: linear-gradient(48deg, transparent 39%, #1c1713 42% 49%, transparent 53%) 11% 18% / 12% 30% no-repeat;
+}
+
+#ui .graveyard .stone[data-crown="2"] {
+  --stone-mineral: #363e43;
+  --stone-lichen: #929b7754;
+  --stone-wear-x: 70%;
+  --stone-crack: none;
+}
+
+#ui .graveyard .stone::before,
 #ui .graveyard .stone::after {
   content: "";
   position: absolute;
-  left: calc(-5 * var(--u, 0.6px) - var(--g-line));
-  right: calc(-5 * var(--u, 0.6px) - var(--g-line));
-  bottom: calc(-4 * var(--u, 0.6px));
-  height: calc(4 * var(--u, 0.6px));
-  background: var(--g-ground);
+  left: calc(var(--stone-x) * var(--u, 0.6px));
+  top: calc(var(--stone-y) * var(--u, 0.6px));
+  width: calc(var(--stone-w) * var(--u, 0.6px));
+  height: calc(var(--stone-h) * var(--u, 0.6px));
+  clip-path: var(--stone-shape);
+  pointer-events: none;
+}
+
+#ui .graveyard .stone::before {
+  background: linear-gradient(105deg, var(--g-stone-edge) 18%, #d4cbb8 80%);
+}
+
+#ui .graveyard .stone::after {
+  transform: translate(calc(-.45 * var(--g-line)), var(--g-line)) scaleX(.95);
+  transform-origin: center top;
+  height: calc(var(--stone-h) * var(--u, 0.6px) - var(--g-line));
+  background:
+    var(--stone-crack),
+    radial-gradient(ellipse at var(--stone-wear-x) 94%, var(--stone-lichen), transparent 38%),
+    radial-gradient(ellipse at var(--stone-wear-x) 34%, #1718137a, transparent 34%),
+    radial-gradient(ellipse at 34% 11%, #b7aa895c, transparent 35%),
+    radial-gradient(ellipse at 28% 74%, #9790782e, transparent 32%),
+    linear-gradient(var(--stone-mineral) 55%, #282820);
 }
 
 #ui .graveyard .stone-date,
 #ui .graveyard .stone-intent {
-  display: block;
-  min-width: 0;
-  font-size: calc(23.4 * var(--u, 0.6px)); /* 14 px at 360 x 640 (D21) */
-  line-height: calc(28 * var(--u, 0.6px));
+  position: absolute;
+  z-index: 1;
+  left: calc((var(--stone-x) + 9) * var(--u, 0.6px));
+  top: calc((var(--stone-y) + var(--stone-text) + var(--stone-line, 0)) * var(--u, 0.6px));
+  width: calc((var(--stone-w) - 18) * var(--u, 0.6px));
+  font-size: calc(20 * var(--u, 0.6px));
+  line-height: calc(18 * var(--u, 0.6px));
   overflow: hidden;
   white-space: nowrap;
-  text-overflow: ellipsis; /* the full intent stays in the DOM and in the name (R4.3) */
+  text-overflow: ellipsis;
 }
 
-#ui .graveyard .stone-date {
-  font-weight: 700;
+#ui .graveyard .stone-date { font-weight: 700; }
+#ui .graveyard .stone-intent { --stone-line: 18; }
+
+@media (min-width: 1000px) {
+  #ui .graveyard .stone-intent {
+    left: calc((var(--stone-x) + 7) * var(--u));
+    width: calc((var(--stone-w) - 14) * var(--u));
+    font-size: calc(18 * var(--u));
+  }
+
+  #ui .graveyard .stone[data-wrap-intent] .stone-intent {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    left: calc((var(--stone-x) + 6) * var(--u));
+    width: calc((var(--stone-w) - 12) * var(--u));
+    font-size: calc(15.75 * var(--u));
+    line-height: calc(14 * var(--u));
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
 }
 
 /* Stub: a burned-down candle, a short wax body in the scene's wax colours with its wick, standing on the day's shelf (D15). The hit
@@ -218,6 +266,22 @@
   background: var(--g-wick);
   border-radius: calc(1 * var(--u, 0.6px));
   transform: translateX(-50%);
+}
+
+@media (min-width: 1000px) {
+  #ui .graveyard .stub-wax {
+    width: calc(40 * var(--u));
+    height: calc(42 * var(--u));
+    border-radius: 50% 50% 46% 46% / 12% 12% 7% 7%;
+    background:
+      radial-gradient(ellipse at 53% 30%, #594534 8%, #bfae8f 32%, var(--g-wax) 55%, transparent 70%) center top / 100% 19% no-repeat,
+      radial-gradient(ellipse at 24% 17%, #faf0d7 0 45%, transparent 68%) 15% 22% / 23% 62% no-repeat,
+      linear-gradient(90deg, var(--g-wax-shade), var(--g-wax) 31%, var(--g-wax-shade) 71%, #b9a686 91%, var(--g-wax-shade));
+  }
+  #ui .graveyard .stub-wick {
+    bottom: calc(42 * var(--u));
+    height: calc(13 * var(--u));
+  }
 }
 
 /* The shelf row: the date label and the "+n more" text. */
@@ -284,6 +348,13 @@
   line-height: calc(28 * var(--u, 0.6px));
   overflow: hidden;
   pointer-events: none;
+}
+
+#ui .graveyard .card[data-stone] {
+  background: linear-gradient(155deg, #363947, transparent 65%), var(--g-plaque);
+  border-color: var(--g-stone-edge);
+  border-radius: 6px;
+  box-shadow: 0 0 0 4px var(--g-panel), inset 0 0 0 2px #161822;
 }
 
 #ui .graveyard .card-line {
@@ -364,7 +435,6 @@
 
 /* --- hover is for pointers that can hover; nothing depends on it (the card carries the meaning) --- */
 @media (hover: hover) {
-  #ui .graveyard .stone:hover,
   #ui .graveyard button.door:hover {
     border-color: var(--g-amber);
   }
@@ -399,6 +469,11 @@
     color: CanvasText;
   }
 
+  #ui .graveyard .stone::before { background: CanvasText; }
+  #ui .graveyard .stone::after,
+  #ui .graveyard .card[data-stone] { background: Canvas; }
+  #ui .graveyard .card[data-stone] { border-color: CanvasText; }
+
   #ui .graveyard .label,
   #ui .graveyard .count,
   #ui .graveyard .empty,
@@ -410,7 +485,6 @@
   #ui .graveyard .stub-wax,
   #ui .graveyard .stub-wick,
   #ui .graveyard .stub::after,
-  #ui .graveyard .stone::after,
   #ui .graveyard button.door::after,
   #ui .graveyard .door-shut::after {
     background: CanvasText;
@@ -431,6 +505,7 @@
   #ui .graveyard {
     --g-line: max(2px, calc(3 * var(--u, 0.6px)));
     --g-text-subtle: #efe6cf;
+    --g-stone-edge: #ffffff;
   }
 
   #ui .graveyard .stone,
@@ -447,7 +522,7 @@
  #ui .graveyard button.door::after { background: Highlight; }
 }
 
-/* room-art Place: all item geometry is unchanged. */
+/* Room-art Place sky and ground palette. */
 #ui .graveyard { --window-night: #0d1424; --window-moon: #1a2540; --window-dawn: #566683; --dawn-cool: #4a5a78; --dawn-warm: #5a4a52; --room-night: #05070d; }
 #ui .graveyard svg.place { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: visible; display: block; }
 #ui .graveyard { --set-earth-a: #5b4a3e; --set-earth-b: #3a2f28; --set-pebble: #6a5a4c; --set-blade: #566650; --set-mound: #745e4c; --set-stone-side: #566683; --set-shadow: #05070d;
@@ -459,9 +534,9 @@
 .pg-h { stop-color: var(--set-earth-a); } .pg-0 { stop-color: var(--set-earth-a); } .pg-1 { stop-color: var(--set-earth-b); }
 .p-stars { opacity: calc(1 - var(--dawn)); } .p-stars circle { fill: var(--sky-star); }
 .p-tower { fill: var(--set-hill-near); } .p-hill-far { fill: var(--set-hill-far); } .p-hill-mid { fill: var(--set-hill-mid); } .p-hill-near { fill: var(--set-hill-near); }
-.e-pebble { stroke: var(--set-pebble); stroke-width: 4; stroke-linecap: round; stroke-opacity: 0.6; fill: none; }
+.e-pebble { stroke: var(--set-pebble); stroke-width: 3; stroke-linecap: round; stroke-opacity: .48; fill: #3b3128; fill-opacity: .58; }
 .e-blade { stroke: var(--set-blade); stroke-width: 1.3; stroke-linecap: round; fill: none; stroke-opacity: 0.7; }
-.p-mound { fill: var(--set-mound); } .p-tuft { stroke: var(--set-blade); stroke-width: 1.6; stroke-linecap: round; fill: none; }
+.p-mound { fill: var(--set-mound); } .p-tuft { stroke: var(--set-blade); stroke-width: 2; stroke-linecap: round; fill: none; }
 .p-side { fill: var(--set-stone-side); } .p-shadow { fill: var(--set-shadow); fill-opacity: 0.6; }
 .b-top { fill: var(--set-board-top); } .b-front { fill: var(--set-board-front); } .b-grain { stroke: var(--set-board-grain); stroke-width: 1; fill: none; } .b-iron { fill: var(--set-iron); }
 .p-night { fill: var(--room-night, #05070d); }

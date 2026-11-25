@@ -2,8 +2,9 @@
 // Shared room-art browser readings. The stored states and clock setup come from the existing fixtures.
 import { inflateSync } from "node:zlib";
 import type { Page } from "@playwright/test";
+import { LANDSCAPE_WINDOW, WINDOW } from "../src/scene/constants";
 import { WALL, WALL_ORIGIN_X, WALL_ORIGIN_Y, wallBlocks, wallHeights } from "../src/scene/setting";
-import { stageBox } from "../src/ui/layout";
+import { LANDSCAPE_WINDOW_GUARD, placeControls, stageBox } from "../src/ui/layout";
 import { FIXTURES, STATES, openScene } from "./scene-fixtures";
 import { openApp, settle } from "./controls-fixtures";
 import { setVisibility, smallHistory, largeHistory } from "./graveyard-fixtures";
@@ -27,6 +28,15 @@ export function roomToPx(w: number, h: number, x: number, y: number): { x: numbe
   return { x: s.ox + x * s.scale, y: s.oy + y * s.scale };
 }
 
+/** Project a known point on the compact window through the current composition. */
+export function windowPoint(w: number, h: number, x: number, y: number): { x: number; y: number } {
+  if (!placeControls(w, h).landscapeScene) return { x, y };
+  return {
+    x: LANDSCAPE_WINDOW.x + x - WINDOW.x,
+    y: LANDSCAPE_WINDOW.y + (y - WINDOW.y) * LANDSCAPE_WINDOW.height / WINDOW.height,
+  };
+}
+
 export interface WallSample {
   readonly board: { readonly x: number; readonly y: number };
   readonly joint: { readonly x: number; readonly y: number; readonly width: number };
@@ -35,8 +45,11 @@ export interface WallSample {
 }
 
 /** The nearest sampleable board centre and its own stepped joint. Null joints are skipped (Q44). */
-export function wallSample(sx: number, sy: number): WallSample {
+export function wallSample(sx: number, sy: number, viewport?: { width: number; height: number }): WallSample {
   const tileH = wallHeights(WALL.seed).reduce((a, b) => a + b, 0);
+  const guard = viewport && placeControls(viewport.width, viewport.height).landscapeScene ? LANDSCAPE_WINDOW_GUARD : null;
+  const nearWindow = (x: number, y: number) => guard && x > guard.x - 5 && x < guard.x + guard.w + 5 &&
+    y > guard.y - 5 && y < guard.y + guard.h + 5;
   let best: WallSample | null = null;
   let distance = Infinity;
   for (const b of wallBlocks(WALL.seed)) {
@@ -44,13 +57,15 @@ export function wallSample(sx: number, sy: number): WallSample {
     for (let dx = -4; dx <= 4; dx++) for (let dy = -3; dy <= 4; dy++) {
       const x = WALL_ORIGIN_X + b.cx + dx * WALL.tileW;
       const y = WALL_ORIGIN_Y + b.cy + dy * tileH;
+      const joint = { x: b.joint.x + dx * WALL.tileW, y: b.joint.y + dy * tileH, width: b.joint.width };
       // The approved sampler excludes the window, door and off-stage centres.
       if (x <= 20 || x >= 580 || y <= 20 || y >= 870 ||
-          (x > 226 && x < 374 && y < 300) || (x < 120 && y > 780)) continue;
+          (x > 226 && x < 374 && y < 300) || (x < 120 && y > 780) ||
+          nearWindow(x, y) || nearWindow(joint.x, joint.y)) continue;
       const d = (x - sx) ** 2 + (y - sy) ** 2;
       if (d >= distance) continue;
       distance = d;
-      best = { board: { x, y }, joint: { x: b.joint.x + dx * WALL.tileW, y: b.joint.y + dy * tileH, width: b.joint.width }, course: b.c, block: b.i };
+      best = { board: { x, y }, joint, course: b.c, block: b.i };
     }
   }
   if (!best) throw new Error(`no wall joint near ${sx},${sy}`);

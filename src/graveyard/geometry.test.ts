@@ -1,7 +1,7 @@
 // ghosts-and-graveyard R3.9, R4.10 to R4.13, R5.10, R5.11, R6.19 (design 3.4, Section 1, L1, L7 to L10 as amended by D14, D16, D18,
 // D19): the graveyard view's room-unit geometry.
 import { describe, expect, it } from "vitest";
-import { DOOR_RECT as UI_DOOR_RECT, FLOOR_UNITS, GHOST_CELLS, KEEP_CLEAR_COLUMN_UNITS, KEEP_CLEAR_WINDOW_UNITS, stageBox } from "../ui/layout";
+import { DOOR_RECT as UI_DOOR_RECT, FLOOR_UNITS, KEEP_CLEAR_COLUMN_UNITS, KEEP_CLEAR_WINDOW_UNITS, stageBox } from "../ui/layout";
 import {
   TEXT_LINE_H,
   CARD_BOUNDS,
@@ -75,10 +75,9 @@ describe("the constants of L1, L7 and L9 as amended by D14, D16, D18 and D19", (
     expect(TEXT_GAP).toBe(Math.ceil((RING_PX + RING_CLEAR_PX) / MIN_SCALE));
   });
 
-  it("puts the stones at x 30 + 110 i, y 257 + 84 row, 100 by 74 (two rows of five)", () => {
-    const xs = [30, 140, 250, 360, 470];
-    for (let i = 0; i < 10; i++) expect(stoneRect(i), `stone ${i}`).toEqual({ x: xs[i % 5], y: i < 5 ? 257 : 341, w: 100, h: 74 });
-    expect(right(stoneRect(4))).toBe(570);
+  it("stages two staggered rows of five 100 by 74 targets", () => {
+    for (let i = 0; i < 10; i++) expect(stoneRect(i), `stone ${i}`).toEqual({ x: (i < 5 ? 40 : 25) + 110 * (i % 5), y: i < 5 ? 257 : 341, w: 100, h: 74 });
+    expect(right(stoneRect(4))).toBe(580);
     expect(bottom(stoneRect(9))).toBe(415);
   });
 
@@ -164,10 +163,6 @@ describe("the Door (R3.9, L1)", () => {
 
   it("is clear of the window pane", () => {
     expect(separation(DOOR_RECT, KEEP_CLEAR_WINDOW_UNITS)).toBeGreaterThan(0);
-  });
-
-  it("is clear of every ghost cell (the lowest ends at 785, 20 units above)", () => {
-    for (const cell of GHOST_CELLS) expect(separation(DOOR_RECT, cell)).toBeGreaterThanOrEqual(20);
   });
 
   it("equals DOOR_RECT of src/ui/layout.ts", () => {

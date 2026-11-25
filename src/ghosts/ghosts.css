@@ -66,9 +66,9 @@
 }
 
 @keyframes ghost-drift {
-  from { transform: translate(-8px, 6px); }
-  50% { transform: translate(5px, -8px); }
-  to { transform: translate(8px, 4px); }
+  from { translate: -8px 6px; }
+  50% { translate: 5px -8px; }
+  to { translate: 8px 4px; }
 }
 
 .ghost-layer .ghost[data-slot="0"] .drift { animation-duration: 14s; animation-delay: 0s; }

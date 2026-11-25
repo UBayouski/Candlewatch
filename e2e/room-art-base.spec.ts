@@ -12,10 +12,10 @@ const row = (png: Buffer, viewport: { width: number; height: number }, y: number
   }));
 
 test.describe("room-art E15: the lit base", () => {
-  for (const viewport of [VIEWPORTS_ART[0], VIEWPORTS_ART[3]]) {
-    test(`${viewport.name}: dish, lip, and short shadow`, async ({ browser }) => {
+  for (const [viewport, fixture] of [[VIEWPORTS_ART[0], FIXTURES.litHalf], [VIEWPORTS_ART[3], FIXTURES.litHalf], [VIEWPORTS_ART[3], FIXTURES.litStart]] as const) {
+    test(`${viewport.name} ${fixture.name}: dish, lip, and short shadow`, async ({ browser }) => {
       test.setTimeout(90_000);
-      const app = await openScene(browser, FIXTURES.litHalf, { viewport });
+      const app = await openScene(browser, fixture, { viewport });
       try {
         const page = app.page;
         await page.addStyleTag({ content: "#ui,.ghost-layer{display:none!important}" });
@@ -24,12 +24,17 @@ test.describe("room-art E15: the lit base", () => {
           const p = roomToPx(viewport.width, viewport.height, x, y);
           return patch(on, p.x, p.y);
         };
-        const ring = point(244, 891), inside = point(259, 891.6), front = point(150, 896);
-        const lip = row(on, viewport, 890.2), under = row(on, viewport, 891.9), top = row(on, viewport, 886.5);
+        const landscape = viewport.name === "desktop";
+        const ring = landscape ? point(235, 873) : point(244, 891);
+        const inside = landscape ? point(251, 873) : point(259, 891.6);
+        const front = point(150, landscape ? 892 : 896);
+        const lip = row(on, viewport, landscape ? 879.5 : 890.2);
+        const under = row(on, viewport, landscape ? 882 : 891.9);
+        const top = row(on, viewport, landscape ? 874 : 886.5);
         const values = { ringInside: ratio(ring, inside), ringFront: ratio(ring, front), lipUnder: ratio(lip, under), lipTop: ratio(lip, top) };
         console.log("E15", viewport.name, values);
         expect(values.ringInside).toBeGreaterThanOrEqual(viewport.name === "phone" ? 1.35 : 1.4);
-        expect(values.ringFront).toBeGreaterThanOrEqual(1.5);
+        if (fixture === FIXTURES.litHalf) expect(values.ringFront).toBeGreaterThanOrEqual(1.5);
         expect(values.lipUnder).toBeGreaterThanOrEqual(1.2);
         expect(values.lipTop).toBeGreaterThanOrEqual(1.05);
 

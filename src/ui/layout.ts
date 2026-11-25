@@ -22,6 +22,7 @@ export interface Stage {
 
 export interface Placement {
   readonly mode: "compact" | "wide";
+  readonly landscapeScene: boolean;
   /** Where the setup controls go: a row across the top, a grid left of the window pane, or a column beside the stage. */
   readonly variant: "top-row" | "left-region" | "column";
   readonly stage: Stage;
@@ -56,7 +57,7 @@ export interface Placement {
   readonly snuffDialog: Rect;
   readonly settingsPanel: Rect;
   /** Keep-clear rectangles in CSS pixels: the candle column, the window pane, the Door and the 12 ghost cells. */
-  readonly keepClear: { readonly column: Rect; readonly windowPane: Rect; readonly door: Rect; readonly ghostCells: readonly Rect[] };
+  readonly keepClear: { readonly column: Rect; readonly windowPane: Rect; readonly door: Rect };
 }
 
 /** Touch target, gap between controls, margin to the viewport edge, pad around the keep-clear column and the window pane (px). */
@@ -78,14 +79,14 @@ export const HALO_TOP_UNITS = 290;
 export const KEEP_CLEAR_COLUMN_UNITS: Rect = { x: 160, y: 260, w: 280, h: 640 };
 /** The window pane (blur not counted). */
 export const KEEP_CLEAR_WINDOW_UNITS: Rect = { x: 240, y: 50, w: 120, h: 210 };
+/** The landscape window includes clearance for the transformed frame and blur. */
+export const LANDSCAPE_WINDOW_GUARD: Rect = { x: 102, y: 18, w: 129, h: 137 };
+export const LANDSCAPE_COLUMN_GUARD: Rect = { x: 174, y: 160, w: 252, h: 740 };
 
 /** The Door of the graveyard view (x 20..100, y 805..890), in room units. Written here, not imported: src/ui/ does not import src/graveyard. */
 export const DOOR_RECT: Rect = { x: 20, y: 805, w: 80, h: 85 };
 
-/**
- * The 12 ghost cells in room units: 6 rows of 95 units from y 215 on each side, the left cells x 10..100 and the right cells x 500..590.
- * Ghosts stay drawn while the setup controls show, so no control may cover a cell. Written here, not imported: src/ui/ does not import src/ghosts.
- */
+/** Frozen room-art Prototype geometry, retained for its snapshot test. */
 export const GHOST_CELLS: readonly Rect[] = [10, 500].flatMap((x) => [0, 1, 2, 3, 4, 5].map((row) => ({ x, y: 215 + 95 * row, w: 90, h: 95 })));
 
 /** The zone text area (candle-scene): room units. */
@@ -125,10 +126,11 @@ export function placeControls(vw: number, vh: number): Placement {
   const zoneH = height - floorY;
   const cx = X(CANDLE_AXIS_UNITS);
   const wide = ox >= WIDE_MIN_SIDE;
+  const landscapeScene = wide && width > height;
   const textArea = rect(X(TEXT_AREA_UNITS.x), floorY, TEXT_AREA_UNITS.w * s, TEXT_AREA_UNITS.h * s);
-  const windowPx = rect(X(KEEP_CLEAR_WINDOW_UNITS.x), Y(KEEP_CLEAR_WINDOW_UNITS.y), KEEP_CLEAR_WINDOW_UNITS.w * s, KEEP_CLEAR_WINDOW_UNITS.h * s);
   const toPx = (r: Rect): Rect => rect(X(r.x), Y(r.y), r.w * s, r.h * s);
-  const column = rect(X(KEEP_CLEAR_COLUMN_UNITS.x), Y(KEEP_CLEAR_COLUMN_UNITS.y), KEEP_CLEAR_COLUMN_UNITS.w * s, KEEP_CLEAR_COLUMN_UNITS.h * s);
+  const windowPx = toPx(landscapeScene ? LANDSCAPE_WINDOW_GUARD : KEEP_CLEAR_WINDOW_UNITS);
+  const column = toPx(landscapeScene ? LANDSCAPE_COLUMN_GUARD : KEEP_CLEAR_COLUMN_UNITS);
 
   // The zone, both modes: buttons centred vertically, the time text under the floor line, the status line under it.
   const by = floorY + (zoneH - T) / 2;
@@ -194,12 +196,12 @@ export function placeControls(vw: number, vh: number): Placement {
       chooser = rect(M, 4, 116, 96);
       cells = [0, 1, 2, 3].map((i) => rect(M + (i % 2) * (54 + G), 4 + Math.floor(i / 2) * (T + G), 54, T)) as [Rect, Rect, Rect, Rect];
     }
-    const rowClears = rowY + 52 <= Y(GHOST_CELLS[0]?.y ?? 215) - EPS;
+    const rowClears = rowY + 52 <= Y(215) - EPS;
     if (topRow || rowClears) {
       intent = rect(M, rowY, Math.max(0, windowPx.x - G - M), T);
       light = rect(width - M - 116, rowY, 116, 52);
     } else {
-      // No room under the chooser: the ghost cells start at y = Y(215), which is above the end of a second row. The intent field
+      // Below this limit there is no room for a second compact row. The intent field
       // and Light stack right of the window pane instead, above the cells (ghosts-and-graveyard task 1.3, found by P10).
       const x0 = windowPx.x + windowPx.w + G;
       intent = rect(x0, 4, Math.max(0, width - M - x0), T);
@@ -213,6 +215,7 @@ export function placeControls(vw: number, vh: number): Placement {
 
   return {
     mode: wide ? "wide" : "compact",
+    landscapeScene,
     variant,
     stage,
     floorY,
@@ -226,7 +229,7 @@ export function placeControls(vw: number, vh: number): Placement {
     zoneControls: { pause, resume: wide ? rect(textArea.x-ZONE_WIDTHS.anchor-ZONE_WIDTHS.resume,by,ZONE_WIDTHS.resume,T) : pause, snuff, settings, labelled: wide },
     snuffDialog,
     settingsPanel,
-    keepClear: { column, windowPane: windowPx, door: toPx(DOOR_RECT), ghostCells: GHOST_CELLS.map(toPx) },
+    keepClear: { column, windowPane: windowPx, door: toPx(DOOR_RECT) },
   };
 }
 

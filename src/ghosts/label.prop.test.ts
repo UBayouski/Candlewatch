@@ -7,7 +7,7 @@ import { arbT0, arbVisibilityScript, runScript } from "../engine/test-kit";
 import { STRINGS } from "../strings";
 import { sceneLabel } from "./label";
 import type { SceneMode } from "./label";
-import { GHOST_SLOTS } from "./slots";
+import { GHOST_LIMIT } from "./slots";
 import { PROP_PARAMS, arbDistractedState } from "./test-kit";
 import { visibleGhosts } from "./visible";
 
@@ -22,7 +22,7 @@ const arbStates: fc.Arbitrary<State[]> = fc.oneof(
 describe("Feature: ghosts-and-graveyard, Property 21: The scene label always gives the engine count", () => {
   it("states the engine's count in decimal digits and the right word, never the time, whatever the ghost setting and G", () => {
     fc.assert(
-      fc.property(arbStates, fc.constantFrom(...MODES), fc.boolean(), fc.oneof(fc.constant(GHOST_SLOTS.length), fc.integer({ min: 0, max: 20 })), (states, mode, ghosts, G) => {
+      fc.property(arbStates, fc.constantFrom(...MODES), fc.boolean(), fc.oneof(fc.constant(GHOST_LIMIT), fc.integer({ min: 0, max: 20 })), (states, mode, ghosts, G) => {
         for (const state of states) {
           const count = distractionCount(state);
           const label = sceneLabel(mode, count);
@@ -52,7 +52,7 @@ describe("Feature: ghosts-and-graveyard, Property 21: The scene label always giv
       fc.property(arbStates, (states) => {
         for (const state of states) {
           const count = distractionCount(state);
-          seen.add(count === 0 ? "zero" : count === 1 ? "one" : count <= GHOST_SLOTS.length ? "several" : "over the slots");
+          seen.add(count === 0 ? "zero" : count === 1 ? "one" : count <= GHOST_LIMIT ? "several" : "over the slots");
         }
       }),
       PROP_PARAMS,

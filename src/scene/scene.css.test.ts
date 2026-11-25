@@ -2,7 +2,8 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { CANDLE_H } from "./constants";
+import { DAWN_FIELD, WINDOW_LIGHT } from "./setting";
+import { CANDLE_H, FLOOR_Y, LANDSCAPE_CANDLE_H, LANDSCAPE_WAX_BASE_Y } from "./constants";
 
 const CSS_PATH = join(dirname(fileURLToPath(import.meta.url)), "scene.css");
 const RAW = readFileSync(CSS_PATH, "utf8");
@@ -53,13 +54,6 @@ function contrast(a: string, b: string): number {
   return (hi + 0.05) / (lo + 0.05);
 }
 
-/** `fg` at `alpha` over an opaque `bg`, as a hex colour. */
-function composite(fg: string, bg: string, alpha: number): string {
-  const f = rgb(fg);
-  const b = rgb(bg);
-  return "#" + f.map((v, i) => Math.round(alpha * v + (1 - alpha) * (b[i] ?? 0)).toString(16).padStart(2, "0")).join("");
-}
-
 // --- tests -----------------------------------------------------------------------------------
 
 describe("reduced motion (R9.5)", () => {
@@ -105,9 +99,12 @@ describe("custom properties (design 6.2)", () => {
     for (const name of written) expect(declarations.some((d) => d.name === name), name).toBe(true);
   });
 
-  it("the pool and the head are sized from the 420-unit candle", () => {
-    expect(rule(".pool")).toContain(`* ${CANDLE_H}px`);
-    expect(rule(".head")).toContain(`* ${CANDLE_H}px`);
+  it("keeps the head and both light layers aligned with the wax in each composition", () => {
+    expect(rule(".candle-scene")).toContain(`* ${CANDLE_H}px - var(--wax-height) * var(--candle-extra-height)`);
+    expect(rule(".candle-scene[data-landscape]")).toContain(`--candle-extra-height: ${LANDSCAPE_CANDLE_H - CANDLE_H}px`);
+    expect(rule(".candle-scene[data-landscape]")).toContain(`--foot-lift: ${FLOOR_Y - LANDSCAPE_WAX_BASE_Y}px`);
+    for (const selector of [".pool", ".pool-tint", ".head"]) expect(rule(selector)).toContain("var(--head-offset)");
+    expect(rule(".candle-scene[data-landscape] .body")).toContain(`var(--wax-height) * ${LANDSCAPE_CANDLE_H} / ${CANDLE_H}`);
   });
 });
 
@@ -125,8 +122,18 @@ describe("one thing per element (F4, F6)", () => {
     expect(body).toContain("var(--room-night)");
   });
 
-  it("the dawn is a wash above the night: window pane, wash and zone read --dawn", () => {
-    expect(rule(".dawn-wash")).toContain("var(--dawn)");
+  it("the directional light and tint use the same field and eased dawn amount", () => {
+    const { compact, landscape, exposure, tint, warmth } = DAWN_FIELD;
+    expect(rule(".dawn-field")).toContain(`translate(${compact.x}px, ${compact.y}px) scale(${compact.rx}, ${compact.ry})`);
+    expect(rule(".candle-scene[data-landscape] .dawn-field")).toContain(
+      `matrix(${landscape.rx}, 0, ${landscape.shift}, ${landscape.ry}, ${landscape.x}, ${landscape.y})`,
+    );
+    expect(rule(".dawn-light")).toContain(`calc(var(--wl-k) * ${exposure})`);
+    expect(rule(".dawn-tint")).toContain(`calc(var(--wl-k) * ${tint})`);
+    expect(palette("--wl-night")).toBe(String(WINDOW_LIGHT.dawn));
+    expect(rule(".candle-scene")).toContain("--wl: var(--wl-night)");
+    expect(rule('.candle-scene[data-phase="snuffed"]')).toContain("--wl: var(--wl-snuffed)");
+    expect(rgb(palette("--room-dawn-warmth"))).toEqual(warmth);
     expect(rule(".window-dawn")).toContain("var(--dawn)");
     expect(rule(".zone-dawn")).toContain("var(--dawn)");
   });
@@ -159,8 +166,10 @@ describe("one thing per element (F4, F6)", () => {
     expect(rule(".zone-dawn")).toMatch(/filter:\s*drop-shadow\(0 -\d+px \d+px var\(--zone-bg-brightest\)\)/);
   });
 
-  it("has no table, dish or floor in the stylesheet (F1, F2)", () => {
+  it("frames the lit table and dish in landscape with a separate lip and rim", () => {
     expect(CSS).not.toMatch(/--(table|dish|floor)\b|\.(table|dish|floor)\b/);
+    expect(rule(".candle-scene[data-landscape] .t-lip")).toContain("height: 3.4px");
+    expect(rule(".candle-scene[data-landscape] .h-rim")).toContain("ry: 8px");
   });
 
   it("defines the visually-hidden class for the placeholder heading", () => {
@@ -177,7 +186,6 @@ describe("palette and contrast (R7.7, R7.8)", () => {
   const roomBright = palette("--room-bg-brightest");
   const zoneDark = palette("--zone-bg-darkest");
   const zoneBright = palette("--zone-bg-brightest");
-  const alpha = Number(palette("--dawn-alpha"));
 
   it("publishes the four handoff colours", () => {
     expect([roomDark, roomBright, zoneDark, zoneBright]).toEqual(["#05070d", "#566683", "#080b12", "#4b4358"]);
@@ -194,9 +202,9 @@ describe("palette and contrast (R7.7, R7.8)", () => {
       "--wall-low": palette("--wall-low"),
       "--window-moon": palette("--window-moon"),
       "--window-night": palette("--window-night"),
-      "--window-dawn": palette("--window-dawn"),
-      "dawn-cool over night": composite(palette("--dawn-cool"), night, alpha),
-      "dawn-warm over night": composite(palette("--dawn-warm"), night, alpha),
+      "--room-dawn-pane": palette("--room-dawn-pane"),
+      "--room-dawn-pane-top": palette("--room-dawn-pane-top"),
+      "--room-dawn-warmth": palette("--room-dawn-warmth"),
     };
     for (const [name, colour] of Object.entries(stops)) {
       expect(luminance(colour), name).toBeGreaterThanOrEqual(lo - 1e-9);
@@ -218,10 +226,9 @@ describe("palette and contrast (R7.7, R7.8)", () => {
     }
   });
 
-  it("ivory on the dawn wash over the night layer stays at or above 4.5:1", () => {
-    const night = palette("--room-night");
-    expect(contrast(ivory, composite(palette("--dawn-cool"), night, alpha))).toBeGreaterThanOrEqual(4.5);
-    expect(contrast(ivory, composite(palette("--dawn-warm"), night, alpha))).toBeGreaterThanOrEqual(4.5);
+  it("ivory against the warm dawn tokens meets 4.5:1", () => {
+    for (const token of ["--room-dawn-pane", "--room-dawn-pane-top", "--room-dawn-warmth"])
+      expect(contrast(ivory, palette(token))).toBeGreaterThanOrEqual(4.5);
   });
 
   it("text at least as bright as ivory keeps 4.5:1 on the zone (the handoff rule)", () => {
@@ -299,5 +306,7 @@ describe("room-art: static setting and light rules",()=>{
  it("hides both pool holes in idle and drops setting/tint in forced colours",()=>{
   for(const cls of ["pool","pool-tint"])expect(rule(`.candle-scene[data-phase="idle"] .${cls}`)).toContain("display: none");
   expect(CSS).toMatch(/@media \(forced-colors: active\)[\s\S]*\.setting, \.warm-tint, \.door-wood, \.stars \{ display: none/);
+  expect(CSS).toMatch(/@media \(forced-colors: active\)[\s\S]*\.candle-scene\[data-landscape\] \.holder-foreground \{ display: none/);
+  expect(rule(".h-shadow")).toContain("display: none");
  });
 });

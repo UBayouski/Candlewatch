@@ -36,7 +36,7 @@ export interface InterfaceDeps {
 
 export interface Interface {
   /** Call once per frame, after the engine has settled for `now`. */
-  update(state: State, now: number): void;
+  update(state: State, now: number): Placement;
   /** Writes one line to the live region (a repeated line is cleared for one frame first, so it is read again). */
   announce(text: string): void;
   /** The overlay that is open now ("none" when none): the graveyard's keys do nothing while one is (R6). */
@@ -74,13 +74,18 @@ export function createInterface(deps: InterfaceDeps): Interface {
   };
   let size = sizeNow();
   let placement: Placement = placeControls(size.w, size.h);
+  deps.sceneRoot.toggleAttribute("data-landscape", placement.landscapeScene);
   let dirty = false;
   const measure = (): void => {
     dirty = false;
     const next = sizeNow();
     if (next.w === size.w && next.h === size.h) return;
     size = next;
-    placement = placeControls(next.w, next.h);
+    const nextPlacement = placeControls(next.w, next.h);
+    if (nextPlacement.landscapeScene !== placement.landscapeScene) {
+      deps.sceneRoot.toggleAttribute("data-landscape", nextPlacement.landscapeScene);
+    }
+    placement = nextPlacement;
   };
   const markDirty = (): void => {
     dirty = true;
@@ -138,7 +143,7 @@ export function createInterface(deps: InterfaceDeps): Interface {
       live.say(text);
     },
     overlay: () => ui.overlay,
-    update(state: State, now: number): void {
+    update(state: State, now: number): Placement {
       // 1. The engine moved on its own (the candle burned out, the pause ran out, a reload): tell the state machine.
       if (state.phase !== lastPhase) {
         const result = uiStep(ui, { type: "engine", from: lastPhase, to: state.phase, typing: focus.isTyping() }, state.phase);
@@ -165,6 +170,7 @@ export function createInterface(deps: InterfaceDeps): Interface {
         queuedFocus = "none";
       }
       live.frame();
+      return placement;
     },
   };
 }

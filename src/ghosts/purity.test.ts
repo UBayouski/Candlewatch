@@ -50,7 +50,7 @@ const OTHER_FEATURE_IMPORT = /^(?:\.\.\/)+graveyard(?:\/|$)/;
 
 /** What a pure ghost module may import: the engine's public index, the strings, the time text and its pure siblings (R1.4). */
 function importAllowed(specifier: string, siblings: readonly string[]): boolean {
-  if (specifier === "../engine" || specifier === "../strings" || specifier === "../ui/format") return true;
+  if (specifier === "../engine" || specifier === "../strings" || specifier === "../ui/format" || specifier === "../ui/layout") return true;
   const sibling = /^\.\/([a-z-]+)$/.exec(specifier)?.[1];
   return sibling !== undefined && siblings.includes(`${sibling}.ts`);
 }
@@ -151,8 +151,8 @@ describe("the scanner itself", () => {
 
   it("allows only the engine index, the strings, the time text and pure siblings", () => {
     const siblings = ["slots.ts", "visible.ts", "label.ts"];
-    for (const ok of ["../engine", "../strings", "../ui/format", "./slots", "./label"]) expect(importAllowed(ok, siblings), ok).toBe(true);
-    for (const bad of ["../engine/step", "../graveyard", "../ui/layout", "../scene", "../storage/settings", "./layer", "./test-kit", "vitest", "node:fs"]) {
+    for (const ok of ["../engine", "../strings", "../ui/format", "../ui/layout", "./slots", "./label"]) expect(importAllowed(ok, siblings), ok).toBe(true);
+    for (const bad of ["../engine/step", "../graveyard", "../ui/dom/apply", "../scene", "../storage/settings", "./layer", "./test-kit", "vitest", "node:fs"]) {
       expect(importAllowed(bad, siblings), bad).toBe(false);
     }
   });

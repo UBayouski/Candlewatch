@@ -9,7 +9,7 @@ import { PROP_PARAMS } from "../engine/test-kit";
 import type { HistoryEntry } from "../engine";
 import { COUNT_LINE_Y, EMPTY_LINE_Y, LABEL_Y, TEXT_LINE_H, shelfRowY, stoneRect, stubRect } from "./geometry";
 import type { Rect } from "./geometry";
-import { GROUND_RECT, groundMarks, shelfBoard, stoneMound, stoneShadow, stoneSide } from "./place";
+import { GROUND_RECT, groundMarks, shelfBoard, stoneMound, stoneShadow, stoneOutline } from "./place";
 import { planView } from "./plan";
 import { arbCrowdedHistory, arbHistory, fixedOffsetDay } from "./test-kit";
 import { DEFAULT_LIMITS, visibleHistory } from "./visible";
@@ -51,11 +51,19 @@ it("Feature: room-art, Property 11: The Place keeps off every text line",()=>{
    });
   });
   plan.stones.forEach((stone,i)=>{
-   const r=stone.rect,expected=stoneRect(i),foot={x:r.x,y:r.y+r.h,w:r.w,h:0};
+   const r=stone.rect, expected=stoneRect(i), face=stone.face.rect;
+   const foot={x:face.x,y:face.y+face.h,w:face.w,h:0};
+   expect(contains(r,face)).toBe(true);
+   expect(face.h).toBeGreaterThanOrEqual(i < 5 ? 54 : 60);
+   expect(face.h).toBeLessThanOrEqual(i < 5 ? 70 : 74);
+   expect(Math.abs(face.x + face.w / 2 - r.x - r.w / 2)).toBeLessThanOrEqual(8);
+   expect(Math.abs(face.y + face.h - (r.y + r.h - 5))).toBeLessThanOrEqual(5);
+   expect(Math.abs(stone.face.lean)).toBeLessThanOrEqual(4);
+   for (const [x,y] of stoneOutline(stone.face)) expect(contains(r,{x:face.x+x+2,y:face.y+y,w:0,h:0})).toBe(true);
    if (!isDeepStrictEqual(r,expected)) violations.push(`stone ${i} rectangle ${JSON.stringify(r)} != ${JSON.stringify(expected)}`);
    if (!contains(GROUND_RECT,foot)) violations.push(`stone ${i} foot ${JSON.stringify(foot)} outside ground ${JSON.stringify(GROUND_RECT)}`);
-   props.push({kind:`stone ${i} mound`,rect:bounds(stoneMound(r))},{kind:`stone ${i} shadow`,rect:bounds(stoneShadow(r))});
-   props.push(...stoneSide(r).map((rect,si)=>({kind:`stone ${i} side ${si}`,rect})));
+   props.push({kind:`stone ${i} mound`,rect:bounds(stoneMound(face))},{kind:`stone ${i} shadow`,rect:bounds(stoneShadow(face))});
+   props.push({kind:`stone ${i} side`,rect:{...face,x:face.x+2}});
   });
   for(const prop of props)texts.forEach((text,ti)=>{
    if (intersects(prop.rect,text)) violations.push(`${prop.kind} ${JSON.stringify(prop.rect)} intersects text ${ti} ${JSON.stringify(text)}`);

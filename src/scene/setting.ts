@@ -9,7 +9,16 @@ export const PANE_FRAME = { x: 240, y: 50, w: 120, h: 210, frame: 8, vx: 276, vw
 export const PANES = [{ x:248,y:58,w:28,h:52 },{ x:282,y:58,w:70,h:52 },{ x:248,y:116,w:28,h:134 },{ x:282,y:116,w:70,h:134 }];
 export const STARS: readonly Point3[] = [[262,76,.9],[296,70,.8],[322,66,1],[340,92,.85],[310,100,.8],[292,140,.9],[330,152,1],[318,190,.8],[340,218,.9]];
 type Point3 = readonly [number, number, number];
-export const WINDOW_LIGHT = { cx: 300, cy: 155, r: 2600, profile: [[0,1],[.08,.92],[.2,.78],[.4,.66],[.65,.52],[.85,.4],[1,.3]] as readonly Point[], night: .5, snuffed: .09, dawn: 1 };
+export const WINDOW_LIGHT = { cx: 300, cy: 155, r: 2600, profile: [[0,1],[.08,.92],[.2,.78],[.4,.66],[.65,.52],[.85,.4],[1,.3]] as readonly Point[], night: .5, snuffed: .09, dawn: .5 };
+export const DAWN_FIELD = {
+  compact: { x: 300, y: 900, rx: 155, ry: 765, shift: 0 },
+  landscape: { x: 305, y: 900, rx: 210, ry: 825, shift: 140 },
+  focusY: .06,
+  profile: [[0, 1], [.55, .98], [.84, .74], [1, 0]] as readonly Point[],
+  exposure: .92,
+  tint: .77,
+  warmth: [133, 91, 61] as const,
+};
 export const EDGE = { near: 320, far: 800, windowShade: .82, veil: .75 };
 export const WARM_TINT = { token: "--set-warm-tint", alpha: .42 };
 export const WALL = { seed: 20261204, tileW: 960, courses: 8, minWidth: 105, maxWidth: 240, inset: [2.1,3.3] as const, step: 6, gap: 30 };

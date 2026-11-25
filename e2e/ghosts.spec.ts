@@ -3,9 +3,9 @@
 // showing the page through its own visibilitychange listener while a candle burns (see `setVisibility` for why it is overridden).
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
-import { placeGhost } from "../src/ghosts/place";
+import { ghostArea, ghostGuards, placeGhost, planGhosts } from "../src/ghosts/place";
 import { ghostSize } from "../src/engine";
-import { DOOR_RECT, GHOST_CELLS, KEEP_CLEAR_COLUMN_UNITS } from "../src/ui/layout";
+import { placeControls } from "../src/ui/layout";
 import {
   distract,
   graveyardFixture,
@@ -34,14 +34,10 @@ const G = 12;
 const countText = (n: number): string => (n === 1 ? "1 distraction" : `${n} distractions`);
 const sceneLabel = (page: Page): Promise<string | null> => page.locator("#scene").getAttribute("aria-label");
 
-/** The boxes the ghosts and the mark must keep clear of: the candle column, the Floor_Band (room y 900 down), the Door. */
-function keepClear(s: Stage, vh: number): { label: string; rect: Rect }[] {
-  const floorTop = s.oy + 900 * s.scale;
-  return [
-    { label: "candle column", rect: toPage(KEEP_CLEAR_COLUMN_UNITS, s) },
-    { label: "Floor_Band", rect: { x: 0, y: floorTop, w: 100_000, h: Math.max(0, vh - floorTop) } },
-    { label: "Door", rect: toPage(DOOR_RECT, s) },
-  ];
+/** Scene equipment and controls, excluding the overflow mark's own reservation. */
+function keepClear(s: Stage, vw: number, vh: number): { label: string; rect: Rect }[] {
+  const { guards } = ghostGuards(placeControls(vw, vh));
+  return guards.filter((r) => r.x !== 448 || r.y !== 833).map((r, i) => ({ label: `guard ${i}`, rect: toPage(r, s) }));
 }
 
 /** The visible setup controls (length chooser, intent, Light) in the ended phases. */
@@ -79,10 +75,13 @@ test.describe("E4: one ghost per distraction, the newest G, and the mark", () =>
           if (n > G) expect(seen.mark.text).toBe(`+${n - G}`);
           // The newest G are drawn, each with the size of its own span.
           expect(seen.ghosts.map((g) => g.index).sort((a, b) => a - b)).toEqual(Array.from({ length: Math.min(n, G) }, (_, i) => Math.max(0, n - G) + i));
+          const viewport = page.viewportSize() ?? { width: 1280, height: 800 };
+          const plan = planGhosts(placeControls(viewport.width, viewport.height));
           for (const g of seen.ghosts) {
             expect(g.size).toBeCloseTo(ghostSize(spans[g.index] ?? NaN), 6);
             // room-art R11.5: the cell centre stays fixed; the resting drawing uses placeGhost.
-            const rest=placeGhost(g.slot,g.index,g.size);
+            const rest = placeGhost(plan, g.slot, g.index, g.size);
+            if (!rest) throw new Error("Missing ghost placement");
             expect(g.rest.x).toBeCloseTo(rest.x,6);expect(g.rest.y).toBeCloseTo(rest.y,6);expect(g.rest.tilt).toBeCloseTo(rest.tilt,6);
           }
           expect(new Set(seen.ghosts.map((g) => g.slot)).size).toBe(seen.ghosts.length);
@@ -93,7 +92,7 @@ test.describe("E4: one ghost per distraction, the newest G, and the mark", () =>
           const s = await stageOf(page);
           const vh = await page.evaluate(() => window.innerHeight);
           const boxes = [...seen.ghosts.map((g) => ({ label: `ghost ${g.index} (slot ${g.slot})`, rect: g.rect })), ...(seen.mark.rect ? [{ label: "mark", rect: seen.mark.rect }] : [])];
-          const clear = [...keepClear(s, vh), ...(phase === "lit" ? [] : await setupRects(page))];
+          const clear = [...keepClear(s, viewport.width, vh), ...(phase === "lit" ? [] : await setupRects(page))];
           if (phase !== "lit") expect(clear.length).toBeGreaterThan(3);
           for (const [i, a] of boxes.entries()) {
             for (const c of clear) expect(overlaps(a.rect, c.rect, 0.5), `${a.label} overlaps ${c.label}`).toBe(false);
@@ -148,7 +147,7 @@ test.describe("E4: one ghost per distraction, the newest G, and the mark", () =>
     }
   });
 
-  test("live: from 12 to 22 distractions every other ghost keeps its slot; past G the oldest fades and the new one takes its slot", async ({ browser }) => {
+  test("live: from 12 to 22 distractions every other ghost keeps its slot; past G the oldest releases its slot before replacement", async ({ browser }) => {
     const app = await openGraveyardApp(browser, { fixture: withDistractions(11, "lit") });
     try {
       const { page } = app;
@@ -166,13 +165,16 @@ test.describe("E4: one ghost per distraction, the newest G, and the mark", () =>
         expect(after.mark.shown).toBe(target > G);
         if (target > G) expect(after.mark.text).toBe(`+${target - G}`);
         const slotOf = new Map(before.ghosts.map((g) => [g.index, g.slot]));
+        const restOf = new Map(before.ghosts.map((g) => [g.index, g.rest]));
+        for (const g of after.ghosts) if (restOf.has(g.index)) expect(g.rest).toEqual(restOf.get(g.index));
         for (const g of after.ghosts) if (slotOf.has(g.index)) expect(g.slot, `ghost ${g.index} kept its slot`).toBe(slotOf.get(g.index));
         const leaving = await page.evaluate(() => (window as unknown as { __ghostLeaving: number[] }).__ghostLeaving);
         if (target > G) {
           const oldest = Math.min(...before.ghosts.map((g) => g.index));
           expect(after.ghosts.some((g) => g.index === oldest)).toBe(false);
           expect(after.ghosts.find((g) => g.index === target - 1)?.slot, "the new ghost takes the oldest's slot").toBe(slotOf.get(oldest));
-          expect(leaving, "the oldest, and only it, fades out").toEqual([oldest]);
+          expect(leaving).toEqual([]);
+          expect(after.leaving).toBe(0);
         } else {
           expect(leaving).toEqual([]);
         }
@@ -232,6 +234,8 @@ test.describe("E5: reduced motion, the drift, ghosts off and the view", () => {
       const { page } = app;
       const s = await stageOf(page);
       const vh = await page.evaluate(() => window.innerHeight);
+      const viewport = page.viewportSize() ?? { width: 1280, height: 800 };
+      const plan = planGhosts(placeControls(viewport.width, viewport.height));
       // The drift is a CSS animation, not run by page.clock: each one is paused and set to 24 points of its cycle in turn.
       for (let k = 0; k <= 24; k++) {
         const boxes = await page.evaluate((f) => {
@@ -251,11 +255,12 @@ test.describe("E5: reduced motion, the drift, ghosts off and the view", () => {
         }, k / 24);
         expect(boxes).toHaveLength(G);
         for (const b of boxes) {
-          const cell = GHOST_CELLS[b.slot === undefined ? -1 : b.slot % 2 === 0 ? b.slot / 2 : 6 + (b.slot - 1) / 2];
-          expect(cell, `slot ${b.slot}`).toBeDefined();
-          if (cell === undefined) continue;
+          const anchor = plan.anchors[b.slot];
+          expect(anchor, `slot ${b.slot}`).toBeDefined();
+          if (anchor === undefined) continue;
+          const cell = ghostArea(anchor, plan.halfWidth, plan.halfHeight);
           expect(inside(b.rect, toPage(cell, s), 0.5), `slot ${b.slot} at ${k}/24 inside its cell`).toBe(true);
-          for (const c of keepClear(s, vh)) expect(overlaps(b.rect, c.rect, 0.5), `slot ${b.slot} and ${c.label}`).toBe(false);
+          for (const c of keepClear(s, viewport.width, vh)) expect(overlaps(b.rect, c.rect, 0.5), `slot ${b.slot} and ${c.label}`).toBe(false);
         }
       }
     } finally {

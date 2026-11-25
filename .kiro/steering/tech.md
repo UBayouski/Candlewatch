@@ -39,7 +39,8 @@ Inline SVG driven by CSS custom properties. Flame: layered radial gradients with
 - The Content-Security-Policy allows only `'self'` and `'none'`: no inline style or script, no remote font, no network call. Set styles with `style.setProperty`, import fonts so Vite hashes them into `/assets/`, never put them in `public/`.
 - No agent creates or changes a Render resource; the repo owner does, in the dashboard.
 
-- **Performance budget (`room-art`):** JS and CSS in `dist/` total at most 120 000 bytes (by Q62), measured 119 760; at most 415 total elements across the scene SVG, ghost layer and Place, measured 390 at maximum history (by Q79); none of `feTurbulence`, `feDisplacementMap`, `feMorphology`, `feConvolveMatrix`, and no CSS filter on a group repainted each frame. At 1920 by 1080 over 600 real-clock lit frames, GPU rasterisation measured median 16.7 ms and p95 16.8 ms against limits 17.5/25 ms (by Q62); default software measured 83.3/116.6 ms for information only.
+- **Performance budget (`visual-polish`):** JS and CSS in `dist/` total at most 130 000 bytes; at most 415 total elements across the scene SVG, ghost layer and Place at maximum content; none of `feTurbulence`, `feDisplacementMap`, `feMorphology` or `feConvolveMatrix`, and no CSS filter on a group repainted each frame. At 1920 by 1080 over 600 real-clock lit frames, GPU rasterisation must hold a median of at most 17.5 ms and p95 of at most 25 ms (room-art Q62). Default software timings are recorded for information only.
+- The final visual-polish build measured 129 051 raw JS and CSS bytes and 408 maximum-content elements (202 scene, 78 ghosts, 128 Place). The graveyard follow-up added 528 bytes and zero elements. At 1920 by 1080, Intel UHD Graphics on Direct3D 11 measured a 16.700 ms median and 16.800 ms p95 over 600 lit frames.
 
 ## Property-based tests to keep true
 

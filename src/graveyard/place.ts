@@ -1,5 +1,5 @@
 // Static Place geometry and seeded dart throwing. Items retain geometry.ts rectangles.
-import type { Rect } from "./geometry";
+import type { Rect, StoneFace } from "./geometry";
 
 export type Point = readonly [number, number];
 export const HORIZON_Y = 224;
@@ -12,20 +12,33 @@ export const SKY_RECT: Rect = { x: -2200, y: -600, w: 5000, h: HORIZON_Y + HAZE 
 export function shelfBoard(rowY: number, count: number): Rect {
   return { x: 109, y: rowY + 69, w: count * 84 + 8, h: 12 };
 }
-export function stoneSide(rect: Rect): readonly (Rect & { radius: number })[] {
-  return [1, 2, 3, 4].map(k => ({ ...rect, x: rect.x + k * 9 / 4, y: rect.y - k * 6 / 4, radius: 44 }));
+/** The same contour drives the drawn face and its shaded side. */
+export function stoneOutline({ rect: { w, h }, crown, lean, shoulder }: StoneFace): Point[] {
+  const points: Point[] = [[3 + Math.max(0, -lean * 2), h], [0, shoulder]];
+  for (let i = 1; i < 16; i++) {
+    const t = i / 16;
+    const rise = crown === 0 ? Math.sin(t * Math.PI) ** .72
+      : crown === 1 ? Math.min(.36, Math.min(t, 1 - t) * 3) + Math.max(0, (Math.min(t, 1 - t) - .12) / .38) * .64
+        : Math.min(1, Math.sqrt(Math.min(t, 1 - t) * 8));
+    const x = t * w + lean * rise;
+    const chip = i === (lean < 0 ? 4 : 12) ? 2.4 : 0;
+    points.push([Math.max(0, Math.min(w, x)), shoulder * (1 - rise) + chip]);
+  }
+  const rightFoot = w - 2 - Math.max(0, lean * 2);
+  points.push([w, shoulder + 2], [rightFoot, h - 2], [w * .67, h - 1], [w * .35, h - 4]);
+  return points;
 }
 /** Quadratic outline: start, left control, peak, right control, end; then close. */
 export function stoneMound(r: Rect): readonly Point[] {
   const f = r.y + r.h;
-  return [[r.x - 26, f + 12], [r.x + 6, f - 2], [r.x + r.w / 2, f - 3], [r.x + r.w - 6, f - 2], [r.x + r.w + 26, f + 12]];
+  return [[r.x - 16, f + 8], [r.x + 7, f - 5], [r.x + r.w * .43, f - 2], [r.x + r.w - 6, f - 1], [r.x + r.w + 16, f + 9]];
 }
 export function stoneShadow(r: Rect): readonly Point[] {
   const dx = r.x + r.w / 2 - DOORWAY.cx, dy = r.y + r.h / 2 - DOORWAY.cy;
   const len = Math.hypot(dx, dy);
   const ux = len === 0 ? 0 : dx / len, uy = len === 0 ? 0 : dy / len * .45;
-  const f = r.y + r.h + 1;
-  return [[r.x + 6, f], [r.x + r.w, f], [r.x + r.w + ux * 46, f + uy * 46], [r.x + 6 + ux * 46, f + uy * 46]];
+  const f = r.y + r.h;
+  return [[r.x - 5, f], [r.x + 7, f - 5], [r.x + r.w + ux * 31, f + uy * 25], [r.x + r.w + 10, f + 5], [r.x + 8, f + 4]];
 }
 export function textRects(rowYs: readonly number[]): Rect[] {
   return [{ x:14,y:213,w:572,h:32 },{ x:14,y:461,w:572,h:32 },{ x:14,y:427,w:572,h:32 },{ x:14,y:759,w:572,h:32 },

@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { CANDLE_H, FLOOR_Y, LIGHT_FULL_UNITS, LIGHT_MIN, WINDOW } from "../scene/constants";
+import { CANDLE_H, FLOOR_Y, LANDSCAPE_CANDLE_H, LANDSCAPE_WINDOW, LIGHT_FULL_UNITS, LIGHT_MIN, WINDOW } from "../scene/constants";
 import { ROOM_SVG } from "../scene/room";
 import {
   CANDLE_AXIS_UNITS,
@@ -13,8 +13,9 @@ import {
   HALO_TOP_UNITS,
   KEEP_CLEAR_COLUMN_UNITS,
   KEEP_CLEAR_WINDOW_UNITS,
+  LANDSCAPE_COLUMN_GUARD,
+  LANDSCAPE_WINDOW_GUARD,
   DOOR_RECT,
-  GHOST_CELLS,
   M,
   PAD_COLUMN,
   PAD_WINDOW,
@@ -46,11 +47,10 @@ describe("the guard on the scene's numbers (D11)", () => {
   it("keeps the column around the candle, the flame, the halo and the idle pool at every wax height", () => {
     // The idle pool: a disc of LIGHT_MIN x LIGHT_FULL_UNITS around (300, 400) (scene.css, wax height 1).
     const css = readFileSync(join(HERE, "..", "scene", "scene.css"), "utf8");
-    const centre = css.match(/translate\((\d+)px,\s*calc\((\d+)px \+ \(1 - var\(--wax-height\)\) \* (\d+)px\)\)\s*scale\(var\(--light-radius\)\)/);
+    const centre = css.match(/translate\((\d+)px,\s*calc\((\d+)px \+ var\(--head-offset\)\)\)\s*scale\(var\(--light-radius\)\)/);
     expect(centre, "the pool rule in scene.css").not.toBeNull();
-    const [cx, cy, drop] = [Number(centre?.[1]), Number(centre?.[2]), Number(centre?.[3])];
+    const [cx, cy] = [Number(centre?.[1]), Number(centre?.[2])];
     expect(cx).toBe(CANDLE_AXIS_UNITS);
-    expect(drop).toBe(CANDLE_H);
     const radius = LIGHT_MIN * LIGHT_FULL_UNITS;
     const column = KEEP_CLEAR_COLUMN_UNITS;
     expect(column.x).toBeLessThanOrEqual(cx - radius);
@@ -70,6 +70,12 @@ describe("the guard on the scene's numbers (D11)", () => {
     // The candle, 64 units wide, from the rim down to the floor line.
     expect(column.x).toBeLessThanOrEqual(268);
     expect(column.x + column.w).toBeGreaterThanOrEqual(332);
+    expect(LANDSCAPE_COLUMN_GUARD.y).toBe(hy - hr - (LANDSCAPE_CANDLE_H - CANDLE_H));
+    expect(LANDSCAPE_COLUMN_GUARD.x).toBeLessThan(hx - hr);
+    expect(LANDSCAPE_COLUMN_GUARD.x + LANDSCAPE_COLUMN_GUARD.w).toBeGreaterThan(hx + hr);
+    expect(LANDSCAPE_WINDOW_GUARD.x).toBeLessThan(LANDSCAPE_WINDOW.x);
+    expect(LANDSCAPE_WINDOW_GUARD.x + LANDSCAPE_WINDOW_GUARD.w).toBeGreaterThan(LANDSCAPE_WINDOW.x + LANDSCAPE_WINDOW.width);
+    expect(LANDSCAPE_WINDOW_GUARD.y + LANDSCAPE_WINDOW_GUARD.h).toBeLessThan(LANDSCAPE_COLUMN_GUARD.y);
   });
 
   it("states the pads and targets the requirements name", () => {
@@ -82,6 +88,12 @@ describe("stageBox", () => {
     expect(stageBox(360, 640)).toEqual({ scale: 0.6, ox: 0, oy: 20 });
     expect(stageBox(1280, 800)).toEqual({ scale: 0.8, ox: 400, oy: 0 });
     expect(stageBox(1920, 1080).ox).toBeCloseTo(636, 9);
+  });
+  it("starts the larger composition at the wide side gutter without shifting the stage", () => {
+    expect(placeControls(1199, 800).landscapeScene).toBe(false);
+    expect(placeControls(1200, 800).landscapeScene).toBe(true);
+    expect(placeControls(360, 640).landscapeScene).toBe(false);
+    expect(placeControls(1200, 800).stage).toEqual(stageBox(1200, 800));
   });
 });
 
@@ -130,8 +142,8 @@ describe("1280 x 800 (wide, column), design 6.5", () => {
     expectRect(p.textArea, [488, 720, 304, 80], "text area");
   });
   it("keeps the column and the window pane where the table says", () => {
-    expectRect(p.keepClear.column, [528, 208, 224, 512], "column");
-    expectRect(p.keepClear.windowPane, [592, 40, 96, 168], "window");
+    expectRect(p.keepClear.column, [539.2, 128, 201.6, 592], "column");
+    expectRect(p.keepClear.windowPane, [481.6, 14.4, 103.2, 109.6], "window");
   });
   it("puts the setup controls in the column beside the stage", () => {
     expectRect(p.setup.chooser, [904, 96, 352, 44], "chooser");
@@ -229,28 +241,20 @@ describe("the order lists and the pure function", () => {
   });
 });
 
-describe("the Door and the ghost cells (ghosts-and-graveyard CR5)", () => {
-  it("are the keep-clear rectangles of the design in room units", () => {
+describe("the Door (ghosts-and-graveyard CR5)", () => {
+  it("has the design's rectangle in room units", () => {
     expect(DOOR_RECT).toEqual({ x: 20, y: 805, w: 80, h: 85 });
-    expect(GHOST_CELLS).toHaveLength(12);
-    expect(GHOST_CELLS.filter((c) => c.x === 10)).toHaveLength(6);
-    expect(GHOST_CELLS.filter((c) => c.x === 500)).toHaveLength(6);
-    expect(Math.min(...GHOST_CELLS.map((c) => c.y))).toBe(215);
-    expect(Math.max(...GHOST_CELLS.map((c) => c.y + c.h))).toBe(785);
   });
-  it("are placed in pixels with the stage scale at 360 x 640", () => {
+  it("is placed in pixels with the stage scale at 360 x 640", () => {
     const p = placeControls(360, 640);
     expectRect(p.keepClear.door, [12, 20 + 805 * 0.6, 48, 51], "door");
-    expect(p.keepClear.ghostCells).toHaveLength(12);
-    expectRect(p.keepClear.ghostCells[0] as Rect, [6, 20 + 215 * 0.6, 54, 57], "cell 0");
   });
-  it("keep clear of the candle column, the window pane and the floor band", () => {
+  it("keeps clear of the candle column, window pane and floor band", () => {
     const p = placeControls(1280, 800);
-    for (const cell of [p.keepClear.door, ...p.keepClear.ghostCells]) {
-      const col = p.keepClear.column;
-      expect(cell.x + cell.w <= col.x || cell.x >= col.x + col.w).toBe(true);
-      expect(cell.y + cell.h).toBeLessThanOrEqual(p.floorY);
-    }
+    const door = p.keepClear.door;
+    expect(door.x + door.w).toBeLessThanOrEqual(p.keepClear.column.x);
+    expect(door.x + door.w).toBeLessThanOrEqual(p.keepClear.windowPane.x);
+    expect(door.y + door.h).toBeLessThanOrEqual(p.floorY);
   });
 });
 it("room-art: the wide button rectangles and status lines (R9)",()=>{

@@ -13,10 +13,17 @@ interface Tokens { scene: Record<string,string>; geometry: {stage: number[]; flo
 function readTokens(): Tokens {
   return JSON.parse(readFileSync(join(reference,"tokens.json"),"utf8")) as Tokens;
 }
-it("the recorded scene stops and geometry equal the real source",()=>{
+it("the recorded palette and geometry retain the values shared with the live build",()=>{
  const tokens=readTokens(),css=readFileSync(join(root,"src/scene/scene.css"),"utf8");
- for(const [name,value] of Object.entries(tokens.scene))expect(css.match(new RegExp(name+":\\s*([^;]+);"))?.[1]?.trim(),name).toBe(value);
- expect(tokens.geometry).toEqual({stage:[ROOM_W,ROOM_H],floorY:FLOOR_UNITS,doorRect:DOOR_RECT,ghostCells:GHOST_CELLS,window:KEEP_CLEAR_WINDOW_UNITS,column:KEEP_CLEAR_COLUMN_UNITS,stone0:stoneRect(0),stub00:stubRect(0,0),limits:DEFAULT_LIMITS});
+ const placeCss=readFileSync(join(root,"src/graveyard/graveyard.css"),"utf8");
+ const placeDawn=new Set(["--window-dawn","--dawn-cool","--dawn-warm"]);
+ for(const [name,value] of Object.entries(tokens.scene)){
+  // The frozen wash used an alpha that the directional room field supersedes.
+  if(name==="--dawn-alpha"){expect(value).toBe("0.85");continue;}
+  const source=placeDawn.has(name)?placeCss:css;
+  expect(source.match(new RegExp(name+":\\s*([^;]+);"))?.[1]?.trim(),name).toBe(value);
+ }
+ expect(tokens.geometry).toEqual({stage:[ROOM_W,ROOM_H],floorY:FLOOR_UNITS,doorRect:DOOR_RECT,ghostCells:GHOST_CELLS,window:KEEP_CLEAR_WINDOW_UNITS,column:KEEP_CLEAR_COLUMN_UNITS,stone0:{...stoneRect(0),x:30},stub00:stubRect(0,0),limits:DEFAULT_LIMITS});
 });
 it("the joint rect and all five tone paths equal the approved tile",()=>{
  const html=readFileSync(join(reference,"index.html"),"utf8");

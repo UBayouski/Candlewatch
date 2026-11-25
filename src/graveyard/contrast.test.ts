@@ -1,5 +1,3 @@
-import { stoneRect } from "./geometry";
-import { DOORWAY, HAZE, HORIZON_Y } from "./place";
 // ghosts-and-graveyard R4.14, R9.14 (design L5, L11): the contrast figures are computed from the hex values.
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -34,7 +32,7 @@ const graveyardCss = readFileSync(join(SRC, "graveyard", "graveyard.css"), "utf8
 
 const IVORY = "#efe6cf";
 const FACE = "#1b2030"; // the Door's face in the room
-const STONE = "#14192a"; // the stone: scene --wall-top (D15)
+const STONE = "#292b35";
 const PANEL = "#080b12"; // the backdrop's core: scene --zone-bg-darkest
 const WARM = "#1a130d"; // the card and the return control: interface --ui-bg (D16, D17)
 const SUBTLE = "#cfc2a2"; // Count_Lines, empty lines, "+n more": scene --wax-shade
@@ -48,10 +46,12 @@ describe("ivory text contrast from the hex values (R4.14, R9.14, L11 as amended 
     expect(c).toBeCloseTo(13.0, 1);
   });
 
-  it("on the stone #14192a is 14.05 and at least 4.5", () => {
+  it("on the weathered stone and plaque is at least 4.5", () => {
     const c = contrast(IVORY, STONE);
     expect(c).toBeGreaterThanOrEqual(4.5);
-    expect(c).toBeCloseTo(14.05, 2);
+    expect(contrast(IVORY, "#3e414a")).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(IVORY, "#363947")).toBeGreaterThanOrEqual(4.5);
+    expect(token(graveyardCss, "--g-plaque")).toBe("#242737");
   });
 
   it("on the backdrop's core #080b12 is 15.83 and at least 4.5", () => {
@@ -91,9 +91,6 @@ describe("the graveyard's colours are the scene's and the interface's own (D15 t
     ["--g-text", "scene", "--wax-ivory"],
     ["--g-text-subtle", "scene", "--wax-shade"],
     ["--g-panel", "scene", "--zone-bg-darkest"],
-    ["--g-stone", "scene", "--wall-top"],
-    ["--g-stone-edge", "scene", "--smoke-colour"],
-    ["--g-ground", "scene", "--dawn-warm"],
     ["--g-wax", "scene", "--wax-ivory"],
     ["--g-wax-shade", "scene", "--wax-shade"],
     ["--g-wick", "scene", "--smoke-colour"],
@@ -192,8 +189,8 @@ describe("the Door's outlines against the room (non-text, 3:1; first costume rev
 });
 
 describe("the Overflow_Mark (L5, R9.14)", () => {
-  it("is ivory and sits in the room, below the floor band", () => {
-    expect(OVERFLOW_MARK).toEqual({ x: 545, y: 860, fontSize: 24 });
+  it("sits in the room above the time band", () => {
+    expect(OVERFLOW_MARK).toEqual({ x: 524, y: 872, fontSize: 24 });
   });
 
   it("is 4.66 on the brightest room stop and higher on the darkest", () => {
@@ -207,6 +204,8 @@ describe("the Overflow_Mark (L5, R9.14)", () => {
 
 describe("room-art: new Door and Place pairs",()=>{
  it("pins every copied scene colour in the graveyard sheet (Q52)",()=>{
+  expect(["--window-dawn", "--dawn-cool", "--dawn-warm", "--g-ground"].map(name => token(graveyardCss, name)))
+    .toEqual(["#566683", "#4a5a78", "#5a4a52", "#5a4a52"]);
   const own=[...graveyardCss.matchAll(/(--(?:set-[\w-]+|window-night|window-moon|window-dawn|dawn-cool|dawn-warm|room-night)):\s*(#[0-9a-fA-F]{6})/g)];
   for(const m of own){const name=m[1]??"";if(new RegExp(`${name}:`).test(sceneCss))expect(m[2]?.toLowerCase(),name).toBe(token(sceneCss,name));}
  });
@@ -222,27 +221,9 @@ describe("room-art: new Door and Place pairs",()=>{
 });
 
 /** Q53: exact mask luminance after the fixed black elliptical hole overlays the haze ramp. */
-function placeNightCoverage(x:number,y:number):number {
- const ramp=Math.max(0,Math.min(1,(y-HORIZON_Y)/HAZE));
- const d=Math.hypot((x-DOORWAY.cx)/DOORWAY.sx,y-DOORWAY.cy)/DOORWAY.r;
- const hole=d>=1?0:d<=.6?.95+(.7-.95)*d/.6:.7*(1-d)/.4;
- return ramp*(1-hole);
-}
-it("room-art Q53: every Stone edge contrasts at least 3:1 with its brightest drawn ground",()=>{
- // Raw #8a93a6 on earth-a is 2.73; the asserted backing is darkened by the fixed p-night mask, never by dawn.
- const channels=(hex:string)=>[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16));
- const earth=channels(token(graveyardCss,"--set-earth-a")),night=channels(token(graveyardCss,"--room-night"));
- const luminanceRgb=(c:number[])=>c.reduce((s,n,i)=>{const v=n/255;return s+(v<=.04045?v/12.92:((v+.055)/1.055)**2.4)*([.2126,.7152,.0722][i]??0);},0);
- let brightest={L:-1,x:0,y:0,coverage:0};
- for(let i=0;i<10;i++){
-  const r=stoneRect(i),points:number[][]=[];
-  for(let x=r.x;x<=r.x+r.w;x++)points.push([x,r.y+r.h]);
-  for(let y=r.y+44;y<=r.y+r.h;y++)points.push([r.x,y],[r.x+r.w,y]);
-  for(let a=0;a<=90;a++){const t=a*Math.PI/180;points.push([r.x+44-44*Math.cos(t),r.y+44-44*Math.sin(t)],[r.x+r.w-44+44*Math.cos(t),r.y+44-44*Math.sin(t)]);}
-  for(let x=r.x+44;x<=r.x+r.w-44;x++)points.push([x,r.y]);
-  for(const [x=0,y=0] of points){const coverage=placeNightCoverage(x,y),c=earth.map((v,i)=>v*(1-coverage)+(night[i]??0)*coverage),L=luminanceRgb(c);if(L>brightest.L)brightest={L,x,y,coverage};}
- }
- const ratio=(luminance(token(graveyardCss,"--g-stone-edge"))+.05)/(brightest.L+.05);
- expect(ratio,JSON.stringify(brightest)).toBeGreaterThanOrEqual(3);
- expect(ratio).toBeCloseTo(3.74,2);
+it("visual-polish D4: stone edges and shelf wax clear the material contrast floors", () => {
+  const edge = token(graveyardCss, "--g-stone-edge");
+  expect(contrast(edge, token(graveyardCss, "--set-earth-a"))).toBeGreaterThanOrEqual(3.74);
+  expect(contrast(edge, token(graveyardCss, "--set-mound"))).toBeGreaterThanOrEqual(3);
+  expect(contrast(token(graveyardCss, "--g-wax-shade"), token(graveyardCss, "--set-board-top"))).toBeGreaterThanOrEqual(3);
 });

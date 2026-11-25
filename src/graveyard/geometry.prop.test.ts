@@ -2,8 +2,7 @@
 // Properties 16 and 17.
 import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { DRIFT_UNITS, GHOST_BOX, GHOST_SLOTS } from "../ghosts/slots";
-import { FLOOR_UNITS, KEEP_CLEAR_COLUMN_UNITS, stageBox } from "../ui/layout";
+import { stageBox } from "../ui/layout";
 import {
   TEXT_LINE_H,
   CARD_BOUNDS,
@@ -228,40 +227,6 @@ const SCALES: readonly number[] = [
   [1920, 1080],
 ].map(([w, h]) => stageBox(w ?? 0, h ?? 0).scale);
 
-const cellOf = (k: number): Rect => {
-  const slot = GHOST_SLOTS[k];
-  const cx = slot?.cx ?? 0;
-  const cy = slot?.cy ?? 0;
-  return { x: cx - 45, y: cy - 47.5, w: 90, h: 95 };
-};
-
-/** The box of slot k at full size, grown by DRIFT_UNITS on each side: the drift extremes (L2, L3). */
-function driftedBox(k: number): Rect {
-  const slot = GHOST_SLOTS[k];
-  const cx = slot?.cx ?? 0;
-  const cy = slot?.cy ?? 0;
-  return {
-    x: cx - GHOST_BOX.w / 2 - DRIFT_UNITS,
-    y: cy - GHOST_BOX.h / 2 - DRIFT_UNITS,
-    w: GHOST_BOX.w + 2 * DRIFT_UNITS,
-    h: GHOST_BOX.h + 2 * DRIFT_UNITS,
-  };
-}
-
-/** Ghost checks for one slot (R9.4, R9.5, R10.8). */
-function checkSlot(k: number): void {
-  const cell = cellOf(k);
-  for (const box of [driftedBox(k), { ...driftedBox(k), x: driftedBox(k).x + DRIFT_UNITS, y: driftedBox(k).y + DRIFT_UNITS, w: GHOST_BOX.w, h: GHOST_BOX.h }]) {
-    expect(inside(box, cell), `slot ${k} inside its cell`).toBe(true);
-    for (let o = 0; o < GHOST_SLOTS.length; o++) {
-      if (o !== k) expect(intersects(box, cellOf(o)), `slot ${k} meets cell ${o}`).toBe(false);
-    }
-    expect(intersects(box, DOOR_RECT), `slot ${k} meets the Door`).toBe(false);
-    expect(intersects(box, KEEP_CLEAR_COLUMN_UNITS), `slot ${k} meets the candle column`).toBe(false);
-    expect(box.y + box.h, `slot ${k} above the floor band`).toBeLessThanOrEqual(FLOOR_UNITS);
-  }
-}
-
 const isMaxima = (s: Scenario): boolean => s.stones === 10 && s.days.length === 3 && s.days.every((d) => d.stubs === 4 && d.more);
 
 describe("Feature: ghosts-and-graveyard, Property 17: The layout fits and does not overlap", () => {
@@ -296,17 +261,4 @@ describe("Feature: ghosts-and-graveyard, Property 17: The layout fits and does n
     expect(count((s) => s.days.some((d) => d.more))).toBeGreaterThanOrEqual(100);
   });
 
-  it("keeps every ghost slot, at full size and at its drift extremes, in its own cell and clear of the rest", () => {
-    expect(GHOST_SLOTS).toHaveLength(12);
-    for (let k = 0; k < GHOST_SLOTS.length; k++) checkSlot(k);
-  });
-
-  it("holds for any generated slot", () => {
-    fc.assert(
-      fc.property(fc.integer({ min: 0, max: GHOST_SLOTS.length - 1 }), (k) => {
-        checkSlot(k);
-      }),
-      PROP_PARAMS,
-    );
-  });
 });

@@ -50,7 +50,7 @@ candlewatch/
                          Alegreya Sans 400 and 700 (text): alegreya-sans-latin-400.woff2, alegreya-sans-latin-700.woff2, OFL-alegreya-sans.txt
     ghosts/            one ghost per distraction (ghosts-and-graveyard). Pure: slots.ts (12 slots, drift, the Overflow_Mark place),
                        visible.ts (`visibleGhosts`: the newest G with their sizes), label.ts (`countWords`, the scene label suffix),
-                       silhouette.ts (the ghost path); place.ts (room-art placement). DOM: layer.ts (one SVG above the scene, below the interface), ghosts.css (fill,
+                       silhouette.ts (the ghost path); place.ts (viewport placement areas and swept clearances). DOM: layer.ts (one SVG above the scene, below the interface), ghosts.css (fill,
                        stroke, fade, drift, the still version). test-kit.ts is test-only; purity.test.ts and contrast.test.ts guard the folder
     graveyard/         the Door, the Graveyard and the Shelf (ghosts-and-graveyard). Pure: days.ts (index, day groups, carved date),
                        visible.ts (S, D, K limits, `visibleHistory`), text.ts (names, card lines, count lines), geometry.ts (room-unit
@@ -107,8 +107,8 @@ candlewatch/
 - The scene shows state and the still setting that the candle's light or the window's light falls on (the Lit Setting rule): moving or changing elements show state; still elements sit in one group below the night layer. A wall grain was removed under the earlier rule; a lit wall texture replaces it. The pool carries a warm tint and is not drawn in idle; the Window_Light and the wall fade toward the left and right edges by the Edge_Shade and the Wall_Veil; the zone's shadow is short (`room-art`).
 - `src/ghosts/` and `src/graveyard/` import the engine's `index.ts`, `src/strings.ts`, the pure `src/ui/format.ts` and `src/ui/layout.ts`
   (and, in `graveyard/keys.ts`, the key types of `src/ui/keys.ts`, type-only) and their own files. Neither imports the other. Their pure
-  files read no DOM, clock or randomness; `graveyard/day-key.ts` alone reads `Date`. `src/ui/` imports neither folder (it keeps its
-  own copy of the Door and ghost-cell rectangles, compared by tests). Each folder's `purity.test.ts` enforces this. `ghosts/test-kit.ts`
+  files read no DOM, clock or randomness. `graveyard/day-key.ts` alone reads `Date`. `src/ui/` imports neither folder. Its layout
+  provides the control rectangles and shared Door geometry for the ghost plan. Each folder's `purity.test.ts` enforces the boundaries. `ghosts/test-kit.ts`
   and `graveyard/test-kit.ts` are test-only and never imported by source files.
 - `src/hosting/` is test-only: `blueprint.ts` is imported by tests and by `e2e/` specs, never by shipped code.
 - All user-visible text lives in `src/strings.ts`.

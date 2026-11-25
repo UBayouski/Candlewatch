@@ -84,6 +84,14 @@ export const DRIPS = [
 
 /** Full candle height. The drawn height is `CANDLE_H * waxHeight` (R3.7). */
 export const CANDLE_H = 420;
+/** Full body height in the larger landscape composition. */
+export const LANDSCAPE_CANDLE_H = 550;
+/** The wax ends in the landscape dish, above the time band. */
+export const LANDSCAPE_WAX_BASE_Y = 882;
+/** Framed window after its landscape transform, in room units. */
+export const LANDSCAPE_WINDOW = { x: 105, y: 24, width: 120, height: 125 } as const;
+/** Raw JavaScript and CSS budget for the production build. */
+export const MAX_BUILT_CODE_BYTES = 130_000;
 /** The candle's base, the drip clip line and the top of the time-text zone. */
 export const FLOOR_Y = 900;
 /** The stub of an ended candle. */

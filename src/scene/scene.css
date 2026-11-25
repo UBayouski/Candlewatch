@@ -46,10 +46,9 @@ body {
   --ember: #ff7a2e;
   --window-moon: #1a2540; /* the window at rest, top: faint moonlight (constant) */
   --window-night: #0d1424; /* the window at rest, bottom (constant) */
-  --window-dawn: #566683;
-  --dawn-cool: #4a5a78;
-  --dawn-warm: #5a4a52;
-  --dawn-alpha: 0.85;
+  --room-dawn-pane: #7d6041;
+  --room-dawn-pane-top: #655750;
+  --room-dawn-warmth: #855b3d;
 
   /* --- what the renderer writes (defaults for the instant before the first model) --- */
   --wax-height: 1;
@@ -83,8 +82,9 @@ body {
 /* --- gradient stops --- */
 .st-wall-top { stop-color: var(--wall-top); }
 .st-wall-low { stop-color: var(--wall-low); }
-.st-dawn-top { stop-color: var(--dawn-cool); stop-opacity: var(--dawn-alpha); }
-.st-dawn-low { stop-color: var(--dawn-warm); stop-opacity: var(--dawn-alpha); }
+.st-dawn-tint { stop-color: var(--room-dawn-warmth); }
+.st-dawn-pane-top { stop-color: var(--room-dawn-pane-top); }
+.st-dawn-pane-sill { stop-color: var(--room-dawn-pane); }
 .st-window-moon { stop-color: var(--window-moon); }
 .st-window-night { stop-color: var(--window-night); }
 .st-wax-shade { stop-color: var(--wax-shade); }
@@ -107,23 +107,47 @@ body {
 /* The light pool: moved down the candle with the flame and scaled by the light radius.
    Constant intensity: it shows progress only, by its radius. */
 .pool {
-  transform: translate(300px, calc(400px + (1 - var(--wax-height)) * 420px)) scale(var(--light-radius));
+  transform: translate(300px, calc(400px + var(--head-offset))) scale(var(--light-radius));
 }
 
+/* The glass keeps its soft edges inside the frame's upper boundary. */
+.window { clip-path: inset(0 -100% -100%) fill-box; }
 .window-rest { fill: url(#cw-window-grad); }
-.window-dawn { fill: var(--window-dawn); opacity: var(--dawn); }
-.dawn-wash { opacity: var(--dawn); }
+.window-dawn { fill: url(#cw-dawn-pane); opacity: var(--dawn); }
+.dawn-field {
+  transform-origin: 0 0;
+  transform: translate(300px, 900px) scale(155, 765);
+}
+.candle-scene[data-landscape] .dawn-field {
+  transform: matrix(210, 0, 140, 825, 305, 900);
+}
+.dawn-light { opacity: calc(var(--wl-k) * 0.92); }
+.dawn-tint { opacity: calc(var(--wl-k) * 0.77); }
 
-/* --- the candle: height is exactly 420 * wax-height, the stub only after the end --- */
+/* The head and light follow the wax fraction from the foot of each composition. */
+.candle-scene {
+  --candle-extra-height: 0px;
+  --foot-lift: 0px;
+  --head-offset: calc((1 - var(--wax-height)) * 420px - var(--wax-height) * var(--candle-extra-height) - var(--foot-lift));
+}
+.candle-scene[data-landscape] {
+  --candle-extra-height: 130px;
+  --foot-lift: 18px;
+}
 .body {
   transform-box: fill-box;
   transform-origin: 50% 100%;
   transform: scaleY(var(--wax-height));
 }
+.candle-scene[data-landscape] .body {
+  transform: translateY(calc(-1 * var(--foot-lift))) scaleY(calc(var(--wax-height) * 550 / 420));
+}
 .stub { opacity: var(--stub); }
+.candle-scene[data-landscape] .stub { transform: translateY(calc(-1 * var(--foot-lift))); }
+.candle-scene[data-landscape] #cw-above-floor rect { height: calc(1500px - var(--foot-lift)); }
 
 .head {
-  transform: translateY(calc((1 - var(--wax-height)) * 420px));
+  transform: translateY(var(--head-offset));
 }
 .rim { fill: var(--wax-shade); }
 .melt { fill: var(--wax-ivory); opacity: 0.85; }
@@ -160,7 +184,8 @@ body {
 .halo {
   opacity: clamp(0, calc(var(--flame-glow) + var(--flicker-glow)), 1);
   transform-origin: 300px 410px;
-  transform: scale(calc(0.5 + 0.5 * clamp(0, calc(var(--flame-glow) + var(--flicker-glow)), 1)));
+  /* Keep the halo inside its existing window clearance when the landscape foot rises. */
+  transform: translateY(var(--foot-lift)) scale(calc(0.5 + 0.5 * clamp(0, calc(var(--flame-glow) + var(--flicker-glow)), 1)));
 }
 
 .smoke-wisp {
@@ -189,7 +214,6 @@ body {
 }
 .candle-scene[data-settled="true"][data-ease="true"] .stars,
 .candle-scene[data-settled="true"][data-ease="true"] .window-dawn,
-.candle-scene[data-settled="true"][data-ease="true"] .dawn-wash,
 .candle-scene[data-settled="true"][data-ease="true"] .zone-dawn {
   transition: opacity 3s ease;
 }
@@ -216,15 +240,14 @@ body {
   --set-iron: #2c313f; --set-iron-hi: #4a5268; --set-rivet: #566683;
   --sky-star: #dfe8ff;
   --set-warm-tint: #7d5a34; /* the pool's warm tint (F16, adopted) */
-  /* the Window_Light (D3): levels of the hole in the night mask. Read: --dawn, and whether --light-radius is 0. Never the amount. */
+  /* The same ambient light at night and dawn, with a dimmer snuffed room. */
   --wl-night: 0.5;
   --wl-snuffed: 0.09;
-  --wl-dawn: 1;
   --wl-k: var(--dawn);
-  --wl-now: calc(var(--wl-snuffed) + (var(--wl-night) - var(--wl-snuffed)) * min(1, calc(var(--light-radius) * 1000)));
-  --wl: calc(var(--wl-now) + (var(--wl-dawn) - var(--wl-now)) * var(--wl-k));
+  --wl: var(--wl-night);
 }
-/* The level eases with the dawn: 3 s, like .dawn-wash; 0 s with reduced motion (the scene's own reduced-motion rule). */
+.candle-scene[data-phase="snuffed"] { --wl: var(--wl-snuffed); }
+/* Keep the night ambient level at completion. Ease the window's local field. */
 @property --wl-k { syntax: "<number>"; inherits: true; initial-value: 0; }
 .candle-scene[data-settled="true"][data-ease="true"] { transition: --wl-k 3s ease; }
 .st-wl[data-k="1"] { --k: 1; }
@@ -257,6 +280,7 @@ body {
 .t-face { fill: var(--set-table-face); }
 .h-body { fill: var(--set-dish); } .h-rim { fill: var(--set-dish-rim); } .h-in { fill: var(--set-dish-in); }
 .h-lip { stroke: var(--set-dish-rim); stroke-width: 1; fill: none; stroke-opacity: 0.8; }
+.h-shadow, .holder-foreground { display: none; }
 .f-wood { fill: var(--set-frame); } .f-hi { stroke: var(--set-frame-hi); stroke-width: 1.4; fill: none; }
 .f-sill { fill: var(--set-sill); } .f-sill-hi { stroke: var(--set-sill-hi); stroke-width: 1.4; fill: none; }
 .w-surround { fill: var(--set-surround); } .w-plank-a { fill: var(--set-plank-a); } .w-plank-b { fill: var(--set-plank-b); }
@@ -265,13 +289,59 @@ body {
 .w-recess { stroke: var(--set-recess); stroke-width: 3.4; fill: none; stroke-opacity: 0.8; }
 .w-threshold { fill: var(--set-threshold); } .w-threshold-hi { stroke: var(--set-sill-hi); stroke-width: 1; fill: none; }
 .warm-tint { fill: var(--set-warm-tint); fill-opacity: 0.42; }
-.pool-tint { transform: translate(300px, calc(400px + (1 - var(--wax-height)) * 420px)) scale(var(--light-radius)); }
+.pool-tint { transform: translate(300px, calc(400px + var(--head-offset))) scale(var(--light-radius)); }
+
+/* Remap the frame, its glass mask and the sky from (240,50)–(360,260) to (105,24)–(225,149). */
+.candle-scene[data-landscape] :is(.frame, .window, .stars) {
+  transform-origin: 0 0;
+  transform: translate(-135px, 24px) scaleY(calc(125 / 210)) translateY(-50px);
+}
+.candle-scene[data-landscape] .f-wood {
+  fill: color-mix(in srgb, var(--set-frame) 72%, var(--set-sill));
+}
+
+/* The deeper landscape base keeps a narrow lip and a recessed pewter rim. */
+.candle-scene[data-landscape] .t-top {
+  y: 868px;
+  height: 10px;
+  fill: color-mix(in srgb, var(--set-table-front), var(--set-table-edge) 42%);
+}
+.candle-scene[data-landscape] .t-seam {
+  transform-origin: 0 900px;
+  transform: scaleY(2);
+}
+.candle-scene[data-landscape] .t-back { transform: translateY(-16px); }
+.candle-scene[data-landscape] .t-lip { y: 878px; height: 3.4px; }
+.candle-scene[data-landscape] .t-under { transform: translateY(-10px); }
+.candle-scene[data-landscape] .t-face {
+  y: 882.5px;
+  height: 15.5px;
+  fill: color-mix(in srgb, var(--set-table-face), var(--set-table-front) 10%);
+}
+.candle-scene[data-landscape] .h-body { display: none; }
+.candle-scene[data-landscape] .h-shadow { display: inline; fill: var(--set-dish-in); opacity: 0.65; }
+.candle-scene[data-landscape] .h-rim { cy: 872px; rx: 71px; ry: 8px; }
+.candle-scene[data-landscape] .h-in { cy: 872.4px; rx: 60px; ry: 4.7px; }
+.candle-scene[data-landscape] .h-lip {
+  d: path("M233 872 A67 6.6 0 0 1 367 872");
+  stroke: var(--set-frame-hi);
+  stroke-width: 1.6;
+  stroke-opacity: 1;
+}
+.candle-scene[data-landscape] .holder-foreground { display: inline; }
+.h-front { fill: color-mix(in srgb, var(--set-dish), var(--set-dish-rim) 68%); }
+.h-front-night { fill: var(--room-night); }
 
 /* the glass lies above the frame, in the four panes only; the stars change only with the dawn (D6) */
 .stars circle { fill: var(--sky-star); }
 .stars { opacity: calc(1 - var(--dawn)); }
 
-@media (forced-colors: active) { .setting, .warm-tint, .door-wood, .stars { display: none; } }
+@media (forced-colors: active) {
+  .setting, .warm-tint, .door-wood, .stars { display: none; }
+  .dawn-field { display: none; }
+  .candle-scene[data-landscape] .holder-foreground { display: none; }
+  .candle-scene[data-landscape] { --foot-lift: 0px; }
+}
 
 /* --- reduced motion: the still version, even before the first model is applied (R9.5) --- */
 @media (prefers-reduced-motion: reduce) {

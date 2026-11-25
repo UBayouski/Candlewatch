@@ -210,12 +210,11 @@ function violations(vw: number, vh: number, resume = false): string[] {
   // The compact snuff dialog stops above the halo's highest point.
   if (p.mode === "compact") bad("the snuff dialog stops above the halo", bottom(p.snuffDialog) + M <= p.stage.oy + HALO_TOP_UNITS * p.stage.scale + EPS);
 
-  // No control covers the Door or a ghost cell (ghosts-and-graveyard P10; the cells stay drawn while the setup controls show).
+  // No control covers the Door (visual-polish P2 separately checks the ghost plan against controls).
   // The length message (a filled box in the wide layout) is covered too: it is not a control, but it is drawn on the room.
   const clearOf: Item[] = [...controls, ...(p.setup.lengthError ? [{ name: "lengthError", rect: p.setup.lengthError }] : [])];
   for (const { name, rect } of clearOf) {
     bad(`${name} keeps clear of the Door`, gap(rect, p.keepClear.door) >= -EPS);
-    p.keepClear.ghostCells.forEach((cell, i) => bad(`${name} keeps clear of ghost cell ${i}`, gap(rect, cell) >= -EPS));
   }
 
   // The stage and the box agree.

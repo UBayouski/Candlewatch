@@ -49,7 +49,7 @@ import { guardCancel, guardClick, guardDown, guardFocus, guardReset, NO_GESTURE 
 import type { TapGuard } from "./tap-guard";
 import { DEFAULT_LIMITS, visibleHistory } from "./visible";
 import { dawnFor } from "./view";
-import { DOORWAY, HAZE, HORIZON_Y, groundMarks, scatter, shelfBoard, stoneMound, stoneShadow, stoneSide } from "./place";
+import { DOORWAY, HAZE, HORIZON_Y, groundMarks, scatter, shelfBoard, stoneMound, stoneOutline, stoneShadow } from "./place";
 import type { DoorView, View } from "./view";
 
 const n=(v:number)=>String(Math.round(v*100)/100);
@@ -59,7 +59,6 @@ const hills = (base:number,amp:number,seed:number):string=>{
  for(let x=-2200;x<=2800;x+=70)d+=` L${x} ${n(base-amp*(.5+.5*Math.sin(x*.0113+seed)*Math.cos(x*.0041+seed*2)+.25*Math.sin(x*.027+seed*3)))}`;
  return d+` L2800 ${HORIZON+6} Z`;
 };
-const stoneArch = (r: Rect, ox = 0, oy = 0) => `M${n(r.x + ox)} ${n(r.y + r.h + oy)} V${n(r.y + 44 + oy)} A44 44 0 0 1 ${n(r.x + 44 + ox)} ${n(r.y + oy)} H${n(r.x + r.w - 44 + ox)} A44 44 0 0 1 ${n(r.x + r.w + ox)} ${n(r.y + 44 + oy)} V${n(r.y + r.h + oy)} Z`;
 /** Builds only numeric SVG geometry; user text is always handled by the existing textContent calls. */
 export function placeSvg(plan:ViewPlan,doc:Document):SVGSVGElement {
  const attrs=(el:Element,values:Readonly<Record<string,string|number>>)=>{for(const [key,value] of Object.entries(values))el.setAttribute(key,String(value));};
@@ -89,13 +88,15 @@ export function placeSvg(plan:ViewPlan,doc:Document):SVGSVGElement {
  if(!plan.stones.length)avoid.push(line(EMPTY_LINE_Y.stones));if(!plan.rows.length)avoid.push(line(EMPTY_LINE_Y.shelf));
  for(const r of plan.rows){avoid.push(r.labelRect);if(r.more)avoid.push(r.more.rect);}
  const {pebbles,blades}=groundMarks(7741,avoid);
- path(setting,"e-pebble",pebbles.map(([x,y])=>`M${n(x)} ${n(y)}h0`).join(""));
+ const slope = "M-850 470 C-460 476 -362 397 -117 381 C72 369 86 320 252 312 C475 283 563 301 751 375 S1090 443 1510 464 L1510 901 H-850 Z";
+ path(setting,"e-pebble",slope + pebbles.map(([x,y])=>`M${n(x)} ${n(y)}h0`).join(""));
  path(setting,"e-blade",blades.map(([x,y],i)=>`M${n(x)} ${n(y)}l${i%2?1.4:-1.4} -6M${n(x+3.5)} ${n(y+.6)}l${i%3?-.8:1.2} -5`).join(""));
- for(const {rect:r} of plan.stones){
+ for(const {face} of plan.stones){
+  const r = face.rect;
   path(setting,"p-shadow",`M${stoneShadow(r).map(p=>p.map(n).join(" ")).join(" L")} Z`);
   const mound=stoneMound(r);path(setting,"p-mound",`M${mound[0]?.map(n).join(" ")} Q${mound.slice(1,3).map(p=>p.map(n).join(" ")).join(" ")} Q${mound.slice(3).map(p=>p.map(n).join(" ")).join(" ")} Z`);
-  path(setting,"p-side",stoneSide(r).map(q=>stoneArch(q)).join(" "));
-  const f=r.y+r.h;path(setting,"p-tuft",`M${r.x-12} ${f+3} l-1 -6 M${r.x-6} ${f+4} l2 -7 M${r.x+r.w+4} ${f+4} l-1 -6 M${r.x+r.w+10} ${f+3} l2 -7`);
+  path(setting,"p-side",`M${stoneOutline(face).map(([x,y])=>`${n(r.x+x+2)} ${n(r.y+y)}`).join(" L")} Z`);
+  const f=r.y+r.h;path(setting,"p-tuft",`M${r.x-12} ${f+3} q1 -5 -3 -10 M${r.x-6} ${f+4} l2 -9 M${r.x+2} ${f+2} l-2 -5 M${r.x+r.w-3} ${f+4} l-1 -7 M${r.x+r.w+4} ${f+4} q-1 -5 2 -10 M${r.x+r.w+10} ${f+3} l3 -7`);
  }
  plan.rows.forEach((row,i)=>{
   const y=shelfRowY(i),board=shelfBoard(y,row.stubs.length),x=board.x,w=board.w,g=add(setting,"g",{class:"p-board"});
@@ -285,6 +286,7 @@ export function createGraveyard(root: HTMLElement, hooks: GraveyardHooks): Grave
     }
     if (cardShownId !== id) {
       cardShownId = id;
+      card.toggleAttribute("data-stone", ref.group === "graveyard");
       card.replaceChildren(...ref.lines.map((line) => make(doc, "span", { class: "card-line" }, line)));
       setHidden(card, false);
       card.style.removeProperty("--h"); // measure the content, not the size a previous placement set
@@ -354,6 +356,16 @@ export function createGraveyard(root: HTMLElement, hooks: GraveyardHooks): Grave
     const stoneNodes: HTMLElement[] = [stonesLabel];
     for (const stone of next.stones) {
       const { button, desc } = buildItem(stone, "graveyard", "stone");
+      const { rect, shoulder } = stone.face;
+      const outline = stoneOutline(stone.face).map(([x, y]) => `${n(x / rect.w * 100)}% ${n(y / rect.h * 100)}%`);
+      const textTop = Math.min(shoulder + 4, rect.h - 38);
+      button.style.setProperty("--stone-shape", `polygon(${outline.join(",")})`);
+      button.dataset.crown = String(stone.face.crown);
+      // Leave five units above the uneven foot for a wrapped desktop inscription.
+      button.toggleAttribute("data-wrap-intent", textTop + 18 + 2 * 14 <= rect.h - 5);
+      for (const [key,value] of Object.entries({
+        x: rect.x - stone.rect.x, y: rect.y - stone.rect.y, w: rect.w, h: rect.h, text: textTop,
+      })) button.style.setProperty(`--stone-${key}`, String(value));
       button.append(make(doc, "span", { class: "stone-date" }, stone.date), make(doc, "span", { class: "stone-intent" }, stone.intent));
       stoneNodes.push(button, desc);
     }

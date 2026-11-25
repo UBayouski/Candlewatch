@@ -3,9 +3,11 @@
 import { STRINGS } from "../strings";
 import { fill } from "../ui/format";
 import { ghostShape, GHOST_EYES, GHOST_EYE_STYLE } from "./silhouette";
-import { placeGhost } from "./place";
-import { OVERFLOW_MARK } from "./slots";
+import { ghostLook, placeGhost, planGhosts } from "./place";
+import type { GhostPlan } from "./place";
+import { GHOST_LIMIT, OVERFLOW_MARK } from "./slots";
 import type { DrawnGhost } from "./visible";
+import type { Placement } from "../ui/layout";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 /** Safety net for a fade whose transitionend never fires (CSS fade is 400 ms). */
@@ -18,6 +20,7 @@ export interface GhostLayerInput {
   readonly on: boolean;
   /** Reduced motion: no fade, no drift (R10.6, R10.7). */
   readonly reduced: boolean;
+  readonly layout: Placement;
 }
 
 export interface GhostLayer {
@@ -54,6 +57,8 @@ export function createGhostLayer(root: HTMLElement): GhostLayer {
   const live = new Map<number, SVGGElement>();
   const leaving = new Set<SVGGElement>();
   let markText = "";
+  let lastLayout: Placement | undefined;
+  let plan: GhostPlan | undefined;
 
   const setAttr = (el: Element, name: string, value: string): void => {
     if (el.getAttribute(name) !== value) el.setAttribute(name, value);
@@ -64,18 +69,18 @@ export function createGhostLayer(root: HTMLElement): GhostLayer {
     group.setAttribute("class", "ghost");
     group.setAttribute("data-slot", String(g.slot));
     group.setAttribute("data-index", String(g.index));
-    const at = placeGhost(g.slot,g.index,g.size);
-    group.setAttribute("transform", `translate(${at.x} ${at.y}) rotate(${at.tilt}) scale(${g.size})`);
+    group.setAttribute("data-size", String(g.size));
+    const { variant } = ghostLook(g.index);
     const inner = document.createElementNS(SVG_NS, "g");
     inner.setAttribute("class", "drift");
     const body = document.createElementNS(SVG_NS, "path");
     body.setAttribute("class", "body");
-    body.setAttribute("d", ghostShape(at.variant));
+    body.setAttribute("d", ghostShape(variant));
     inner.append(body);
     const glow=document.createElementNS(SVG_NS,"ellipse");glow.setAttribute("class","inner-glow");
     for(const [key,value] of Object.entries({cx:0,cy:-12,rx:17,ry:24}))glow.setAttribute(key,String(value));
     inner.append(glow);
-    for(const [x,y] of GHOST_EYES[at.variant] ?? GHOST_EYES[0]){
+    for(const [x,y] of GHOST_EYES[variant] ?? GHOST_EYES[0]){
       const eye=document.createElementNS(SVG_NS,"ellipse");eye.setAttribute("class","eye");
       for(const [key,value] of Object.entries({cx:x,cy:y,rx:GHOST_EYE_STYLE.rx,ry:GHOST_EYE_STYLE.ry}))eye.setAttribute(key,String(value));
       inner.append(eye);
@@ -109,7 +114,7 @@ export function createGhostLayer(root: HTMLElement): GhostLayer {
   };
 
   return {
-    apply({ ghosts, on, reduced }) {
+    apply({ ghosts, on, reduced, layout }) {
       setAttr(svg, "data-reduced", reduced ? "true" : "false");
 
       if (!on) {
@@ -118,20 +123,38 @@ export function createGhostLayer(root: HTMLElement): GhostLayer {
         return;
       }
 
-      const wanted = new Set(ghosts.drawn.map((g) => g.index));
+      const layoutChanged = layout !== lastLayout;
+      if (layoutChanged) {
+        lastLayout = layout;
+        plan = undefined;
+      }
+      if (ghosts.drawn.length > 0) plan ??= planGhosts(layout);
+      const drawn = plan?.anchors.length === GHOST_LIMIT ? ghosts.drawn : [];
+      const wanted = new Set(drawn.map((g) => g.index));
+      const wantedSlots = new Set(drawn.map((g) => String(g.slot)));
       for (const [index, el] of [...live]) {
         if (!wanted.has(index)) {
           live.delete(index);
-          fadeOut(el, reduced);
+          fadeOut(el, reduced || layoutChanged || wantedSlots.has(el.getAttribute("data-slot") ?? ""));
         }
       }
-      if (reduced) for (const el of [...leaving]) drop(el);
+      for (const el of leaving) {
+        if (reduced || layoutChanged || leaving.size + drawn.length > GHOST_LIMIT ||
+            wantedSlots.has(el.getAttribute("data-slot") ?? "")) drop(el);
+      }
 
-      for (const g of ghosts.drawn) {
-        if (live.has(g.index)) continue; // slot and size are never rewritten (R9.11)
-        const el = create(g);
-        live.set(g.index, el);
-        svg.insertBefore(el, mark);
+      for (const g of drawn) {
+        const retained = live.get(g.index);
+        if (retained && !layoutChanged) continue;
+        const at = plan && placeGhost(plan, g.slot, g.index, g.size);
+        if (!at) continue;
+        const el = retained ?? create(g);
+        el.setAttribute("transform", `translate(${at.x} ${at.y})`);
+        el.firstElementChild?.setAttribute("transform", `rotate(${at.tilt}) scale(${at.scale})`);
+        if (!retained) {
+          live.set(g.index, el);
+          svg.insertBefore(el, mark);
+        }
       }
 
       if (ghosts.hidden > 0) {

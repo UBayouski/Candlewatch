@@ -7,7 +7,7 @@ import { candleHeightUnits, sceneModel } from "./model";
 import { ROOM_SVG } from "./room";
 
 const attrs = (tag: string) => Object.fromEntries([...tag.matchAll(/([\w-]+)="([^"]*)"/g)].map(m=>[m[1],m[2]]));
-it("Feature: room-art, Property 9: The base stays behind the candle",()=>{
+it("Feature: room-art, Property 9: The compact base stays behind the candle",()=>{
  fc.assert(fc.property(fc.double({min:0,max:1,noNaN:true}),wax=>{
   const errors:string[]=[];
   const candle=ROOM_SVG.indexOf('<g class="candle">');
@@ -17,6 +17,7 @@ it("Feature: room-art, Property 9: The base stays behind the candle",()=>{
    const inner=ROOM_SVG.slice(at,end),ys:number[]=[],xs:number[]=[];
    for(const tag of inner.matchAll(/<(rect|ellipse|path)\b[^>]*>/g)){
     const a=attrs(tag[0]);
+    if(a.class==="h-shadow")continue; // The landscape-only shadow is checked in the browser with the drawn dish.
     if(tag[1]==="rect")ys.push(Number(a.y),Number(a.y)+Number(a.height));
     if(tag[1]==="ellipse"){
      ys.push(Number(a.cy)-Number(a.ry),Number(a.cy)+Number(a.ry));

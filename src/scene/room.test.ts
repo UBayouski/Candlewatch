@@ -61,9 +61,9 @@ describe("ROOM_SVG: the stage", () => {
 });
 
 describe("ROOM_SVG: layers (design 5.2)", () => {
-  const order = ["wall", "setting", "warm-tint", "night", "dawn-wash", "window", "stars", "candle", "lit", "zone"];
+  const order = ["wall", "setting", "warm-tint", "dawn-tint", "night", "window", "stars", "candle", "lit", "holder-foreground", "zone"];
 
-  it("has the ten layers in the documented order, with .zone last", () => {
+  it("draws the front of the dish over the candle and below the zone", () => {
     const at = order.map((name) => ROOM_SVG.indexOf(`class="${name}"`));
     for (const i of at) expect(i).toBeGreaterThan(-1);
     expect([...at].sort((a, b) => a - b)).toEqual(at);
@@ -79,16 +79,21 @@ describe("ROOM_SVG: layers (design 5.2)", () => {
     expect(ROOM_SVG.replace(groupInner(ROOM_SVG,"setting"),"")).not.toMatch(/<pattern\b/);
   });
 
-  it("draws the window pane above the dawn wash, so the pane lights up at dawn (review, task 23)", () => {
-    expect(ROOM_SVG.indexOf('class="window"')).toBeGreaterThan(ROOM_SVG.indexOf('class="dawn-wash"'));
+  it("draws the window pane above the directional tint and night mask", () => {
+    expect(ROOM_SVG.indexOf('class="window"')).toBeGreaterThan(ROOM_SVG.indexOf('class="dawn-tint"'));
     expect(ROOM_SVG.indexOf('class="window"')).toBeGreaterThan(ROOM_SVG.indexOf('class="night"'));
   });
 
-  it("keeps table, holder, dish and floor elements inside the setting", () => {
-    // A13: the table and holder return as lit setting, exclusively inside .setting.
-    const outside=ROOM_SVG.replace(groupInner(ROOM_SVG,"setting"),"");
+  it("lights the base through the setting and the same light mask at its front", () => {
+    const outside = ROOM_SVG.replace(groupInner(ROOM_SVG, "setting"), "").replace('class="holder-foreground"', "");
     expect(outside).not.toMatch(/class="[^"]*\b(table|holder|dish|floor)\b/);
     expect(groupInner(ROOM_SVG,"setting")).toContain('class="holder"');
+    const foreground = groupInner(ROOM_SVG, "holder-foreground");
+    const material = element(foreground, "path", "h-front").attrs;
+    const night = element(foreground, "path", "h-front-night").attrs;
+    expect(night["d"]).toBe(material["d"]);
+    expect(night["mask"]).toBe("url(#cw-pool-mask)");
+    expect(ROOM_SVG).not.toContain("rim-dawn-overlay");
   });
 
   it(".wall and .night end at the floor line, y = 900", () => {
@@ -324,6 +329,6 @@ it("room-art: wall veil and pool mask have their documented order",()=>{
  expect(setting.indexOf('class="wall-veil"')).toBeGreaterThan(setting.indexOf('class="wall-stone"'));
  expect(setting.indexOf('class="wall-veil"')).toBeLessThan(setting.indexOf('class="table"'));
  const mask=ROOM_SVG.match(/<mask id="cw-pool-mask"[^>]*>([\s\S]*?)<\/mask>/)?.[1] ?? "";
- const at=["mask-all","win-light","win-edge","pool"].map(c=>mask.indexOf(`class="${c}"`));
+ const at=["mask-all","win-light","win-edge","dawn-field dawn-light","pool"].map(c=>mask.indexOf(`class="${c}"`));
  expect(at.every(i=>i>=0)).toBe(true);expect([...at].sort((a,b)=>a-b)).toEqual(at);
 });

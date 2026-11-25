@@ -2,6 +2,8 @@
 // the primary button, the length message under the chooser, the custom-field cue, the floor strip and the phone settings panel.
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
+import { ghostArea, planGhosts } from "../src/ghosts/place";
+import { toPage } from "./graveyard-fixtures";
 import { colourAt, paletteColour } from "./scene-fixtures";
 import { FIXTURES, desktop, expectedPlacement, fontsLoaded, intersects, judgeFigures, openApp, phone, platformFonts, press, readFigures, rectOf, settle, tablet, wide } from "./controls-fixtures";
 import type { Rect } from "./controls-fixtures";
@@ -419,11 +421,15 @@ test("the top edge of the zone band melts into the room instead of ending in a l
       const c = await colourAt(page, 100, y);
       return Math.max(...c.map((v, i) => Math.abs(v - (zone[i] ?? 0))));
     };
-    // Owner-approved room-art CR12: sample inside the short shadow; the dawn wash farther away is not monotone.
+    // Owner-approved room-art CR12: sample inside the short shadow; the directional light farther away varies across the wall.
     const [near, middle, far, room] = [await distance(floorY - 1), await distance(floorY - 3), await distance(floorY - 5), await distance(floorY - 30)];
     expect(near).toBeLessThan(middle);
     expect(middle).toBeLessThan(far);
-    expect(near).toBeLessThan(8); // the band's own colour at the edge: no line
+    // Measure the shadow against the same unshaded pixel. The new dawn
+    // keeps the side wall dark, so its absolute difference varies with x.
+    await page.addStyleTag({ content: ".zone-dawn { filter: none !important }" });
+    const unshaded = await distance(floorY - 1);
+    expect(near).toBeLessThan(unshaded * 0.45);
     expect(room).toBeGreaterThan(8); // the room outside the shadow differs from the band; no order against far
   } finally {
     await app.close();
@@ -471,7 +477,7 @@ test.describe("the length message stands on a fill", () => {
     await press(page, "Enter");
   }
 
-  test("is the control fill with 4 px of padding, 28 px tall, and clears the intent field, the Door and every ghost cell", async ({ browser }) => {
+  test("is the control fill with 4 px of padding, 28 px tall, and clears the intent field, the Door and every ghost area", async ({ browser }) => {
     for (const viewport of [desktop, wide, { width: 1366, height: 768 }, { width: 2560, height: 1440 }]) {
       const app = await openApp(browser, { fixture: FIXTURES.idle, viewport });
       try {
@@ -497,7 +503,11 @@ test.describe("the length message stands on a fill", () => {
         }
         const toRect = (r: { x: number; y: number; w: number; h: number }): Rect => ({ x: r.x, y: r.y, w: r.w, h: r.h });
         expect(intersects(message, toRect(placement.keepClear.door)), `${label}: the Door`).toBe(false);
-        placement.keepClear.ghostCells.forEach((cell, i) => expect(intersects(message, toRect(cell)), `${label}: ghost cell ${i}`).toBe(false));
+        const plan = planGhosts(placement);
+        plan.anchors.forEach((anchor, i) => {
+          const area = ghostArea(anchor, plan.halfWidth, plan.halfHeight);
+          expect(intersects(message, toPage(area, placement.stage)), `${label}: ghost area ${i}`).toBe(false);
+        });
         expect(intersects(message, toRect(placement.keepClear.column)), `${label}: the candle column`).toBe(false);
         expect(app.errors).toEqual([]);
       } finally {

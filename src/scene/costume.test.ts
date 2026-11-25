@@ -2,7 +2,6 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { expect, it } from "vitest";
 import { ghostShape } from "../ghosts/silhouette";
-import { GHOST_CELLS } from "../ui/layout";
 import { shelfBoard } from "../graveyard/place";
 import { ROOM_SVG } from "./room";
 import { DOOR_WOOD, HOLDER, PANE_FRAME, TABLE } from "./setting";
@@ -20,8 +19,8 @@ it("room-art costume: no forbidden ornament words in source, constants or commen
  }
  expect(errors).toEqual([]);
 });
-it("room-art costume: all non-state room art is in the setting, before night",()=>{
- const allowed=new Set(["wall","night","dawn-wash","window","stars","candle","lit","zone","setting","warm-tint"]),stack:{tag:string;allowed:boolean}[]=[],errors:string[]=[];
+it("room-art costume: non-state art uses the setting or the lit foreground of the dish",()=>{
+ const allowed=new Set(["wall","night","dawn-tint","window","stars","candle","lit","holder-foreground","zone","setting","warm-tint"]),stack:{tag:string;allowed:boolean}[]=[],errors:string[]=[];
  for(const m of tokens()){
   const raw=m[0],tag=raw.match(/^<\/?([\w-]+)/)?.[1]??"";
   if(raw.startsWith("</")){const last=stack.pop();if(last?.tag!==tag)errors.push(`unbalanced ${tag}`);continue;}
@@ -31,6 +30,11 @@ it("room-art costume: all non-state room art is in the setting, before night",()
   if(!raw.endsWith("/>"))stack.push({tag,allowed:Boolean(ok && tag!=="svg")});
  }
  expect(ROOM_SVG.indexOf('<g class="setting">')).toBeLessThan(ROOM_SVG.indexOf('class="night"'));
+ const foreground=ROOM_SVG.match(/<g class="holder-foreground">([\s\S]*?)<\/g>/)?.[1]??"";
+ expect([...foreground.matchAll(/<([\w-]+) class="([^"]+)"/g)].map(m=>[m[1],m[2]])).toEqual([
+  ["path","h-front"],["path","h-front-night"],
+ ]);
+ expect(foreground).toContain('mask="url(#cw-pool-mask)"');
  expect(errors).toEqual([]);
 });
 it("room-art costume: setting selectors cannot animate or read model variables",()=>{
@@ -58,7 +62,7 @@ it("room-art costume: props are not state shapes and keep clear of co-visible st
  const intersects=(a:{x:number;y:number;w:number;h:number},b:typeof a)=>a.x<b.x+b.w&&b.x<a.x+a.w&&a.y<b.y+b.h&&b.y<a.y+a.h;
  const flame={x:270,y:340,w:60,h:120},halo={x:180,y:290,w:240,h:240},wax={x:268,y:480,w:64,h:420},zone={x:-2200,y:900,w:5000,h:700};
  const props=[{name:"frame",r:{x:PANE_FRAME.x,y:PANE_FRAME.y,w:PANE_FRAME.w,h:PANE_FRAME.h}},{name:"door wood",r:DOOR_WOOD.arch},{name:"table",r:{x:-2200,y:TABLE.y,w:5000,h:TABLE.h}},{name:"holder",r:HOLDER}];
- for(const {name,r} of props)for(const [state,b] of [["flame",flame],["halo",halo],["wax",wax],["zone",zone],...GHOST_CELLS.map((r,i)=>[`ghost cell ${i}`,r] as const)] as const){
+ for(const {name,r} of props)for(const [state,b] of [["flame",flame],["halo",halo],["wax",wax],["zone",zone]] as const){
   if((name==="table"||name==="holder")&&(state==="wax"||state==="halo"))continue;
   expect(intersects(r,b),`${name} meets ${state}`).toBe(false);
  }

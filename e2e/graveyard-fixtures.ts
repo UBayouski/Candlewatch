@@ -110,9 +110,9 @@ export function sizeRangeSpans(n: number): number[] {
 }
 
 /** A lit session of 50 minutes with `n` distractions of `sizeRangeSpans(n)`, looked at 30 minutes in (20:00 left). */
-export function ghostShotFixture(n: number): Fixture {
+export function ghostShotFixture(n: number, allSpansMs?: number): Fixture {
   const lengthMin = 50;
-  const session = sessionWith(T0, lengthMin, n, sizeRangeSpans(n));
+  const session = sessionWith(T0, lengthMin, n, allSpansMs === undefined ? sizeRangeSpans(n) : Array.from({ length: n }, () => allSpansMs));
   return { name: `lit-${n}-size-range`, state: { phase: "lit", history: [], session, litSince: T0, awaySince: null }, now: T0 + 30 * MIN };
 }
 
@@ -271,10 +271,10 @@ export const readGhosts = (page: Page): Promise<GhostsReading> =>
     const ghosts = all
       .filter((g) => !g.classList.contains("leaving"))
       .map((g) => {
-        const m = /scale\(([^)]+)\)/.exec(g.getAttribute("transform") ?? "");
         const transform=g.getAttribute("transform")??"";
-        const rest=/translate\(([^ ]+) ([^)]+)\) rotate\(([^)]+)\)/.exec(transform);
-        return { rest:{x:Number(rest?.[1]),y:Number(rest?.[2]),tilt:Number(rest?.[3])}, slot: Number(g.getAttribute("data-slot")), index: Number(g.getAttribute("data-index")), size: Number(m?.[1] ?? NaN), rect: box(g) };
+        const rest=/translate\(([^ ]+) ([^)]+)\)/.exec(transform);
+        const tilt=/rotate\(([^)]+)\)/.exec(g.firstElementChild?.getAttribute("transform") ?? "");
+        return { rest:{x:Number(rest?.[1]),y:Number(rest?.[2]),tilt:Number(tilt?.[1])}, slot: Number(g.getAttribute("data-slot")), index: Number(g.getAttribute("data-index")), size: Number(g.getAttribute("data-size")), rect: box(g) };
       });
     const mark = document.querySelector("#ghost-root .overflow");
     const shown = mark !== null && !mark.hasAttribute("hidden");

@@ -6,7 +6,7 @@ import { armFirstGesture } from "./audio/gesture";
 import { browserVisibilityTarget } from "./distraction/visibility";
 import { countWords } from "./ghosts/label";
 import { createGhostLayer } from "./ghosts/layer";
-import { GHOST_SLOTS } from "./ghosts/slots";
+import { GHOST_LIMIT } from "./ghosts/slots";
 import { visibleGhosts } from "./ghosts/visible";
 import "./ghosts/ghosts.css";
 import { localDayKey } from "./graveyard/day-key";
@@ -148,19 +148,19 @@ if (app) {
     const now = Date.now();
     dispatch({ type: "tick" }, now);
 
-    // The ghosts: one per distraction of this session, the newest twelve, drawn only in the room and only when the setting is on.
-    ghostLayer.apply({
-      ghosts: visibleGhosts(ghostSpansMs(state), GHOST_SLOTS.length),
-      on: settings.ghosts && view === "room",
-      reduced: reduced.matches,
-    });
     // The scene's label says the engine's count, whatever the ghost setting and however many ghosts are drawn (R10.1, R10.4).
     scene.apply(sceneModel(state, now, { reducedMotion: reduced.matches }), { labelSuffix: countWords(distractionCount(state)) });
 
     // A candle lit or paused shuts the Door and forces the room in this very frame (R3.5, R3.6, R3.12).
     changeView({ type: "phase", phase: state.phase });
     drawGraveyard();
-    ui.update(state, now);
+    const layout = ui.update(state, now);
+    ghostLayer.apply({
+      ghosts: visibleGhosts(ghostSpansMs(state), GHOST_LIMIT),
+      on: settings.ghosts && view === "room",
+      reduced: reduced.matches,
+      layout,
+    });
     requestAnimationFrame(frame);
   };
   requestAnimationFrame(frame);

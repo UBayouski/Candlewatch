@@ -2,11 +2,11 @@
 import * as fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { ghostSize } from "../engine";
-import { GHOST_SLOTS } from "./slots";
+import { GHOST_LIMIT } from "./slots";
 import { PROP_PARAMS, arbGhostSpans } from "./test-kit";
 import { visibleGhosts } from "./visible";
 
-const G = GHOST_SLOTS.length;
+const G = GHOST_LIMIT;
 const spansOf = (n: number): number[] => Array.from({ length: n }, (_, i) => (i + 1) * 10_000);
 
 describe("visibleGhosts with G = 12", () => {

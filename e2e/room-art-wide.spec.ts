@@ -3,14 +3,93 @@ import { expect, test } from "@playwright/test";
 import { createServer } from "node:http";
 import { readFileSync } from "node:fs";
 import { resolve, sep } from "node:path";
+import { CANDLE_H, LANDSCAPE_CANDLE_H, LANDSCAPE_WAX_BASE_Y, LANDSCAPE_WINDOW, WINDOW } from "../src/scene/constants";
 import { WALL, WALL_ORIGIN_X, wallBlocks, wallHeights } from "../src/scene/setting";
-import { stageBox } from "../src/ui/layout";
+import { placeControls, stageBox } from "../src/ui/layout";
 import { FIXTURES, VIEWPORTS_ART, openScene, patch, rgbAt, luminance } from "./room-art-fixtures";
 
 const night = [5, 7, 13] as const;
 const edgeDistance = (pixel: readonly number[]) => pixel.reduce((s, v, i) => s + Math.abs(v - night[i]!), 0);
 const sizes = [...VIEWPORTS_ART, { name: "wide-short", width: 2560, height: 1080 }] as const;
 const states = [FIXTURES.idle, FIXTURES.litStart, FIXTURES.paused, FIXTURES.burnedOut] as const;
+
+test.describe("visual-polish D2: the candle and its setting fit the viewport", () => {
+  for (const viewport of [VIEWPORTS_ART[0], VIEWPORTS_ART[3], VIEWPORTS_ART[4], VIEWPORTS_ART[6]]) {
+    test(`${viewport.name}: full wax, window, holder, table and time band`, async ({ browser }) => {
+      const { width, height } = viewport;
+      const layout = placeControls(width, height);
+      const { ox, oy, scale } = layout.stage;
+      const window = layout.landscapeScene ? LANDSCAPE_WINDOW : WINDOW;
+      const app = await openScene(browser, FIXTURES.litStart, { viewport, reducedMotion: true });
+      try {
+        const box = async (selector: string) => {
+          const rect = await app.page.locator(selector).boundingBox();
+          if (!rect) throw new Error(`Missing visible geometry for ${selector}`);
+          return rect;
+        };
+        const wax = await box(".room .body");
+        expect(wax.height).toBeCloseTo((layout.landscapeScene ? LANDSCAPE_CANDLE_H : CANDLE_H) * scale, 1);
+        if (layout.landscapeScene) expect(wax.height / height).toBeGreaterThanOrEqual(0.546);
+        const waxBottom = wax.y + wax.height;
+        expect(waxBottom).toBeCloseTo(layout.landscapeScene ? oy + LANDSCAPE_WAX_BASE_Y * scale : layout.floorY, 1);
+        const pane = await box(".f-wood");
+        expect(pane.x).toBeCloseTo(ox + window.x * scale, 1);
+        expect(pane.y).toBeCloseTo(oy + window.y * scale, 1);
+        expect(pane.width).toBeCloseTo(window.width * scale, 1);
+        expect(pane.height).toBeCloseTo(window.height * scale, 1);
+        const halo = await box(".halo");
+        const wick = await box(".wick");
+        expect(wick.y + wick.height).toBeCloseTo(wax.y, 1);
+        expect(halo.y).toBeGreaterThan(pane.y + pane.height);
+        const holder = await box(".holder");
+        expect(holder.width).toBeCloseTo((layout.landscapeScene ? 150 : 124) * scale, 1);
+        const table = await box(".t-face");
+        expect(table.x).toBeLessThan(0);
+        expect(table.x + table.width).toBeGreaterThan(width);
+        const tableBottom = table.y + table.height;
+        if (layout.landscapeScene) {
+          const front = await box(".h-front");
+          const frontBottom = front.y + front.height;
+          const dishBottom = Math.max(frontBottom, holder.y + holder.height);
+          expect(dishBottom).toBeLessThan(layout.floorY);
+          expect(tableBottom).toBeLessThan(layout.floorY);
+          expect(tableBottom - dishBottom).toBeGreaterThanOrEqual(8);
+          expect(front.y).toBeLessThan(waxBottom);
+          expect(waxBottom).toBeLessThan(frontBottom);
+
+          const x = Math.floor(wax.x + wax.width / 2);
+          const isWax = ([r, g, b]: readonly number[]) => r! > 190 && g! > 175 && b! > 140;
+          const picture = await app.page.screenshot({ animations: "disabled" });
+          const hiddenFoot = Math.floor(waxBottom - 1);
+          let lastWax = hiddenFoot;
+          while (lastWax >= wax.y && !isWax(rgbAt(picture, x, lastWax))) lastWax--;
+          expect(lastWax + 1).toBeLessThan(waxBottom);
+          expect(lastWax + 1).toBeLessThan(frontBottom);
+          expect((lastWax + 1 - wax.y) / height).toBeGreaterThanOrEqual(0.546);
+          const hiddenFront = await app.page.addStyleTag({ content: ".candle-scene[data-landscape] .holder-foreground { display: none; }" });
+          expect(isWax(rgbAt(await app.page.screenshot({ animations: "disabled" }), x, hiddenFoot))).toBe(true);
+          await hiddenFront.evaluate((sheet) => sheet.parentNode?.removeChild(sheet));
+          console.log("D2 foot", viewport.name, {
+            waxBottom, visibleWaxBottom: lastWax + 1, visibleWaxHeight: lastWax + 1 - wax.y,
+            dishBottom, tableBottom, bandTop: layout.floorY, tableBelowDish: tableBottom - dishBottom,
+          });
+        } else {
+          expect(tableBottom).toBeCloseTo(layout.floorY, 1);
+        }
+        const time = await box("#time");
+        expect(time.y).toBeGreaterThanOrEqual(layout.floorY - 0.05);
+        expect(time.y + time.height).toBeLessThan(height);
+        console.log("D2 rendered full wax", viewport.name, wax.height, wax.height / height);
+        if (layout.landscapeScene) {
+          await app.page.emulateMedia({ forcedColors: "active" });
+          await expect(app.page.locator(".holder-foreground")).toBeHidden();
+          const forcedWax = await box(".room .body");
+          expect(forcedWax.y + forcedWax.height).toBeCloseTo(layout.floorY, 1);
+        }
+      } finally { await app.close(); }
+    });
+  }
+});
 
 test.describe("room-art E2: the setting reaches both edges", () => {
   for (const viewport of sizes) for (const state of states) {
@@ -118,7 +197,9 @@ test.describe("room-art E14: the periphery agrees with the Prototype", () => {
     const build = await openScene(browser, FIXTURES.idle, { viewport });
     try {
       await proto.goto(`http://127.0.0.1:${port}/.kiro/specs/room-art/prototype/index.html#idle`);
-      await proto.addStyleTag({ content: gradientHide });
+      // The frozen HTML still links the live styles. Restore its retired wash's
+      // opacity binding so the idle reference remains dark in the same way.
+      await proto.addStyleTag({ content: `${gradientHide}.dawn-wash{opacity:var(--dawn)}` });
       await build.page.addStyleTag({ content: gradientHide });
       const reference = readGradient(await proto.screenshot({ animations: "disabled" }), viewport.width, viewport.height);
       const actual = readGradient(await build.page.screenshot({ animations: "disabled" }), viewport.width, viewport.height);

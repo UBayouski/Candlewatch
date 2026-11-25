@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { expect, test } from "@playwright/test";
-import { CANDLE_H, LIGHT_FULL_UNITS, STUB_H } from "../src/scene/constants";
+import { CANDLE_H, FLOOR_Y, LANDSCAPE_CANDLE_H, LANDSCAPE_WAX_BASE_Y, LIGHT_FULL_UNITS, STUB_H } from "../src/scene/constants";
 import { STRINGS } from "../src/strings";
-import { patch, ratio, roomToPx, wallSample, VIEWPORTS_ART, WALL_SAMPLES, STATES, FIXTURES, openScene, hideInterface } from "./room-art-fixtures";
+import { placeControls } from "../src/ui/layout";
+import { patch, ratio, roomToPx, wallSample, VIEWPORTS_ART, WALL_SAMPLES, STATES, FIXTURES, openScene, hideInterface, windowPoint } from "./room-art-fixtures";
 import type { Colour } from "./room-art-fixtures";
 
 const distance = (a: Colour, b: Colour): number => Math.max(...a.map((v, i) => Math.abs(v - (b[i] ?? 0))));
@@ -11,22 +12,25 @@ const photo = async (page: import("@playwright/test").Page) => page.screenshot({
 test.describe("room-art E1: constant Window_Light and shrinking pool", () => {
   test("lit start and last minute use the same constant light outside the pool", async ({ browser }) => {
     const viewport = VIEWPORTS_ART[3];
-    const between = wallSample(120, 150).board;
-    const fromStart = Math.hypot(between.x - 300, between.y - 400);
-    expect(fromStart).toBeGreaterThan(230);
-    expect(fromStart).toBeLessThan(650);
+    const between = wallSample(120, 150, viewport).board;
+    const lift = FLOOR_Y - LANDSCAPE_WAX_BASE_Y;
+    const startCentre = 400 - (LANDSCAPE_CANDLE_H - CANDLE_H) - lift;
+    const fromStart = Math.hypot(between.x - 300, between.y - startCentre);
+    expect(fromStart).toBeLessThan(LIGHT_FULL_UNITS);
     // The two circular profiles cross here; this is on the wall, clear of the candle.
-    const lastCentre = 400 + 0.98 * 420, lastRadius = 0.2 + 0.8 * 0.02;
-    const common = { x: 235, y: 755 };
-    expect(Math.hypot(common.x - 300, common.y - 400)).toBeLessThan(LIGHT_FULL_UNITS);
+    const lastCentre = startCentre + 0.98 * LANDSCAPE_CANDLE_H, lastRadius = 0.2 + 0.8 * 0.02;
+    const common = { x: 235, y: 733 - lift };
+    expect(Math.hypot(common.x - 300, common.y - startCentre)).toBeLessThan(LIGHT_FULL_UNITS);
     expect(Math.hypot(common.x - 300, common.y - lastCentre)).toBeLessThan(LIGHT_FULL_UNITS * lastRadius);
+    expect(Math.hypot(between.x - 300, between.y - lastCentre)).toBeGreaterThan(LIGHT_FULL_UNITS * lastRadius);
+    const glass = windowPoint(viewport.width, viewport.height, 300, 150);
     const readings: Colour[][] = [];
     for (const fixture of [FIXTURES.litStart, FIXTURES.litLastMinute]) {
       const app = await openScene(browser, fixture, { viewport });
       try {
         await hideInterface(app.page);
         const png = await photo(app.page);
-        readings.push([between, common, { x: -480, y: 300 }, { x: 300, y: 150 }].map((p) => { const q = roomToPx(viewport.width, viewport.height, p.x, p.y); return patch(png, q.x, q.y); }));
+        readings.push([between, common, { x: -480, y: 300 }, glass].map((p) => { const q = roomToPx(viewport.width, viewport.height, p.x, p.y); return patch(png, q.x, q.y); }));
       } finally { await app.close(); }
     }
     const [start, last] = readings;
@@ -43,7 +47,7 @@ test.describe("room-art E4: Holder stays behind the candle", () => {
     const app = await openScene(browser, FIXTURES.litStart, { viewport });
     try {
       await hideInterface(app.page);
-      const p = roomToPx(viewport.width, viewport.height, 300, 892);
+      const p = roomToPx(viewport.width, viewport.height, 300, viewport.name === "desktop" ? 870 : 892);
       const withHolder = patch(await photo(app.page), p.x, p.y);
       const rule = await app.page.addStyleTag({ content: ".holder { display: none !important }" });
       const withoutHolder = patch(await photo(app.page), p.x, p.y);
@@ -56,16 +60,18 @@ test.describe("room-art E4: Holder stays behind the candle", () => {
 });
 
 const night: Colour = [5, 7, 13];
-const wallPoints = WALL_SAMPLES.map(([x, y]) => wallSample(x, y).board);
 const returningIdle = { name: "idle-returning", state: { phase: "idle", history: FIXTURES.snuffed.state.history }, now: FIXTURES.idle.now } as const;
-const settingPoints = [wallPoints[0], { x: 100, y: 888 }, { x: 244, y: 150 }, { x: 50, y: 860 }] as const;
 const readPoints = (png: Buffer, viewport: (typeof VIEWPORTS_ART)[number], points: readonly { x: number; y: number }[]) =>
   points.map(({ x, y }) => { const p = roomToPx(viewport.width, viewport.height, x, y); return patch(png, p.x, p.y); });
 
 test.describe("room-art E12: idle is a room and snuffed is darker", () => {
   for (const viewport of VIEWPORTS_ART) {
+    const wallPoints = WALL_SAMPLES.map(([x, y]) => wallSample(x, y, viewport).board);
     test(`${viewport.name}: idle and snuffed art, smoke, candle and status`, async ({ browser }) => {
       const colours: Colour[][] = [];
+      const layout = placeControls(viewport.width, viewport.height);
+      const settingPoints = [wallPoints[0]!, { x: 100, y: layout.landscapeScene ? 876 : 888 },
+        windowPoint(viewport.width, viewport.height, 244, 150), { x: 50, y: 860 }];
       for (const fixture of [returningIdle, FIXTURES.snuffed]) {
         const app = await openScene(browser, fixture, { viewport });
         try {
@@ -79,7 +85,8 @@ test.describe("room-art E12: idle is a room and snuffed is darker", () => {
           if (fixture === returningIdle) {
             expect(indicators.pool).toBe("none"); expect(indicators.tint).toBe("none");
             expect(indicators.smoke).toBe(0);
-            expect(indicators.body).toBeCloseTo(CANDLE_H * roomToPx(viewport.width, viewport.height, 1, 0).x - CANDLE_H * roomToPx(viewport.width, viewport.height, 0, 0).x, 1);
+            const height = layout.landscapeScene ? LANDSCAPE_CANDLE_H : CANDLE_H;
+            expect(indicators.body).toBeCloseTo(height * layout.stage.scale, 1);
             expect(indicators.stubOpacity).toBe(0);
             expect(indicators.status).toBe(STRINGS.status.idle);
           } else {
@@ -90,7 +97,7 @@ test.describe("room-art E12: idle is a room and snuffed is darker", () => {
             expect(indicators.status).toBe(STRINGS.status.snuffed);
           }
           await hideInterface(app.page);
-          colours.push(readPoints(await photo(app.page), viewport, [...wallPoints, ...settingPoints] as { x: number; y: number }[]));
+          colours.push(readPoints(await photo(app.page), viewport, [...wallPoints, ...settingPoints]));
         } finally { await app.close(); }
       }
       const idle = colours[0]!, snuffed = colours[1]!;

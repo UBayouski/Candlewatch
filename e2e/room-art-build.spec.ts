@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { expect, test } from "@playwright/test";
+import { MAX_BUILT_CODE_BYTES } from "../src/scene/constants";
 import { graveyardFixture, openGraveyardApp, openView, smallHistory } from "./graveyard-fixtures";
 import { FIXTURES, openApp } from "./room-art-fixtures";
 
@@ -25,7 +26,7 @@ test.describe("room-art E10: built art stays local and within budget", () => {
       return ["feTurbulence", "feDisplacementMap", "feMorphology", "feConvolveMatrix"].filter((name) => text.includes(name)).map((name) => `${relative(root, p)}:${name}`);
     });
     console.log("E10 built JS+CSS bytes", bytes, "files", names.length, "forbidden", forbidden);
-    expect(bytes).toBeLessThanOrEqual(120_000);
+    expect(bytes).toBeLessThanOrEqual(MAX_BUILT_CODE_BYTES);
     expect(forbidden).toEqual([]);
   });
   test("served HTML has no inline style attribute", async ({ request }) => {

@@ -321,8 +321,8 @@ test.describe("the ember reads as a warm glow on the stub's rim (review, task 23
   });
 });
 
-test.describe("the window lights up at dawn, above the wash (review, task 23)", () => {
-  test("at dawn the pane is clearly lighter than the wash beside it", async ({ browser }) => {
+test.describe("the window lights up at dawn, at the source of the light", () => {
+  test("at dawn the pane is clearly lighter than the adjacent wall", async ({ browser }) => {
     const dawn = await openScene(browser, FIXTURES.burnedOut);
     try {
       const pane = await boxOf(dawn.page, ".window-dawn");
@@ -332,8 +332,14 @@ test.describe("the window lights up at dawn, above the wash (review, task 23)", 
       const beside = await colourAt(dawn.page, pane.x - 60, cy);
       const sum = (c: [number, number, number]): number => c[0] + c[1] + c[2];
       expect(sum(inside) - sum(beside)).toBeGreaterThan(30);
-      // The pane's colour is the dawn pane colour, undimmed by the wash.
-      expect(near(inside, await paletteColour(dawn.page, "--window-dawn"), 6)).toBe(true);
+      const top = await paletteColour(dawn.page, "--room-dawn-pane-top");
+      const sill = await paletteColour(dawn.page, "--room-dawn-pane");
+      const t = 0.5 / 0.65;
+      const middle: [number, number, number] = top.map((v, i) => v + ((sill[i] ?? v) - v) * t) as [number, number, number];
+      expect(near(inside, middle, 6)).toBe(true);
+      const upper = await colourAt(dawn.page, cx, pane.y + pane.height * 0.17);
+      const lower = await colourAt(dawn.page, cx, pane.y + pane.height * 0.83);
+      expect(sum(lower)).toBeGreaterThan(sum(upper) + 7);
     } finally {
       await dawn.close();
     }

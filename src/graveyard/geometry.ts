@@ -32,9 +32,34 @@ export const TEXT_LINE_H = 28;
 /** The two group labels (L7 as amended by D14, D19, D21: the visible view header is gone, the heading is read only). */
 export const LABEL_Y = { stones: 215, shelf: 463 } as const;
 
-/** Stone i: 100 by 74 (44.4 px at 360 x 640), pitch 110 across and 84 down (L7, D14, D21). */
+/** Stagger the two rows while retaining the 100 by 74 targets and their order. */
 export function stoneRect(i: number): Rect {
-  return { x: 30 + 110 * (i % STONES_PER_ROW), y: 257 + 84 * Math.floor(i / STONES_PER_ROW), w: 100, h: 74 };
+  const row = Math.floor(i / STONES_PER_ROW);
+  return { x: (row === 0 ? 40 : 25) + 110 * (i % STONES_PER_ROW), y: 257 + 84 * row, w: 100, h: 74 };
+}
+
+export interface StoneFace {
+  readonly rect: Rect;
+  readonly crown: number;
+  readonly lean: number;
+  readonly shoulder: number;
+}
+
+export function stoneFace(id: string, hit: Rect, back: boolean): StoneFace {
+  let hash = 2166136261;
+  for (const c of id) hash = Math.imul(hash ^ c.charCodeAt(0), 16777619);
+  hash = Math.imul(hash ^ (hash >>> 16), 0x21f0aaad);
+  hash = (hash ^ (hash >>> 15)) >>> 0;
+  const w = (back ? 70 : 76) + (hash % (back ? 19 : 21));
+  const h = back ? 54 + ((hash >>> 8) % 17) : 60 + ((hash >>> 8) % 15);
+  const dx = ((hash >>> 16) & 1) === 0 ? -8 : 8;
+  const dy = ((hash >>> 25) % 11) - 5;
+  const x = hit.x + clamp((hit.w - w) / 2 + dx, 0, hit.w - w - 2);
+  const y = hit.y + hit.h - h - clamp(5 - dy, 0, Math.min(10, hit.h - h));
+  const crown = (hash >>> 5) % 3;
+  const lean = [-4, -3, 0, 3, 4][(hash >>> 20) % 5] ?? 0;
+  const shoulder = (crown === 2 ? 5 : crown === 1 ? 19 : 13) + ((hash >>> 12) % 4);
+  return { rect: { x, y, w, h }, crown, lean, shoulder };
 }
 
 /** Top of Day_Shelf row r: rows are 74 high with a 10 gap (L7, D14). */

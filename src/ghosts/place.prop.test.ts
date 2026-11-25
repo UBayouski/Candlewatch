@@ -1,40 +1,61 @@
 import * as fc from "fast-check";
-import { expect,it } from "vitest";
+import { expect, it } from "vitest";
 import { PROP_PARAMS } from "../engine/test-kit";
-import { GHOST_CELLS } from "../ui/layout";
-import { ghostLook,placeGhost } from "./place";
-import { GHOST_SLOTS } from "./slots";
-const size=fc.double({min:.25,max:1,noNaN:true});
-const triple=[fc.integer({min:0,max:11}),fc.nat(),size] as const;
-it("Feature: room-art, Property 1: A ghost stays inside its cell",()=>{
- fc.assert(fc.property(...triple,(slot,index,size)=>{
-  const p=placeGhost(slot,index,size),c=GHOST_SLOTS[slot];if(!c)throw new Error("missing slot");
-  const cell=GHOST_CELLS.find(r=>r.x+r.w/2===c.cx&&r.y+r.h/2===c.cy);if(!cell)throw new Error("missing cell");
-  for(const s of [size,1]){
-   const at=placeGhost(slot,index,s),t=at.tilt*Math.PI/180;
-   for(const dx of [-8,8])for(const dy of [-8,8])for(const x of [-35,35])for(const y of [-37.5,37.5]){
-    const xx=at.x+dx+s*(x*Math.cos(t)-y*Math.sin(t)), yy=at.y+dy+s*(x*Math.sin(t)+y*Math.cos(t));
-    expect(xx).toBeGreaterThanOrEqual(cell.x-1e-10);expect(xx).toBeLessThanOrEqual(cell.x+cell.w+1e-10);
-    expect(yy).toBeGreaterThanOrEqual(cell.y-1e-10);expect(yy).toBeLessThanOrEqual(cell.y+cell.h+1e-10);
-   }
-   if(s===1){expect(Math.abs(at.x-c.cx)).toBeLessThanOrEqual(2);expect(Math.abs(at.y-c.cy)).toBeLessThanOrEqual(2);}
-  }
-  expect(p).toEqual(placeGhost(slot,index,size));
- }),PROP_PARAMS);
+import { placeControls } from "../ui/layout";
+import { ghostArea, ghostGuards, placeGhost, planGhosts, separation } from "./place";
+import { DRIFT_UNITS, GHOST_BOX, GHOST_LIMIT } from "./slots";
+import { visibleGhosts } from "./visible";
+
+const references = [[360, 640], [1280, 800], [1920, 1080], [3840, 2160]] as const;
+const reference = fc.constantFrom(...references);
+const viewport = fc.oneof(reference, fc.tuple(fc.integer({ min: 360, max: 3840 }), fc.integer({ min: 540, max: 2160 })));
+const durations = fc.array(fc.nat({ max: 300_000 }), { maxLength: 36 });
+
+it("Feature: visual-polish, Property 1: placement is deterministic and retained identities stay stable on append", () => {
+  fc.assert(fc.property(reference, durations, fc.nat(), ([w, h], spans, next) => {
+    const layout = placeControls(w, h);
+    const plan = planGhosts(layout);
+    expect(planGhosts(layout)).toEqual(plan);
+    const draw = (history: readonly number[]) => {
+      const { drawn, hidden } = visibleGhosts(history, GHOST_LIMIT);
+      expect(hidden).toBe(Math.max(0, history.length - GHOST_LIMIT));
+      return new Map(drawn.map(({ slot, index, size }) => [index, placeGhost(plan, slot, index, size)]));
+    };
+    const before = draw(spans);
+    const after = draw([...spans, next]);
+    for (const [index, placement] of after) if (before.has(index)) expect(placement).toEqual(before.get(index));
+  }), PROP_PARAMS);
 });
-it("Feature: room-art, Property 2: Placement is deterministic and independent of other ghosts",()=>{
- fc.assert(fc.property(...triple,fc.array(fc.nat()),(slot,index,size,others)=>{
-  const before=placeGhost(slot,index,size),look=ghostLook(index);
-  for(const other of others){ghostLook(other);placeGhost(other%12,other,.5);}
-  expect(placeGhost(slot,index,size)).toEqual(before);expect(ghostLook(index)).toEqual(look);
-  expect(Reflect.apply(ghostLook,null,[index,others.length])).toEqual(look);
-  expect(Reflect.apply(placeGhost,null,[slot,index,size,others])).toEqual(before);
- }),PROP_PARAMS);
-});
-it("Feature: room-art, Property 3: A column of small ghosts does not read as a straight line",()=>{
- fc.assert(fc.property(fc.nat({max:2147483630}),fc.array(fc.double({min:.25,max:.5,noNaN:true}),{minLength:6,maxLength:6}),(start,sizes)=>{
-  const xs=sizes.map((s,k)=>placeGhost(2*k,start+2*k,s).x);
-  expect(Math.max(...xs)-Math.min(...xs)).toBeGreaterThanOrEqual(8);
-  for(let k=0;k<6;k++)expect(ghostLook(start+2*k).variant).toBe((start+2*k)%3);
- }),PROP_PARAMS);
+
+it("Feature: visual-polish, Property 2: swept ghost areas stay clear throughout the supported layout", () => {
+  fc.assert(fc.property(viewport, fc.nat({ max: 1_000_000 }), fc.double({ min: 0.25, max: 1, noNaN: true }), ([w, h], index, size) => {
+    const layout = placeControls(w, h);
+    const plan = planGhosts(layout);
+    expect(plan.anchors).toHaveLength(GHOST_LIMIT);
+    const { visible, guards } = ghostGuards(layout);
+    const areas = plan.anchors.map(anchor => ghostArea(anchor, plan.halfWidth, plan.halfHeight));
+    for (const [slot, area] of areas.entries()) {
+      expect(area.x).toBeGreaterThanOrEqual(visible.x);
+      expect(area.y).toBeGreaterThanOrEqual(visible.y);
+      expect(area.x + area.w).toBeLessThanOrEqual(visible.x + visible.w);
+      expect(area.y + area.h).toBeLessThanOrEqual(visible.y + visible.h);
+      for (const guard of guards) expect(separation(area, guard)).toBeGreaterThanOrEqual(1);
+      for (const other of areas.slice(slot + 1)) expect(separation(area, other)).toBeGreaterThanOrEqual(1);
+      for (const s of [size, 1]) {
+        const at = placeGhost(plan, slot, index + slot, s);
+        if (!at) throw new Error("Missing ghost placement");
+        const t = at.tilt * Math.PI / 180;
+        const cornersX = [-1, 1].map(sign => sign * (GHOST_BOX.w / 2 + 0.75) * at.scale);
+        const cornersY = [-1, 1].map(sign => sign * (GHOST_BOX.h / 2 + 0.75) * at.scale);
+        for (const x of cornersX) for (const y of cornersY) {
+          const xx = at.x + x * Math.cos(t) - y * Math.sin(t);
+          const yy = at.y + x * Math.sin(t) + y * Math.cos(t);
+          expect(xx - DRIFT_UNITS).toBeGreaterThanOrEqual(area.x);
+          expect(yy - DRIFT_UNITS).toBeGreaterThanOrEqual(area.y);
+          expect(xx + DRIFT_UNITS).toBeLessThanOrEqual(area.x + area.w);
+          expect(yy + DRIFT_UNITS).toBeLessThanOrEqual(area.y + area.h);
+        }
+      }
+    }
+  }), PROP_PARAMS);
 });

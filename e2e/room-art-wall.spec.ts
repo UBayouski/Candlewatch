@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { expect, test } from "@playwright/test";
-import { FIXTURES, STATES, VIEWPORTS_ART, openScene, patch, ratio, roomToPx, wallSample, hideInterface } from "./room-art-fixtures";
+import { FIXTURES, STATES, VIEWPORTS_ART, openScene, patch, ratio, roomToPx, wallSample, hideInterface, windowPoint } from "./room-art-fixtures";
 import { ghostShotFixture, readGhosts } from "./graveyard-fixtures";
 
 const phone = VIEWPORTS_ART[0], desktop = VIEWPORTS_ART[3];
 const sampleRatio = (png: Buffer, viewport: { width: number; height: number }, x: number, y: number) => {
-  const s = wallSample(x, y), a = roomToPx(viewport.width, viewport.height, s.board.x, s.board.y),
+  const s = wallSample(x, y, viewport), a = roomToPx(viewport.width, viewport.height, s.board.x, s.board.y),
     b = roomToPx(viewport.width, viewport.height, s.joint.x, s.joint.y);
   return ratio(patch(png, a.x, a.y), patch(png, b.x, b.y));
 };
@@ -25,8 +25,10 @@ test.describe("room-art E3: the wall and window", () => {
               const s = getComputedStyle(frame.querySelector(selector) as Element);
               return `${s.fill}|${s.stroke}`;
             }));
-          const f = roomToPx(viewport.width, viewport.height, 244, 150);
-          const g = roomToPx(viewport.width, viewport.height, 260, 150);
+          const fRoom = windowPoint(viewport.width, viewport.height, 244, 150);
+          const gRoom = windowPoint(viewport.width, viewport.height, 260, 150);
+          const f = roomToPx(viewport.width, viewport.height, fRoom.x, fRoom.y);
+          const g = roomToPx(viewport.width, viewport.height, gRoom.x, gRoom.y);
           const frameGlass = ratio(patch(png, f.x, f.y), patch(png, g.x, g.y));
           readings[fixture.name] = { style, frameGlass };
           const stars = await app.page.locator(".stars").evaluate((el) => getComputedStyle(el).opacity);
@@ -50,17 +52,24 @@ test.describe("room-art E3: the wall and window", () => {
             expect(glass).not.toBeNull();
             const inside = patch(png, glass!.x + glass!.width / 2, glass!.y + glass!.height / 2);
             const left = patch(png, glass!.x - 60, glass!.y + glass!.height / 2);
-            const token = await app.page.locator(".candle-scene").evaluate((el) => getComputedStyle(el).getPropertyValue("--window-dawn").trim());
-            const target = [1, 3, 5].map((i) => Number.parseInt(token.slice(i, i + 2), 16));
+            const target = await app.page.locator(".candle-scene").evaluate((el) => {
+              const style = getComputedStyle(el);
+              const top = style.getPropertyValue("--room-dawn-pane-top").trim();
+              const sill = style.getPropertyValue("--room-dawn-pane").trim();
+              return [1, 3, 5].map(i => {
+                const base = Number.parseInt(top.slice(i, i + 2), 16);
+                return base + (Number.parseInt(sill.slice(i, i + 2), 16) - base) * (0.5 / 0.65);
+              });
+            });
             expect(inside.reduce((s, c) => s + c, 0) - left.reduce((s, c) => s + c, 0)).toBeGreaterThan(30);
             expect(Math.max(...inside.map((c, i) => Math.abs(c - target[i]!)))).toBeLessThanOrEqual(6);
           }
         } finally { await app.close(); }
       }
+      console.log("E3", viewport.name, "frame/glass", readings);
       expect(readings["lit-start"]!.style).toEqual(readings["lit-last-minute"]!.style);
       expect(readings["lit-start"]!.frameGlass).toBeGreaterThanOrEqual(1.10);
       expect(readings["lit-last-minute"]!.frameGlass).toBeGreaterThanOrEqual(1.10);
-      console.log("E3", viewport.name, "frame/glass", readings);
     }
   });
 });
@@ -76,7 +85,8 @@ test.describe("room-art E9: reduced motion keeps the Still Setting", () => {
         const ghostReduced = (await readGhosts(reduced.page)).ghosts.map((g) => [g.slot, g.rest.x, g.rest.y]);
         expect(ghostReduced).toEqual(ghostNormal);
         await hideInterface(normal.page); await hideInterface(reduced.page);
-        const points = [[200, 150], [100, 888], [244, 150], [50, 860]] as const;
+        const frame = windowPoint(viewport.width, viewport.height, 244, 150);
+        const points = [[200, 150], [100, 888], [frame.x, frame.y], [50, 860]] as const;
         const one = await normal.page.screenshot({ animations: "disabled" });
         const two = await reduced.page.screenshot({ animations: "disabled" });
         const differences = points.map(([x, y]) => {
